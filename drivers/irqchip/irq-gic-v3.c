@@ -1144,11 +1144,10 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 
 	err = gic_init_bases(dist_base, rdist_regs, nr_redist_regions,
 			     redist_stride, &node->fwnode);
-	if (err)
-		goto out_unmap_rdist;
-
-	gic_populate_ppi_partitions(node);
-	return 0;
+	if (!err) {
+		gic_populate_ppi_partitions(node);
+		return 0;
+	}
 
 out_unmap_rdist:
 	for (i = 0; i < nr_redist_regions; i++)
