@@ -646,6 +646,12 @@ ENDPROC(set_cpu_boot_mode_flag)
 ENTRY(__boot_cpu_mode)
 	.long	BOOT_CPU_MODE_EL2
 	.long	BOOT_CPU_MODE_EL1
+/*
+ * The booting CPU updates the failed status @__early_cpu_boot_status,
+ * with MMU turned off.
+ */
+ENTRY(__early_cpu_boot_status)
+	.long 	0
 
 	.popsection
 
@@ -725,12 +731,6 @@ ENDPROC(__secondary_switched)
 	dmb	sy
 	dc	ivac, \tmp1			// Invalidate potentially stale cache line
 	.endm
-
-	.pushsection	.data..cacheline_aligned
-	.align	L1_CACHE_SHIFT
-ENTRY(__early_cpu_boot_status)
-	.long 	0
-	.popsection
 
 /*
  * Enable the MMU.

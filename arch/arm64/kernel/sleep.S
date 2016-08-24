@@ -106,7 +106,6 @@ ENTRY(cpu_resume)
 	b	__cpu_setup
 ENDPROC(cpu_resume)
 
-	.pushsection	".idmap.text", "ax"
 _resume_switched:
 	ldr	x8, =_cpu_resume
 	br	x8
