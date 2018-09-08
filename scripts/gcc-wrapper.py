@@ -49,6 +49,38 @@ allowed_warnings = set([
     "memcontrol.c:5337", # mm/memcontrol.c:5337:12: warning: initialization from incompatible pointer type
     "atags_to_fdt.c:98", # arch/arm/boot/compressed/atags_to_fdt.c:98:1: warning: the frame size of 1032 bytes is larger than 1024 bytes
     "drm_edid.c:3506", # drivers/gpu/drm/drm_edid.c:3506:13: warning: 'cea_db_is_hdmi_forum_vsdb' defined but not used
+    "vdso.c:119", # arch/arm64/kernel/vdso.c:119:6: warning: ‘memcmp’ reading 4 bytes from a region of size 1 [-Wstringop-overflow=]
+    "syscalls.h:195", # include/linux/syscalls.h:195:18: warning: ‘sys_set_tid_address’ alias between functions of incompatible types ‘long int(int *)’ and ‘long int(long int)’ [-Wattribute-alias]
+    "compat.h:48", # include/linux/compat.h:48:18: warning: ‘compat_sys_sysctl’ alias between functions of incompatible types ‘long int(struct compat_sysctl_args *)’ and ‘long int(long int)’ [-Wattribute-alias]
+    "exec.c:1084", # fs/exec.c:1084:32: warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
+    "regcache-rbtree.c:36", # drivers/base/regmap/regcache-rbtree.c:36:1: warning: alignment 1 of ‘struct regcache_rbtree_node’ is less than 8 [-Wpacked-not-aligned]
+    "dm.c:2488", # drivers/net/wireless/realtek/rtlwifi/rtl8821ae/dm.c:2488:3: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+    "rtl8812a_mp.c:640", # drivers/net/wireless/rockchip_wlan/rtl8812au/hal/rtl8812a/rtl8812a_mp.c:640:7: warning: statement will never be executed [-Wswitch-unreachable]
+    "phydm_adc_sampling.c:46", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/phydm/phydm_adc_sampling.c:46:5: warning: this ‘else’ clause does not guard... [-Wmisleading-indentation]
+    "halbtc8821c1ant.c:2333", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c1ant.c:2333:30: warning: ‘~’ on a boolean expression [-Wbool-operation]
+    "halbtc8821c1ant.c:2337", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c1ant.c:2337:30: warning: ‘~’ on a boolean expression [-Wbool-operation]
+    "halbtc8821c1ant.c:2348", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c1ant.c:2348:30: warning: ‘~’ on a boolean expression [-Wbool-operation]
+    "halbtc8821c2ant.c:454", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c2ant.c:454:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+    "halbtc8821c2ant.c:2064", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c2ant.c:2064:30: warning: ‘~’ on a boolean expression [-Wbool-operation]
+    "halbtc8821c2ant.c:2068", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c2ant.c:2068:30: warning: ‘~’ on a boolean expression [-Wbool-operation]
+    "halbtc8821c2ant.c:2079", # drivers/net/wireless/rockchip_wlan/rtl8821cu/hal/btc/halbtc8821c2ant.c:2079:31: warning: ‘~’ on a boolean expression [-Wbool-operation]
+    "scsi.c:555", # drivers/nvme/host/scsi.c:555:2: warning: ‘strncpy’ output truncated before terminating nul copying 8 bytes from a string of the same length [-Wstringop-truncation]
+    "sctp.h:306", # include/uapi/linux/sctp.h:306:1: warning: alignment 4 of ‘struct sctp_paddr_change’ is less than 8 [-Wpacked-not-aligned]
+    "sctp.h:580", # include/uapi/linux/sctp.h:580:1: warning: alignment 4 of ‘struct sctp_setpeerprim’ is less than 8 [-Wpacked-not-aligned]
+    "sctp.h:579", # include/uapi/linux/sctp.h:579:26: warning: ‘sspp_addr’ offset 4 in ‘struct sctp_setpeerprim’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "sctp.h:593", # include/uapi/linux/sctp.h:593:1: warning: alignment 4 of ‘struct sctp_prim’ is less than 8 [-Wpacked-not-aligned]
+    "sctp.h:592", # include/uapi/linux/sctp.h:592:26: warning: ‘ssp_addr’ offset 4 in ‘struct sctp_prim’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "sctp.h:640", # include/uapi/linux/sctp.h:640:1: warning: alignment 4 of ‘struct sctp_paddrparams’ is less than 8 [-Wpacked-not-aligned]
+    "sctp.h:634", # include/uapi/linux/sctp.h:634:26: warning: ‘spp_address’ offset 4 in ‘struct sctp_paddrparams’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "sctp.h:747", # include/uapi/linux/sctp.h:747:1: warning: alignment 4 of ‘struct sctp_paddrinfo’ is less than 8 [-Wpacked-not-aligned]
+    "sctp.h:741", # include/uapi/linux/sctp.h:741:26: warning: ‘spinfo_address’ offset 4 in ‘struct sctp_paddrinfo’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:518", # net/compat.c:518:1: warning: alignment 4 of ‘struct compat_group_req’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:516", # net/compat.c:516:35: warning: ‘gr_group’ offset 4 in ‘struct compat_group_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:526", # net/compat.c:526:1: warning: alignment 4 of ‘struct compat_group_source_req’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:522", # net/compat.c:522:35: warning: ‘gsr_group’ offset 4 in ‘struct compat_group_source_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:524", # net/compat.c:524:35: warning: ‘gsr_source’ offset 132 in ‘struct compat_group_source_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:536", # net/compat.c:536:1: warning: alignment 4 of ‘struct compat_group_filter’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:530", # net/compat.c:530:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
  ])
 
 # Capture the name of the object file, can find it.
