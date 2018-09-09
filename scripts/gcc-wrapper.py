@@ -74,6 +74,9 @@ allowed_warnings = set([
     "sctp.h:634", # include/uapi/linux/sctp.h:634:26: warning: ‘spp_address’ offset 4 in ‘struct sctp_paddrparams’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "sctp.h:747", # include/uapi/linux/sctp.h:747:1: warning: alignment 4 of ‘struct sctp_paddrinfo’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:741", # include/uapi/linux/sctp.h:741:26: warning: ‘spinfo_address’ offset 4 in ‘struct sctp_paddrinfo’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:520", # net/compat.c:520:1: warning: alignment 4 of ‘struct compat_group_req’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:538", # net/compat.c:538:1: warning: alignment 4 of ‘struct compat_group_filter’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:528", # net/compat.c:528:1: warning: alignment 4 of ‘struct compat_group_source_req’ is less than 8 [-Wpacked-not-aligned]
     "compat.c:518", # net/compat.c:518:1: warning: alignment 4 of ‘struct compat_group_req’ is less than 8 [-Wpacked-not-aligned]
     "compat.c:516", # net/compat.c:516:35: warning: ‘gr_group’ offset 4 in ‘struct compat_group_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "compat.c:526", # net/compat.c:526:1: warning: alignment 4 of ‘struct compat_group_source_req’ is less than 8 [-Wpacked-not-aligned]
@@ -81,6 +84,7 @@ allowed_warnings = set([
     "compat.c:524", # net/compat.c:524:35: warning: ‘gsr_source’ offset 132 in ‘struct compat_group_source_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "compat.c:536", # net/compat.c:536:1: warning: alignment 4 of ‘struct compat_group_filter’ is less than 8 [-Wpacked-not-aligned]
     "compat.c:530", # net/compat.c:530:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:532", # net/compat.c:532:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
  ])
 
 # Capture the name of the object file, can find it.
