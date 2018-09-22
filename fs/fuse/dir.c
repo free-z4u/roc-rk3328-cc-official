@@ -1411,15 +1411,19 @@ static int fuse_readdir(struct file *file, struct dir_context *ctx)
 	return err;
 }
 
-static const char *fuse_follow_link(struct dentry *dentry, void **cookie)
+static const char *fuse_get_link(struct dentry *dentry,
+				 struct inode *inode,
+				 struct delayed_call *done)
 {
-	struct inode *inode = d_inode(dentry);
 	struct fuse_conn *fc = get_fuse_conn(inode);
 	FUSE_ARGS(args);
 	char *link;
 	ssize_t ret;
 
-	link = (char *) __get_free_page(GFP_KERNEL);
+	if (!dentry)
+		return ERR_PTR(-ECHILD);
+
+	link = kmalloc(PAGE_SIZE, GFP_KERNEL);
 	if (!link)
 		return ERR_PTR(-ENOMEM);
 
@@ -1431,11 +1435,11 @@ static const char *fuse_follow_link(struct dentry *dentry, void **cookie)
 	args.out.args[0].value = link;
 	ret = fuse_simple_request(fc, &args);
 	if (ret < 0) {
-		free_page((unsigned long) link);
+		kfree(link);
 		link = ERR_PTR(ret);
 	} else {
 		link[ret] = '\0';
-		*cookie = link;
+		set_delayed_call(done, kfree_link, link);
 	}
 	fuse_invalidate_atime(inode);
 	return link;
@@ -2017,8 +2021,7 @@ static const struct inode_operations fuse_common_inode_operations = {
 
 static const struct inode_operations fuse_symlink_inode_operations = {
 	.setattr	= fuse_setattr,
-	.follow_link	= fuse_follow_link,
-	.put_link	= free_page_put_link,
+	.get_link	= fuse_get_link,
 	.readlink	= generic_readlink,
 	.getattr	= fuse_getattr,
 	.setxattr	= fuse_setxattr,
