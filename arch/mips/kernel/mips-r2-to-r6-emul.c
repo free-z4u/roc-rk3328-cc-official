@@ -28,7 +28,6 @@
 #include <asm/inst.h>
 #include <asm/mips-r2-to-r6-emul.h>
 #include <asm/local.h>
-#include <asm/mipsregs.h>
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
 
@@ -434,8 +433,8 @@ static int multu_func(struct pt_regs *regs, u32 ir)
 	rs = regs->regs[MIPSInst_RS(ir)];
 	res = (u64)rt * (u64)rs;
 	rt = res;
-	regs->lo = (s64)(s32)rt;
-	regs->hi = (s64)(s32)(res >> 32);
+	regs->lo = (s64)rt;
+	regs->hi = (s64)(res >> 32);
 
 	MIPS_R2_STATS(muls);
 
@@ -671,9 +670,9 @@ static int maddu_func(struct pt_regs *regs, u32 ir)
 	res += ((((s64)rt) << 32) | (u32)rs);
 
 	rt = res;
-	regs->lo = (s64)(s32)rt;
+	regs->lo = (s64)rt;
 	rs = res >> 32;
-	regs->hi = (s64)(s32)rs;
+	regs->hi = (s64)rs;
 
 	MIPS_R2_STATS(dsps);
 
@@ -729,9 +728,9 @@ static int msubu_func(struct pt_regs *regs, u32 ir)
 	res = ((((s64)rt) << 32) | (u32)rs) - res;
 
 	rt = res;
-	regs->lo = (s64)(s32)rt;
+	regs->lo = (s64)rt;
 	rs = res >> 32;
-	regs->hi = (s64)(s32)rs;
+	regs->hi = (s64)rs;
 
 	MIPS_R2_STATS(dsps);
 
@@ -1097,20 +1096,10 @@ repeat:
 		}
 		break;
 
-	case blezl_op:
-	case bgtzl_op:
-		/*
-		 * For BLEZL and BGTZL, rt field must be set to 0. If this
-		 * is not the case, this may be an encoding of a MIPS R6
-		 * instruction, so return to CPU execution if this occurs
-		 */
-		if (MIPSInst_RT(inst)) {
-			err = SIGILL;
-			break;
-		}
-		/* fall through */
 	case beql_op:
 	case bnel_op:
+	case blezl_op:
+	case bgtzl_op:
 		if (delay_slot(regs)) {
 			err = SIGILL;
 			break;
@@ -1174,9 +1163,7 @@ fpu_emul:
 		regs->regs[31] = r31;
 		regs->cp0_epc = epc;
 		if (!used_math()) {     /* First time FPU user.  */
-			preempt_disable();
 			err = init_fpu();
-			preempt_enable();
 			set_used_math();
 		}
 		lose_fpu(1);    /* Save FPU state for the emulator. */
@@ -1264,10 +1251,10 @@ fpu_emul:
 			"	j	10b\n"
 			"	.previous\n"
 			"	.section	__ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
+			"	.word	1b,8b\n"
+			"	.word	2b,8b\n"
+			"	.word	3b,8b\n"
+			"	.word	4b,8b\n"
 			"	.previous\n"
 			"	.set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1339,10 +1326,10 @@ fpu_emul:
 			"	j	10b\n"
 			"       .previous\n"
 			"	.section	__ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
+			"	.word	1b,8b\n"
+			"	.word	2b,8b\n"
+			"	.word	3b,8b\n"
+			"	.word	4b,8b\n"
 			"	.previous\n"
 			"	.set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1410,10 +1397,10 @@ fpu_emul:
 			"	j	9b\n"
 			"	.previous\n"
 			"	.section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
+			"	.word	1b,8b\n"
+			"	.word	2b,8b\n"
+			"	.word	3b,8b\n"
+			"	.word	4b,8b\n"
 			"	.previous\n"
 			"	.set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1480,10 +1467,10 @@ fpu_emul:
 			"	j	9b\n"
 			"	.previous\n"
 			"	.section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
+			"	.word	1b,8b\n"
+			"	.word	2b,8b\n"
+			"	.word	3b,8b\n"
+			"	.word	4b,8b\n"
 			"	.previous\n"
 			"	.set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1595,14 +1582,14 @@ fpu_emul:
 			"	j	9b\n"
 			"	.previous\n"
 			"	.section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
-			STR(PTR) " 5b,8b\n"
-			STR(PTR) " 6b,8b\n"
-			STR(PTR) " 7b,8b\n"
-			STR(PTR) " 0b,8b\n"
+			"	.word	1b,8b\n"
+			"	.word	2b,8b\n"
+			"	.word	3b,8b\n"
+			"	.word	4b,8b\n"
+			"	.word	5b,8b\n"
+			"	.word	6b,8b\n"
+			"	.word	7b,8b\n"
+			"	.word	0b,8b\n"
 			"	.previous\n"
 			"	.set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1714,14 +1701,14 @@ fpu_emul:
 			"	j      9b\n"
 			"	.previous\n"
 			"	.section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
-			STR(PTR) " 5b,8b\n"
-			STR(PTR) " 6b,8b\n"
-			STR(PTR) " 7b,8b\n"
-			STR(PTR) " 0b,8b\n"
+			"	.word  1b,8b\n"
+			"	.word  2b,8b\n"
+			"	.word  3b,8b\n"
+			"	.word  4b,8b\n"
+			"	.word  5b,8b\n"
+			"	.word  6b,8b\n"
+			"	.word  7b,8b\n"
+			"	.word  0b,8b\n"
 			"	.previous\n"
 			"	.set    pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1833,14 +1820,14 @@ fpu_emul:
 			"	j	9b\n"
 			"	.previous\n"
 			"	.section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
-			STR(PTR) " 5b,8b\n"
-			STR(PTR) " 6b,8b\n"
-			STR(PTR) " 7b,8b\n"
-			STR(PTR) " 0b,8b\n"
+			"	.word	1b,8b\n"
+			"	.word	2b,8b\n"
+			"	.word	3b,8b\n"
+			"	.word	4b,8b\n"
+			"	.word	5b,8b\n"
+			"	.word	6b,8b\n"
+			"	.word	7b,8b\n"
+			"	.word	0b,8b\n"
 			"	.previous\n"
 			"	.set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -1951,14 +1938,14 @@ fpu_emul:
 			"       j	9b\n"
 			"       .previous\n"
 			"       .section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,8b\n"
-			STR(PTR) " 2b,8b\n"
-			STR(PTR) " 3b,8b\n"
-			STR(PTR) " 4b,8b\n"
-			STR(PTR) " 5b,8b\n"
-			STR(PTR) " 6b,8b\n"
-			STR(PTR) " 7b,8b\n"
-			STR(PTR) " 0b,8b\n"
+			"       .word	1b,8b\n"
+			"       .word	2b,8b\n"
+			"       .word	3b,8b\n"
+			"       .word	4b,8b\n"
+			"       .word	5b,8b\n"
+			"       .word	6b,8b\n"
+			"       .word	7b,8b\n"
+			"       .word	0b,8b\n"
 			"       .previous\n"
 			"       .set	pop\n"
 			: "+&r"(rt), "=&r"(rs),
@@ -2013,7 +2000,7 @@ fpu_emul:
 			"j	2b\n"
 			".previous\n"
 			".section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,3b\n"
+			".word  1b, 3b\n"
 			".previous\n"
 			: "=&r"(res), "+&r"(err)
 			: "r"(vaddr), "i"(SIGSEGV)
@@ -2071,7 +2058,7 @@ fpu_emul:
 			"j	2b\n"
 			".previous\n"
 			".section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,3b\n"
+			".word	1b, 3b\n"
 			".previous\n"
 			: "+&r"(res), "+&r"(err)
 			: "r"(vaddr), "i"(SIGSEGV));
@@ -2132,7 +2119,7 @@ fpu_emul:
 			"j	2b\n"
 			".previous\n"
 			".section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,3b\n"
+			".word  1b, 3b\n"
 			".previous\n"
 			: "=&r"(res), "+&r"(err)
 			: "r"(vaddr), "i"(SIGSEGV)
@@ -2195,7 +2182,7 @@ fpu_emul:
 			"j	2b\n"
 			".previous\n"
 			".section        __ex_table,\"a\"\n"
-			STR(PTR) " 1b,3b\n"
+			".word	1b, 3b\n"
 			".previous\n"
 			: "+&r"(res), "+&r"(err)
 			: "r"(vaddr), "i"(SIGSEGV));
@@ -2340,8 +2327,6 @@ static int mipsr2_stats_clear_show(struct seq_file *s, void *unused)
 	__this_cpu_write((mipsr2bremustats).bgezl, 0);
 	__this_cpu_write((mipsr2bremustats).bltzll, 0);
 	__this_cpu_write((mipsr2bremustats).bgezll, 0);
-	__this_cpu_write((mipsr2bremustats).bltzall, 0);
-	__this_cpu_write((mipsr2bremustats).bgezall, 0);
 	__this_cpu_write((mipsr2bremustats).bltzal, 0);
 	__this_cpu_write((mipsr2bremustats).bgezal, 0);
 	__this_cpu_write((mipsr2bremustats).beql, 0);
