@@ -756,7 +756,8 @@ find_xattr_handler_prefix(const struct xattr_handler **handlers,
 		return NULL;
 
 	for_each_xattr_handler(handlers, xah) {
-		if (strncmp(xah->prefix, name, strlen(xah->prefix)) == 0)
+		const char *prefix = xattr_prefix(xah);
+		if (strncmp(prefix, name, strlen(prefix)) == 0)
 			break;
 	}
 
@@ -785,21 +786,18 @@ static int listxattr_filler(struct dir_context *ctx, const char *name,
 
 		handler = find_xattr_handler_prefix(b->dentry->d_sb->s_xattr,
 						    name);
-		if (!handler)	/* Unsupported xattr name */
+		if (!handler /* Unsupported xattr name */ ||
+		    (handler->list && !handler->list(b->dentry)))
 			return 0;
+		size = namelen + 1;
 		if (b->buf) {
-			size = handler->list(handler, b->dentry,
-					     b->buf + b->pos, b->size, name,
-					     namelen);
 			if (b->pos + size > b->size) {
 				b->pos = -ERANGE;
 				return -ERANGE;
 			}
-		} else {
-			size = handler->list(handler, b->dentry,
-					     NULL, 0, name, namelen);
+			memcpy(b->buf + b->pos, name, namelen);
+			b->buf[b->pos + namelen] = 0;
 		}
-
 		b->pos += size;
 	}
 	return 0;
