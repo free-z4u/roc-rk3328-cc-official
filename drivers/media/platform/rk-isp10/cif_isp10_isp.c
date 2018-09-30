@@ -3173,7 +3173,6 @@ static void cifisp_release(struct video_device *vdev)
 
 /************************************************************/
 static int cif_isp10_vb2_queue_setup(struct vb2_queue *vq,
-			const void *parg,
 			unsigned int *count, unsigned int *num_planes,
 			unsigned int sizes[], void *alloc_ctxs[])
 {

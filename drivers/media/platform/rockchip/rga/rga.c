@@ -96,7 +96,7 @@ static irqreturn_t rga_isr(int irq, void *prv)
 		WARN_ON(!dst);
 
 		dst->timecode = src->timecode;
-		dst->timestamp = src->timestamp;
+		dst->vb2_buf.timestamp = src->vb2_buf.timestamp;
 		dst->flags &= ~V4L2_BUF_FLAG_TSTAMP_SRC_MASK;
 		dst->flags |= src->flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK;
 

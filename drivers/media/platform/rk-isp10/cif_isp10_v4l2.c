@@ -838,7 +838,6 @@ err:
 }
 
 static int cif_isp10_v4l2_vb2_queue_setup(struct vb2_queue *queue,
-			const void *parg,
 			unsigned int *num_buffers, unsigned int *num_planes,
 			unsigned int sizes[], void *alloc_ctxs[])
 {

@@ -24,7 +24,7 @@
 #include "rga.h"
 
 static int
-rga_queue_setup(struct vb2_queue *vq, const void *parg,
+rga_queue_setup(struct vb2_queue *vq,
 		unsigned int *nbuffers, unsigned int *nplanes,
 		unsigned int sizes[], void *alloc_devs[])
 {
