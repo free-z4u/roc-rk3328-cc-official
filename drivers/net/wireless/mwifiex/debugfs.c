@@ -448,20 +448,13 @@ static ssize_t
 mwifiex_regrdwr_write(struct file *file,
 		      const char __user *ubuf, size_t count, loff_t *ppos)
 {
-	unsigned long addr = get_zeroed_page(GFP_KERNEL);
-	char *buf = (char *) addr;
-	size_t buf_size = min_t(size_t, count, PAGE_SIZE - 1);
+	char *buf;
 	int ret;
 	u32 reg_type = 0, reg_offset = 0, reg_value = UINT_MAX;
 
-	if (!buf)
-		return -ENOMEM;
-
-
-	if (copy_from_user(buf, ubuf, buf_size)) {
-		ret = -EFAULT;
-		goto done;
-	}
+	buf = memdup_user_nul(ubuf, min(count, (size_t)(PAGE_SIZE - 1)));
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
 
 	sscanf(buf, "%u %x %x", &reg_type, &reg_offset, &reg_value);
 
@@ -475,7 +468,7 @@ mwifiex_regrdwr_write(struct file *file,
 		ret = count;
 	}
 done:
-	free_page(addr);
+	kfree(buf);
 	return ret;
 }
 
@@ -573,17 +566,11 @@ mwifiex_debug_mask_write(struct file *file, const char __user *ubuf,
 	int ret;
 	unsigned long debug_mask;
 	struct mwifiex_private *priv = (void *)file->private_data;
-	unsigned long addr = get_zeroed_page(GFP_KERNEL);
-	char *buf = (void *)addr;
-	size_t buf_size = min(count, (size_t)(PAGE_SIZE - 1));
+	char *buf;
 
-	if (!buf)
-		return -ENOMEM;
-
-	if (copy_from_user(buf, ubuf, buf_size)) {
-		ret = -EFAULT;
-		goto done;
-	}
+	buf = memdup_user_nul(ubuf, min(count, (size_t)(PAGE_SIZE - 1)));
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
 
 	if (kstrtoul(buf, 0, &debug_mask)) {
 		ret = -EINVAL;
@@ -593,7 +580,7 @@ mwifiex_debug_mask_write(struct file *file, const char __user *ubuf,
 	priv->adapter->debug_mask = debug_mask;
 	ret = count;
 done:
-	free_page(addr);
+	kfree(buf);
 	return ret;
 }
 
@@ -610,17 +597,11 @@ mwifiex_memrw_write(struct file *file, const char __user *ubuf, size_t count,
 	struct mwifiex_ds_mem_rw mem_rw;
 	u16 cmd_action;
 	struct mwifiex_private *priv = (void *)file->private_data;
-	unsigned long addr = get_zeroed_page(GFP_KERNEL);
-	char *buf = (void *)addr;
-	size_t buf_size = min(count, (size_t)(PAGE_SIZE - 1));
+	char *buf;
 
-	if (!buf)
-		return -ENOMEM;
-
-	if (copy_from_user(buf, ubuf, buf_size)) {
-		ret = -EFAULT;
-		goto done;
-	}
+	buf = memdup_user_nul(ubuf, min(count, (size_t)(PAGE_SIZE - 1)));
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
 
 	ret = sscanf(buf, "%c %x %x", &cmd, &mem_rw.addr, &mem_rw.value);
 	if (ret != 3) {
@@ -646,7 +627,7 @@ mwifiex_memrw_write(struct file *file, const char __user *ubuf, size_t count,
 		ret = count;
 
 done:
-	free_page(addr);
+	kfree(buf);
 	return ret;
 }
 
@@ -687,20 +668,13 @@ static ssize_t
 mwifiex_rdeeprom_write(struct file *file,
 		       const char __user *ubuf, size_t count, loff_t *ppos)
 {
-	unsigned long addr = get_zeroed_page(GFP_KERNEL);
-	char *buf = (char *) addr;
-	size_t buf_size = min_t(size_t, count, PAGE_SIZE - 1);
+	char *buf;
 	int ret = 0;
 	int offset = -1, bytes = -1;
 
-	if (!buf)
-		return -ENOMEM;
-
-
-	if (copy_from_user(buf, ubuf, buf_size)) {
-		ret = -EFAULT;
-		goto done;
-	}
+	buf = memdup_user_nul(ubuf, min(count, (size_t)(PAGE_SIZE - 1)));
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
 
 	sscanf(buf, "%d %d", &offset, &bytes);
 
@@ -713,7 +687,7 @@ mwifiex_rdeeprom_write(struct file *file,
 		ret = count;
 	}
 done:
-	free_page(addr);
+	kfree(buf);
 	return ret;
 }
 
@@ -772,21 +746,15 @@ mwifiex_hscfg_write(struct file *file, const char __user *ubuf,
 		    size_t count, loff_t *ppos)
 {
 	struct mwifiex_private *priv = (void *)file->private_data;
-	unsigned long addr = get_zeroed_page(GFP_KERNEL);
-	char *buf = (char *)addr;
-	size_t buf_size = min_t(size_t, count, PAGE_SIZE - 1);
+	char *buf;
 	int ret, arg_num;
 	struct mwifiex_ds_hs_cfg hscfg;
 	int conditions = HS_CFG_COND_DEF;
 	u32 gpio = HS_CFG_GPIO_DEF, gap = HS_CFG_GAP_DEF;
 
-	if (!buf)
-		return -ENOMEM;
-
-	if (copy_from_user(buf, ubuf, buf_size)) {
-		ret = -EFAULT;
-		goto done;
-	}
+	buf = memdup_user_nul(ubuf, min(count, (size_t)(PAGE_SIZE - 1)));
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
 
 	arg_num = sscanf(buf, "%d %x %x", &conditions, &gpio, &gap);
 
@@ -824,7 +792,7 @@ mwifiex_hscfg_write(struct file *file, const char __user *ubuf,
 	priv->adapter->hs_enabling = false;
 	ret = count;
 done:
-	free_page(addr);
+	kfree(buf);
 	return ret;
 }
 
