@@ -6,6 +6,9 @@
 #include <linux/context_tracking.h>
 #include "sched.h"
 #include "walt.h"
+#ifdef CONFIG_PARAVIRT
+#include <asm/paravirt.h>
+#endif
 
 
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
