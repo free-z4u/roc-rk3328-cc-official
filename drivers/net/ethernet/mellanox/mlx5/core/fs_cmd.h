@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, Mellanox Technologies, Ltd.  All rights reserved.
+ * Copyright (c) 2015, Mellanox Technologies. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -30,25 +30,36 @@
  * SOFTWARE.
  */
 
-#ifndef MLX5_FLOW_TABLE_H
-#define MLX5_FLOW_TABLE_H
+#ifndef _MLX5_FS_CMD_
+#define _MLX5_FS_CMD_
 
-#include <linux/mlx5/driver.h>
+int mlx5_cmd_create_flow_table(struct mlx5_core_dev *dev,
+			       enum fs_flow_table_type type, unsigned int level,
+			       unsigned int log_size, unsigned int *table_id);
 
-struct mlx5_flow_table_group {
-	u8	log_sz;
-	u8	match_criteria_enable;
-	u32	match_criteria[MLX5_ST_SZ_DW(fte_match_param)];
-};
+int mlx5_cmd_destroy_flow_table(struct mlx5_core_dev *dev,
+				struct mlx5_flow_table *ft);
 
-void *mlx5_create_flow_table(struct mlx5_core_dev *dev, u8 level, u8 table_type,
-			     u16 num_groups,
-			     struct mlx5_flow_table_group *group);
-void mlx5_destroy_flow_table(void *flow_table);
-int mlx5_add_flow_table_entry(void *flow_table, u8 match_criteria_enable,
-			      void *match_criteria, void *flow_context,
-			      u32 *flow_index);
-void mlx5_del_flow_table_entry(void *flow_table, u32 flow_index);
-u32 mlx5_get_flow_table_id(void *flow_table);
+int mlx5_cmd_create_flow_group(struct mlx5_core_dev *dev,
+			       struct mlx5_flow_table *ft,
+			       u32 *in, unsigned int *group_id);
 
-#endif /* MLX5_FLOW_TABLE_H */
+int mlx5_cmd_destroy_flow_group(struct mlx5_core_dev *dev,
+				struct mlx5_flow_table *ft,
+				unsigned int group_id);
+
+int mlx5_cmd_create_fte(struct mlx5_core_dev *dev,
+			struct mlx5_flow_table *ft,
+			unsigned group_id,
+			struct fs_fte *fte);
+
+int mlx5_cmd_update_fte(struct mlx5_core_dev *dev,
+			struct mlx5_flow_table *ft,
+			unsigned group_id,
+			struct fs_fte *fte);
+
+int mlx5_cmd_delete_fte(struct mlx5_core_dev *dev,
+			struct mlx5_flow_table *ft,
+			unsigned int index);
+
+#endif
