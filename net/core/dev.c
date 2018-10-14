@@ -96,6 +96,7 @@
 #include <linux/skbuff.h>
 #include <net/net_namespace.h>
 #include <net/sock.h>
+#include <net/busy_poll.h>
 #include <linux/rtnetlink.h>
 #include <linux/stat.h>
 #include <net/dst.h>
@@ -183,7 +184,7 @@ EXPORT_SYMBOL(dev_base_lock);
 static DEFINE_SPINLOCK(napi_hash_lock);
 
 static unsigned int napi_gen_id = NR_CPUS;
-static DEFINE_HASHTABLE(napi_hash, 8);
+static DEFINE_READ_MOSTLY_HASHTABLE(napi_hash, 8);
 
 static seqcount_t devnet_rename_seq;
 
@@ -4439,6 +4440,7 @@ static gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 
 gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
+	skb_mark_napi_id(skb, napi);
 	trace_napi_gro_receive_entry(skb);
 
 	skb_gro_reset_offset(skb);
@@ -4472,7 +4474,10 @@ struct sk_buff *napi_get_frags(struct napi_struct *napi)
 
 	if (!skb) {
 		skb = napi_alloc_skb(napi, GRO_MAX_HEAD);
-		napi->skb = skb;
+		if (skb) {
+			napi->skb = skb;
+			skb_mark_napi_id(skb, napi);
+		}
 	}
 	return skb;
 }
@@ -4753,7 +4758,7 @@ void napi_complete_done(struct napi_struct *n, int work_done)
 EXPORT_SYMBOL(napi_complete_done);
 
 /* must be called under rcu_read_lock(), as we dont take a reference */
-struct napi_struct *napi_by_id(unsigned int napi_id)
+static struct napi_struct *napi_by_id(unsigned int napi_id)
 {
 	unsigned int hash = napi_id % HASH_SIZE(napi_hash);
 	struct napi_struct *napi;
@@ -4764,11 +4769,68 @@ struct napi_struct *napi_by_id(unsigned int napi_id)
 
 	return NULL;
 }
-EXPORT_SYMBOL_GPL(napi_by_id);
+
+#if defined(CONFIG_NET_RX_BUSY_POLL)
+#define BUSY_POLL_BUDGET 8
+bool sk_busy_loop(struct sock *sk, int nonblock)
+{
+	unsigned long end_time = !nonblock ? sk_busy_loop_end_time(sk) : 0;
+	int (*busy_poll)(struct napi_struct *dev);
+	struct napi_struct *napi;
+	int rc = false;
+
+	rcu_read_lock();
+
+	napi = napi_by_id(sk->sk_napi_id);
+	if (!napi)
+		goto out;
+
+	/* Note: ndo_busy_poll method is optional in linux-4.5 */
+	busy_poll = napi->dev->netdev_ops->ndo_busy_poll;
+
+	do {
+		rc = 0;
+		local_bh_disable();
+		if (busy_poll) {
+			rc = busy_poll(napi);
+		} else if (napi_schedule_prep(napi)) {
+			void *have = netpoll_poll_lock(napi);
+
+			if (test_bit(NAPI_STATE_SCHED, &napi->state)) {
+				rc = napi->poll(napi, BUSY_POLL_BUDGET);
+				trace_napi_poll(napi);
+				if (rc == BUSY_POLL_BUDGET) {
+					napi_complete_done(napi, rc);
+					napi_schedule(napi);
+				}
+			}
+			netpoll_poll_unlock(have);
+		}
+		if (rc > 0)
+			NET_ADD_STATS_BH(sock_net(sk),
+					 LINUX_MIB_BUSYPOLLRXPACKETS, rc);
+		local_bh_enable();
+
+		if (rc == LL_FLUSH_FAILED)
+			break; /* permanent failure */
+
+		cpu_relax();
+	} while (!nonblock && skb_queue_empty(&sk->sk_receive_queue) &&
+		 !need_resched() && !busy_loop_timeout(end_time));
+
+	rc = !skb_queue_empty(&sk->sk_receive_queue);
+out:
+	rcu_read_unlock();
+	return rc;
+}
+EXPORT_SYMBOL(sk_busy_loop);
+
+#endif /* CONFIG_NET_RX_BUSY_POLL */
 
 void napi_hash_add(struct napi_struct *napi)
 {
-	if (test_and_set_bit(NAPI_STATE_HASHED, &napi->state))
+	if (test_bit(NAPI_STATE_NO_BUSY_POLL, &napi->state) ||
+	    test_and_set_bit(NAPI_STATE_HASHED, &napi->state))
 		return;
 
 	spin_lock(&napi_hash_lock);
@@ -4790,14 +4852,18 @@ EXPORT_SYMBOL_GPL(napi_hash_add);
 /* Warning : caller is responsible to make sure rcu grace period
  * is respected before freeing memory containing @napi
  */
-void napi_hash_del(struct napi_struct *napi)
+bool napi_hash_del(struct napi_struct *napi)
 {
+	bool rcu_sync_needed = false;
+
 	spin_lock(&napi_hash_lock);
 
-	if (test_and_clear_bit(NAPI_STATE_HASHED, &napi->state))
+	if (test_and_clear_bit(NAPI_STATE_HASHED, &napi->state)) {
+		rcu_sync_needed = true;
 		hlist_del_rcu(&napi->napi_hash_node);
-
+	}
 	spin_unlock(&napi_hash_lock);
+	return rcu_sync_needed;
 }
 EXPORT_SYMBOL_GPL(napi_hash_del);
 
@@ -4833,6 +4899,7 @@ void netif_napi_add(struct net_device *dev, struct napi_struct *napi,
 	napi->poll_owner = -1;
 #endif
 	set_bit(NAPI_STATE_SCHED, &napi->state);
+	napi_hash_add(napi);
 }
 EXPORT_SYMBOL(netif_napi_add);
 
@@ -4852,8 +4919,12 @@ void napi_disable(struct napi_struct *n)
 }
 EXPORT_SYMBOL(napi_disable);
 
+/* Must be called in process context */
 void netif_napi_del(struct napi_struct *napi)
 {
+	might_sleep();
+	if (napi_hash_del(napi))
+		synchronize_net();
 	list_del_init(&napi->dev_list);
 	napi_free_frags(napi);
 
@@ -7261,11 +7332,13 @@ EXPORT_SYMBOL(alloc_netdev_mqs);
  *	This function does the last stage of destroying an allocated device
  * 	interface. The reference to the device object is released.
  *	If this is the last reference then it will be freed.
+ *	Must be called in process context.
  */
 void free_netdev(struct net_device *dev)
 {
 	struct napi_struct *p, *n;
 
+	might_sleep();
 	netif_free_tx_queues(dev);
 #ifdef CONFIG_SYSFS
 	kvfree(dev->_rx);
