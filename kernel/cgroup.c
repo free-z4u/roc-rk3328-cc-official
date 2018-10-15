@@ -4055,7 +4055,7 @@ int cgroup_transfer_tasks(struct cgroup *to, struct cgroup *from)
 		goto out_err;
 
 	/*
-	 * Migrate tasks one-by-one until @form is empty.  This fails iff
+	 * Migrate tasks one-by-one until @from is empty.  This fails iff
 	 * ->can_attach() fails.
 	 */
 	do {
@@ -5209,7 +5209,7 @@ static void __init cgroup_init_subsys(struct cgroup_subsys *ss, bool early)
 {
 	struct cgroup_subsys_state *css;
 
-	printk(KERN_INFO "Initializing cgroup subsys %s\n", ss->name);
+	pr_debug("Initializing cgroup subsys %s\n", ss->name);
 
 	mutex_lock(&cgroup_mutex);
 
@@ -5517,19 +5517,6 @@ static const struct file_operations proc_cgroupstats_operations = {
 	.release = single_release,
 };
 
-static void **subsys_canfork_priv_p(void *ss_priv[CGROUP_CANFORK_COUNT], int i)
-{
-	if (CGROUP_CANFORK_START <= i && i < CGROUP_CANFORK_END)
-		return &ss_priv[i - CGROUP_CANFORK_START];
-	return NULL;
-}
-
-static void *subsys_canfork_priv(void *ss_priv[CGROUP_CANFORK_COUNT], int i)
-{
-	void **private = subsys_canfork_priv_p(ss_priv, i);
-	return private ? *private : NULL;
-}
-
 /**
  * cgroup_fork - initialize cgroup related fields during copy_process()
  * @child: pointer to task_struct of forking parent process.
@@ -5552,14 +5539,13 @@ void cgroup_fork(struct task_struct *child)
  * returns an error, the fork aborts with that error code. This allows for
  * a cgroup subsystem to conditionally allow or deny new forks.
  */
-int cgroup_can_fork(struct task_struct *child,
-		    void *ss_priv[CGROUP_CANFORK_COUNT])
+int cgroup_can_fork(struct task_struct *child)
 {
 	struct cgroup_subsys *ss;
 	int i, j, ret;
 
 	for_each_subsys_which(ss, i, &have_canfork_callback) {
-		ret = ss->can_fork(child, subsys_canfork_priv_p(ss_priv, i));
+		ret = ss->can_fork(child);
 		if (ret)
 			goto out_revert;
 	}
@@ -5571,7 +5557,7 @@ out_revert:
 		if (j >= i)
 			break;
 		if (ss->cancel_fork)
-			ss->cancel_fork(child, subsys_canfork_priv(ss_priv, j));
+			ss->cancel_fork(child);
 	}
 
 	return ret;
@@ -5584,15 +5570,14 @@ out_revert:
  * This calls the cancel_fork() callbacks if a fork failed *after*
  * cgroup_can_fork() succeded.
  */
-void cgroup_cancel_fork(struct task_struct *child,
-			void *ss_priv[CGROUP_CANFORK_COUNT])
+void cgroup_cancel_fork(struct task_struct *child)
 {
 	struct cgroup_subsys *ss;
 	int i;
 
 	for_each_subsys(ss, i)
 		if (ss->cancel_fork)
-			ss->cancel_fork(child, subsys_canfork_priv(ss_priv, i));
+			ss->cancel_fork(child);
 }
 
 /**
@@ -5605,8 +5590,7 @@ void cgroup_cancel_fork(struct task_struct *child,
  * cgroup_task_iter_start() - to guarantee that the new task ends up on its
  * list.
  */
-void cgroup_post_fork(struct task_struct *child,
-		      void *old_ss_priv[CGROUP_CANFORK_COUNT])
+void cgroup_post_fork(struct task_struct *child)
 {
 	struct cgroup_subsys *ss;
 	int i;
@@ -5650,7 +5634,7 @@ void cgroup_post_fork(struct task_struct *child,
 	 * and addition to css_set.
 	 */
 	for_each_subsys_which(ss, i, &have_fork_callback)
-		ss->fork(child, subsys_canfork_priv(old_ss_priv, i));
+		ss->fork(child);
 }
 
 /**
