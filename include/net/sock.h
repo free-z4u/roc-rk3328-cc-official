@@ -318,6 +318,7 @@ struct cg_proto;
   *	@sk_error_report: callback to indicate errors (e.g. %MSG_ERRQUEUE)
   *	@sk_backlog_rcv: callback to process the backlog
   *	@sk_destruct: called at sock freeing time, i.e. when all refcnt == 0
+  *	@sk_reuseport_cb: reuseport group container
  */
 struct sock {
 	/*
@@ -454,6 +455,7 @@ struct sock {
 	int			(*sk_backlog_rcv)(struct sock *sk,
 						  struct sk_buff *skb);
 	void                    (*sk_destruct)(struct sock *sk);
+	struct sock_reuseport __rcu	*sk_reuseport_cb;
 };
 
 #define __sk_user_data(sk) ((*((void __rcu **)&(sk)->sk_user_data)))
@@ -1810,6 +1812,15 @@ static inline void sk_nocaps_add(struct sock *sk, netdev_features_t flags)
 {
 	sk->sk_route_nocaps |= flags;
 	sk->sk_route_caps &= ~flags;
+}
+
+static inline bool sk_check_csum_caps(struct sock *sk)
+{
+	return (sk->sk_route_caps & NETIF_F_HW_CSUM) ||
+	       (sk->sk_family == PF_INET &&
+		(sk->sk_route_caps & NETIF_F_IP_CSUM)) ||
+	       (sk->sk_family == PF_INET6 &&
+		(sk->sk_route_caps & NETIF_F_IPV6_CSUM));
 }
 
 static inline int skb_do_copy_data_nocache(struct sock *sk, struct sk_buff *skb,

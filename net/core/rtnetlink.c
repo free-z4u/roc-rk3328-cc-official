@@ -1029,6 +1029,7 @@ static int rtnl_phys_switch_id_fill(struct sk_buff *skb, struct net_device *dev)
 {
 	int err;
 	struct switchdev_attr attr = {
+		.orig_dev = dev,
 		.id = SWITCHDEV_ATTR_ID_PORT_PARENT_ID,
 		.flags = SWITCHDEV_F_NO_RECURSE,
 	};
@@ -2575,7 +2576,7 @@ static int nlmsg_populate_fdb_fill(struct sk_buff *skb,
 				   struct net_device *dev,
 				   u8 *addr, u16 vid, u32 pid, u32 seq,
 				   int type, unsigned int flags,
-				   int nlflags)
+				   int nlflags, u16 ndm_state)
 {
 	struct nlmsghdr *nlh;
 	struct ndmsg *ndm;
@@ -2591,7 +2592,7 @@ static int nlmsg_populate_fdb_fill(struct sk_buff *skb,
 	ndm->ndm_flags	 = flags;
 	ndm->ndm_type	 = 0;
 	ndm->ndm_ifindex = dev->ifindex;
-	ndm->ndm_state   = NUD_PERMANENT;
+	ndm->ndm_state   = ndm_state;
 
 	if (nla_put(skb, NDA_LLADDR, ETH_ALEN, addr))
 		goto nla_put_failure;
@@ -2615,7 +2616,8 @@ static inline size_t rtnl_fdb_nlmsg_size(void)
 	       0;
 }
 
-static void rtnl_fdb_notify(struct net_device *dev, u8 *addr, u16 vid, int type)
+static void rtnl_fdb_notify(struct net_device *dev, u8 *addr, u16 vid, int type,
+			    u16 ndm_state)
 {
 	struct net *net = dev_net(dev);
 	struct sk_buff *skb;
@@ -2626,7 +2628,7 @@ static void rtnl_fdb_notify(struct net_device *dev, u8 *addr, u16 vid, int type)
 		goto errout;
 
 	err = nlmsg_populate_fdb_fill(skb, dev, addr, vid,
-				      0, 0, type, NTF_SELF, 0);
+				      0, 0, type, NTF_SELF, 0, ndm_state);
 	if (err < 0) {
 		kfree_skb(skb);
 		goto errout;
@@ -2761,7 +2763,8 @@ static int rtnl_fdb_add(struct sk_buff *skb, struct nlmsghdr *nlh)
 					       nlh->nlmsg_flags);
 
 		if (!err) {
-			rtnl_fdb_notify(dev, addr, vid, RTM_NEWNEIGH);
+			rtnl_fdb_notify(dev, addr, vid, RTM_NEWNEIGH,
+					ndm->ndm_state);
 			ndm->ndm_flags &= ~NTF_SELF;
 		}
 	}
@@ -2862,7 +2865,8 @@ static int rtnl_fdb_del(struct sk_buff *skb, struct nlmsghdr *nlh)
 			err = ndo_dflt_fdb_del(ndm, tb, dev, addr, vid);
 
 		if (!err) {
-			rtnl_fdb_notify(dev, addr, vid, RTM_DELNEIGH);
+			rtnl_fdb_notify(dev, addr, vid, RTM_DELNEIGH,
+					ndm->ndm_state);
 			ndm->ndm_flags &= ~NTF_SELF;
 		}
 	}
@@ -2890,7 +2894,7 @@ static int nlmsg_populate_fdb(struct sk_buff *skb,
 		err = nlmsg_populate_fdb_fill(skb, dev, ha->addr, 0,
 					      portid, seq,
 					      RTM_NEWNEIGH, NTF_SELF,
-					      NLM_F_MULTI);
+					      NLM_F_MULTI, NUD_PERMANENT);
 		if (err < 0)
 			return err;
 skip:
@@ -3372,7 +3376,7 @@ static int rtnetlink_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 {
 	struct net *net = sock_net(skb->sk);
 	rtnl_doit_func doit;
-	int sz_idx, kind;
+	int kind;
 	int family;
 	int type;
 	int err;
@@ -3388,7 +3392,6 @@ static int rtnetlink_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 		return 0;
 
 	family = ((struct rtgenmsg *)nlmsg_data(nlh))->rtgen_family;
-	sz_idx = type>>2;
 	kind = type&3;
 
 	if (kind != 2 && !netlink_net_capable(skb, CAP_NET_ADMIN))

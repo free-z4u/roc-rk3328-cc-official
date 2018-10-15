@@ -27,7 +27,7 @@
  * in the file called COPYING.
  *
  * Contact Information:
- *  Intel Linux Wireless <ilw@linux.intel.com>
+ *  Intel Linux Wireless <linuxwifi@intel.com>
  * Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
  *
  * BSD LICENSE
@@ -72,8 +72,8 @@
 
 /* Highest firmware API version supported */
 #define IWL7260_UCODE_API_MAX	17
-#define IWL7265_UCODE_API_MAX	19
-#define IWL7265D_UCODE_API_MAX	19
+#define IWL7265_UCODE_API_MAX	17
+#define IWL7265D_UCODE_API_MAX	20
 
 /* Oldest version we won't warn about */
 #define IWL7260_UCODE_API_OK	13

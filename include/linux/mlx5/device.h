@@ -454,9 +454,12 @@ struct mlx5_init_seg {
 	__be32			rsvd1[120];
 	__be32			initializing;
 	struct health_buffer	health;
-	__be32			rsvd2[884];
+	__be32			rsvd2[880];
+	__be32			internal_timer_h;
+	__be32			internal_timer_l;
+	__be32			rsrv3[2];
 	__be32			health_counter;
-	__be32			rsvd3[1019];
+	__be32			rsvd4[1019];
 	__be64			ieee1588_clk;
 	__be32			ieee1588_clk_type;
 	__be32			clr_intx;
@@ -612,7 +615,8 @@ struct mlx5_cqe64 {
 	__be32		imm_inval_pkey;
 	u8		rsvd40[4];
 	__be32		byte_cnt;
-	__be64		timestamp;
+	__be32		timestamp_h;
+	__be32		timestamp_l;
 	__be32		sop_drop_qpn;
 	__be16		wqe_counter;
 	u8		signature;
@@ -632,6 +636,16 @@ static inline u8 get_cqe_l4_hdr_type(struct mlx5_cqe64 *cqe)
 static inline int cqe_has_vlan(struct mlx5_cqe64 *cqe)
 {
 	return !!(cqe->l4_hdr_type_etc & 0x1);
+}
+
+static inline u64 get_cqe_ts(struct mlx5_cqe64 *cqe)
+{
+	u32 hi, lo;
+
+	hi = be32_to_cpu(cqe->timestamp_h);
+	lo = be32_to_cpu(cqe->timestamp_l);
+
+	return (u64)lo | ((u64)hi << 32);
 }
 
 enum {
@@ -1260,5 +1274,7 @@ static inline u16 mlx5_to_sw_pkey_sz(int pkey_sz)
 		return 0;
 	return MLX5_MIN_PKEY_TABLE_SIZE << pkey_sz;
 }
+
+#define MLX5_BY_PASS_NUM_PRIOS 9
 
 #endif /* MLX5_DEVICE_H */

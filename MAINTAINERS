@@ -371,6 +371,15 @@ ADDRESS SPACE LAYOUT RANDOMIZATION (ASLR)
 M:	Jiri Kosina <jikos@kernel.org>
 S:	Maintained
 
+ADF7242 IEEE 802.15.4 RADIO DRIVER
+M:	Michael Hennerich <michael.hennerich@analog.com>
+W:	https://wiki.analog.com/ADF7242
+W:	http://ez.analog.com/community/linux-device-drivers
+L:	linux-wpan@vger.kernel.org
+S:	Supported
+F:	drivers/net/ieee802154/adf7242.c
+F:	Documentation/devicetree/bindings/net/ieee802154/adf7242.txt
+
 ADM1025 HARDWARE MONITOR DRIVER
 M:	Jean Delvare <jdelvare@suse.com>
 L:	linux-hwmon@vger.kernel.org
@@ -2105,7 +2114,7 @@ F:	include/linux/backlight.h
 BATMAN ADVANCED
 M:	Marek Lindner <mareklindner@neomailbox.ch>
 M:	Simon Wunderlich <sw@simonwunderlich.de>
-M:	Antonio Quartulli <antonio@meshcoding.com>
+M:	Antonio Quartulli <a@unstable.cc>
 L:	b.a.t.m.a.n@lists.open-mesh.org
 W:	http://www.open-mesh.org/
 S:	Maintained
@@ -5277,6 +5286,13 @@ L:	netdev@vger.kernel.org
 S:	Supported
 F:	drivers/net/ethernet/ibm/ibmveth.*
 
+IBM Power SRIOV Virtual NIC Device Driver
+M:	Thomas Falcon <tlfalcon@linux.vnet.ibm.com>
+M:	John Allen <jallen@linux.vnet.ibm.com>
+L:	netdev@vger.kernel.org
+S:	Supported
+F:	drivers/net/ethernet/ibm/ibmvnic.*
+
 IBM Power Virtual SCSI Device Drivers
 M:	Tyrel Datwyler <tyreld@linux.vnet.ibm.com>
 L:	linux-scsi@vger.kernel.org
@@ -7515,7 +7531,12 @@ F:	net/nfc/
 F:	include/net/nfc/
 F:	include/uapi/linux/nfc.h
 F:	drivers/nfc/
+F:	include/linux/platform_data/microread.h
+F:	include/linux/platform_data/nfcmrvl.h
+F:	include/linux/platform_data/nxp-nci.h
 F:	include/linux/platform_data/pn544.h
+F:	include/linux/platform_data/st21nfca.h
+F:	include/linux/platform_data/st-nci.h
 F:	Documentation/devicetree/bindings/net/nfc/
 
 NFS, SUNRPC, AND LOCKD CLIENTS
@@ -9163,7 +9184,7 @@ F:	drivers/s390/block/dasd*
 F:	block/partitions/ibm.c
 
 S390 NETWORK DRIVERS
-M:	Ursula Braun <ursula.braun@de.ibm.com>
+M:	Ursula Braun <ubraun@linux.vnet.ibm.com>
 L:	linux-s390@vger.kernel.org
 W:	http://www.ibm.com/developerworks/linux/linux390/
 S:	Supported
@@ -9193,7 +9214,7 @@ S:	Supported
 F:	drivers/s390/scsi/zfcp_*
 
 S390 IUCV NETWORK LAYER
-M:	Ursula Braun <ursula.braun@de.ibm.com>
+M:	Ursula Braun <ubraun@linux.vnet.ibm.com>
 L:	linux-s390@vger.kernel.org
 W:	http://www.ibm.com/developerworks/linux/linux390/
 S:	Supported

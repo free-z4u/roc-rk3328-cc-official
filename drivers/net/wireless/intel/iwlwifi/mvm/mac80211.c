@@ -26,7 +26,7 @@
  * in the file called COPYING.
  *
  * Contact Information:
- *  Intel Linux Wireless <ilw@linux.intel.com>
+ *  Intel Linux Wireless <linuxwifi@intel.com>
  * Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
  *
  * BSD LICENSE
@@ -438,6 +438,8 @@ int iwl_mvm_mac_setup_register(struct iwl_mvm *mvm)
 	ieee80211_hw_set(hw, CHANCTX_STA_CSA);
 	ieee80211_hw_set(hw, SUPPORT_FAST_XMIT);
 	ieee80211_hw_set(hw, SUPPORTS_CLONED_SKBS);
+	ieee80211_hw_set(hw, SUPPORTS_AMSDU_IN_AMPDU);
+	ieee80211_hw_set(hw, NEEDS_UNIQUE_STA_ADDR);
 
 	if (mvm->trans->max_skb_frags)
 		hw->netdev_features = NETIF_F_HIGHDMA | NETIF_F_SG;
@@ -666,6 +668,10 @@ int iwl_mvm_mac_setup_register(struct iwl_mvm *mvm)
 	hw->netdev_features |= mvm->cfg->features;
 	if (!iwl_mvm_is_csum_supported(mvm))
 		hw->netdev_features &= ~NETIF_F_RXCSUM;
+
+	if (IWL_MVM_SW_TX_CSUM_OFFLOAD)
+		hw->netdev_features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM |
+			NETIF_F_TSO | NETIF_F_TSO6;
 
 	ret = ieee80211_register_hw(mvm->hw);
 	if (ret)
@@ -980,6 +986,7 @@ static void iwl_mvm_restart_cleanup(struct iwl_mvm *mvm)
 	mvm->d0i3_ap_sta_id = IWL_MVM_STATION_COUNT;
 
 	iwl_mvm_reset_phy_ctxts(mvm);
+	memset(mvm->fw_key_table, 0, sizeof(mvm->fw_key_table));
 	memset(mvm->sta_drained, 0, sizeof(mvm->sta_drained));
 	memset(mvm->tfd_drained, 0, sizeof(mvm->tfd_drained));
 	memset(&mvm->last_bt_notif, 0, sizeof(mvm->last_bt_notif));
@@ -997,7 +1004,6 @@ static void iwl_mvm_restart_cleanup(struct iwl_mvm *mvm)
 	mvm->vif_count = 0;
 	mvm->rx_ba_sessions = 0;
 	mvm->fw_dbg_conf = FW_DBG_INVALID;
-	mvm->scan_type = IWL_SCAN_TYPE_NOT_SET;
 
 	/* keep statistics ticking */
 	iwl_mvm_accu_radio_stats(mvm);
@@ -2243,7 +2249,6 @@ static void iwl_mvm_sta_pre_rcu_remove(struct ieee80211_hw *hw,
 				       struct ieee80211_sta *sta)
 {
 	struct iwl_mvm *mvm = IWL_MAC80211_GET_MVM(hw);
-	struct iwl_mvm_vif *mvmvif = iwl_mvm_vif_from_mac80211(vif);
 	struct iwl_mvm_sta *mvm_sta = iwl_mvm_sta_from_mac80211(sta);
 
 	/*
@@ -2258,11 +2263,6 @@ static void iwl_mvm_sta_pre_rcu_remove(struct ieee80211_hw *hw,
 	if (sta == rcu_access_pointer(mvm->fw_id_to_mac_id[mvm_sta->sta_id]))
 		rcu_assign_pointer(mvm->fw_id_to_mac_id[mvm_sta->sta_id],
 				   ERR_PTR(-ENOENT));
-
-	if (mvm_sta->vif->type == NL80211_IFTYPE_AP) {
-		mvmvif->ap_assoc_sta_count--;
-		iwl_mvm_mac_ctxt_changed(mvm, vif, false, NULL);
-	}
 
 	mutex_unlock(&mvm->mutex);
 }
@@ -2375,6 +2375,10 @@ static int iwl_mvm_mac_sta_state(struct ieee80211_hw *hw,
 		ret = 0;
 	} else if (old_state == IEEE80211_STA_AUTH &&
 		   new_state == IEEE80211_STA_ASSOC) {
+		if (vif->type == NL80211_IFTYPE_AP) {
+			mvmvif->ap_assoc_sta_count++;
+			iwl_mvm_mac_ctxt_changed(mvm, vif, false, NULL);
+		}
 		ret = iwl_mvm_update_sta(mvm, vif, sta);
 		if (ret == 0)
 			iwl_mvm_rs_rate_init(mvm, sta,
@@ -2401,6 +2405,10 @@ static int iwl_mvm_mac_sta_state(struct ieee80211_hw *hw,
 		ret = 0;
 	} else if (old_state == IEEE80211_STA_ASSOC &&
 		   new_state == IEEE80211_STA_AUTH) {
+		if (vif->type == NL80211_IFTYPE_AP) {
+			mvmvif->ap_assoc_sta_count--;
+			iwl_mvm_mac_ctxt_changed(mvm, vif, false, NULL);
+		}
 		ret = 0;
 	} else if (old_state == IEEE80211_STA_AUTH &&
 		   new_state == IEEE80211_STA_NONE) {
@@ -2560,6 +2568,9 @@ static int iwl_mvm_mac_set_key(struct ieee80211_hw *hw,
 			       struct ieee80211_key_conf *key)
 {
 	struct iwl_mvm *mvm = IWL_MAC80211_GET_MVM(hw);
+	struct iwl_mvm_sta *mvmsta;
+	struct iwl_mvm_key_pn *ptk_pn;
+	int keyidx = key->keyidx;
 	int ret;
 	u8 key_offset;
 
@@ -2627,6 +2638,36 @@ static int iwl_mvm_mac_set_key(struct ieee80211_hw *hw,
 			break;
 		}
 
+		if (!test_bit(IWL_MVM_STATUS_IN_HW_RESTART, &mvm->status) &&
+		    sta && iwl_mvm_has_new_rx_api(mvm) &&
+		    key->flags & IEEE80211_KEY_FLAG_PAIRWISE &&
+		    (key->cipher == WLAN_CIPHER_SUITE_CCMP ||
+		     key->cipher == WLAN_CIPHER_SUITE_GCMP)) {
+			struct ieee80211_key_seq seq;
+			int tid, q;
+
+			mvmsta = iwl_mvm_sta_from_mac80211(sta);
+			WARN_ON(rcu_access_pointer(mvmsta->ptk_pn[keyidx]));
+			ptk_pn = kzalloc(sizeof(*ptk_pn) +
+					 mvm->trans->num_rx_queues *
+						sizeof(ptk_pn->q[0]),
+					 GFP_KERNEL);
+			if (!ptk_pn) {
+				ret = -ENOMEM;
+				break;
+			}
+
+			for (tid = 0; tid < IWL_MAX_TID_COUNT; tid++) {
+				ieee80211_get_key_rx_seq(key, tid, &seq);
+				for (q = 0; q < mvm->trans->num_rx_queues; q++)
+					memcpy(ptk_pn->q[q].pn[tid],
+					       seq.ccmp.pn,
+					       IEEE80211_CCMP_PN_LEN);
+			}
+
+			rcu_assign_pointer(mvmsta->ptk_pn[keyidx], ptk_pn);
+		}
+
 		/* in HW restart reuse the index, otherwise request a new one */
 		if (test_bit(IWL_MVM_STATUS_IN_HW_RESTART, &mvm->status))
 			key_offset = key->hw_key_idx;
@@ -2650,6 +2691,19 @@ static int iwl_mvm_mac_set_key(struct ieee80211_hw *hw,
 		if (key->hw_key_idx == STA_KEY_IDX_INVALID) {
 			ret = 0;
 			break;
+		}
+
+		if (sta && iwl_mvm_has_new_rx_api(mvm) &&
+		    key->flags & IEEE80211_KEY_FLAG_PAIRWISE &&
+		    (key->cipher == WLAN_CIPHER_SUITE_CCMP ||
+		     key->cipher == WLAN_CIPHER_SUITE_GCMP)) {
+			mvmsta = iwl_mvm_sta_from_mac80211(sta);
+			ptk_pn = rcu_dereference_protected(
+						mvmsta->ptk_pn[keyidx],
+						lockdep_is_held(&mvm->mutex));
+			RCU_INIT_POINTER(mvmsta->ptk_pn[keyidx], NULL);
+			if (ptk_pn)
+				kfree_rcu(ptk_pn, rcu_head);
 		}
 
 		IWL_DEBUG_MAC80211(mvm, "disable hwcrypto key\n");
@@ -3121,6 +3175,11 @@ static int __iwl_mvm_assign_vif_chanctx(struct iwl_mvm *mvm,
 		ret = iwl_mvm_update_quotas(mvm, false, NULL);
 		if (ret)
 			goto out_remove_binding;
+
+		ret = iwl_mvm_add_snif_sta(mvm, vif);
+		if (ret)
+			goto out_remove_binding;
+
 	}
 
 	/* Handle binding during CSA */
@@ -3194,6 +3253,7 @@ static void __iwl_mvm_unassign_vif_chanctx(struct iwl_mvm *mvm,
 	case NL80211_IFTYPE_MONITOR:
 		mvmvif->monitor_active = false;
 		mvmvif->ps_disabled = false;
+		iwl_mvm_rm_snif_sta(mvm, vif);
 		break;
 	case NL80211_IFTYPE_AP:
 		/* This part is triggered only during CSA */

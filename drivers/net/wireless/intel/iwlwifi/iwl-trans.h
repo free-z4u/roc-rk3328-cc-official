@@ -26,7 +26,7 @@
  * in the file called COPYING.
  *
  * Contact Information:
- *  Intel Linux Wireless <ilw@linux.intel.com>
+ *  Intel Linux Wireless <linuxwifi@intel.com>
  * Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
  *
  * BSD LICENSE
@@ -381,6 +381,11 @@ static inline void iwl_free_rxb(struct iwl_rx_cmd_buffer *r)
 
 #define MAX_NO_RECLAIM_CMDS	6
 
+/*
+ * The first entry in driver_data array in ieee80211_tx_info
+ * that can be used by the transport.
+ */
+#define IWL_TRANS_FIRST_DRIVER_DATA 2
 #define IWL_MASK(lo, hi) ((1 << (hi)) | ((1 << (hi)) - (1 << (lo))))
 
 /*
@@ -478,6 +483,7 @@ struct iwl_hcmd_arr {
  *	in DWORD (as opposed to bytes)
  * @scd_set_active: should the transport configure the SCD for HCMD queue
  * @wide_cmd_header: firmware supports wide host command header
+ * @sw_csum_tx: transport should compute the TCP checksum
  * @command_groups: array of command groups, each member is an array of the
  *	commands in the group; for debugging only
  * @command_groups_size: number of command groups, to avoid illegal access
@@ -497,6 +503,7 @@ struct iwl_trans_config {
 	bool bc_table_dword;
 	bool scd_set_active;
 	bool wide_cmd_header;
+	bool sw_csum_tx;
 	const struct iwl_hcmd_arr *command_groups;
 	int command_groups_size;
  
@@ -550,7 +557,11 @@ struct iwl_trans_txq_scd_cfg {
  *	If RFkill is asserted in the middle of a SYNC host command, it must
  *	return -ERFKILL straight away.
  *	May sleep only if CMD_ASYNC is not set
- * @tx: send an skb
+ * @tx: send an skb. The transport relies on the op_mode to zero the
+ *	the ieee80211_tx_info->driver_data. If the MPDU is an A-MSDU, all
+ *	the CSUM will be taken care of (TCP CSUM and IP header in case of
+ *	IPv4). If the MPDU is a single MSDU, the op_mode must compute the IP
+ *	header if it is IPv4.
  *	Must be atomic
  * @reclaim: free packet until ssn. Returns a list of freed packets.
  *	Must be atomic
@@ -641,8 +652,7 @@ struct iwl_trans_ops {
 	void (*configure)(struct iwl_trans *trans,
 			  const struct iwl_trans_config *trans_cfg);
 	void (*set_pmi)(struct iwl_trans *trans, bool state);
-	bool (*grab_nic_access)(struct iwl_trans *trans, bool silent,
-				unsigned long *flags);
+	bool (*grab_nic_access)(struct iwl_trans *trans, unsigned long *flags);
 	void (*release_nic_access)(struct iwl_trans *trans,
 				   unsigned long *flags);
 	void (*set_bits_mask)(struct iwl_trans *trans, u32 reg, u32 mask,
@@ -653,7 +663,7 @@ struct iwl_trans_ops {
 	void (*resume)(struct iwl_trans *trans);
 
 	struct iwl_trans_dump_data *(*dump_data)(struct iwl_trans *trans,
-						 struct iwl_fw_dbg_trigger_tlv
+						 const struct iwl_fw_dbg_trigger_tlv
 						 *trigger);
 };
 
@@ -956,7 +966,7 @@ static inline void iwl_trans_resume(struct iwl_trans *trans)
 
 static inline struct iwl_trans_dump_data *
 iwl_trans_dump_data(struct iwl_trans *trans,
-		    struct iwl_fw_dbg_trigger_tlv *trigger)
+		    const struct iwl_fw_dbg_trigger_tlv *trigger)
 {
 	if (!trans->ops->dump_data)
 		return NULL;
@@ -991,8 +1001,10 @@ static inline int iwl_trans_tx(struct iwl_trans *trans, struct sk_buff *skb,
 	if (unlikely(test_bit(STATUS_FW_ERROR, &trans->status)))
 		return -EIO;
 
-	if (unlikely(trans->state != IWL_TRANS_FW_ALIVE))
+	if (WARN_ON_ONCE(trans->state != IWL_TRANS_FW_ALIVE)) {
 		IWL_ERR(trans, "%s bad state = %d\n", __func__, trans->state);
+		return -EIO;
+	}
 
 	return trans->ops->tx(trans, skb, dev_cmd, queue);
 }
@@ -1000,8 +1012,10 @@ static inline int iwl_trans_tx(struct iwl_trans *trans, struct sk_buff *skb,
 static inline void iwl_trans_reclaim(struct iwl_trans *trans, int queue,
 				     int ssn, struct sk_buff_head *skbs)
 {
-	if (unlikely(trans->state != IWL_TRANS_FW_ALIVE))
+	if (WARN_ON_ONCE(trans->state != IWL_TRANS_FW_ALIVE)) {
 		IWL_ERR(trans, "%s bad state = %d\n", __func__, trans->state);
+		return;
+	}
 
 	trans->ops->reclaim(trans, queue, ssn, skbs);
 }
@@ -1019,8 +1033,10 @@ iwl_trans_txq_enable_cfg(struct iwl_trans *trans, int queue, u16 ssn,
 {
 	might_sleep();
 
-	if (unlikely((trans->state != IWL_TRANS_FW_ALIVE)))
+	if (WARN_ON_ONCE(trans->state != IWL_TRANS_FW_ALIVE)) {
 		IWL_ERR(trans, "%s bad state = %d\n", __func__, trans->state);
+		return;
+	}
 
 	trans->ops->txq_enable(trans, queue, ssn, cfg, queue_wdg_timeout);
 }
@@ -1060,8 +1076,10 @@ static inline void iwl_trans_freeze_txq_timer(struct iwl_trans *trans,
 					      unsigned long txqs,
 					      bool freeze)
 {
-	if (unlikely(trans->state != IWL_TRANS_FW_ALIVE))
+	if (WARN_ON_ONCE(trans->state != IWL_TRANS_FW_ALIVE)) {
 		IWL_ERR(trans, "%s bad state = %d\n", __func__, trans->state);
+		return;
+	}
 
 	if (trans->ops->freeze_txq_timer)
 		trans->ops->freeze_txq_timer(trans, txqs, freeze);
@@ -1070,8 +1088,10 @@ static inline void iwl_trans_freeze_txq_timer(struct iwl_trans *trans,
 static inline void iwl_trans_block_txq_ptrs(struct iwl_trans *trans,
 					    bool block)
 {
-	if (unlikely(trans->state != IWL_TRANS_FW_ALIVE))
+	if (WARN_ON_ONCE(trans->state != IWL_TRANS_FW_ALIVE)) {
 		IWL_ERR(trans, "%s bad state = %d\n", __func__, trans->state);
+		return;
+	}
 
 	if (trans->ops->block_txq_ptrs)
 		trans->ops->block_txq_ptrs(trans, block);
@@ -1080,8 +1100,10 @@ static inline void iwl_trans_block_txq_ptrs(struct iwl_trans *trans,
 static inline int iwl_trans_wait_tx_queue_empty(struct iwl_trans *trans,
 						u32 txqs)
 {
-	if (unlikely(trans->state != IWL_TRANS_FW_ALIVE))
+	if (WARN_ON_ONCE(trans->state != IWL_TRANS_FW_ALIVE)) {
 		IWL_ERR(trans, "%s bad state = %d\n", __func__, trans->state);
+		return -EIO;
+	}
 
 	return trans->ops->wait_tx_queue_empty(trans, txqs);
 }
@@ -1159,9 +1181,9 @@ iwl_trans_set_bits_mask(struct iwl_trans *trans, u32 reg, u32 mask, u32 value)
 	trans->ops->set_bits_mask(trans, reg, mask, value);
 }
 
-#define iwl_trans_grab_nic_access(trans, silent, flags)	\
+#define iwl_trans_grab_nic_access(trans, flags)	\
 	__cond_lock(nic_access,				\
-		    likely((trans)->ops->grab_nic_access(trans, silent, flags)))
+		    likely((trans)->ops->grab_nic_access(trans, flags)))
 
 static inline void __releases(nic_access)
 iwl_trans_release_nic_access(struct iwl_trans *trans, unsigned long *flags)

@@ -236,7 +236,7 @@ static int __sock_diag_cmd(struct sk_buff *skb, struct nlmsghdr *nlh)
 		err = -ENOENT;
 	else if (nlh->nlmsg_type == SOCK_DIAG_BY_FAMILY)
 		err = hndl->dump(skb, nlh);
-	else if (nlh->nlmsg_type == SOCK_DESTROY_BACKPORT && hndl->destroy)
+	else if (nlh->nlmsg_type == SOCK_DESTROY && hndl->destroy)
 		err = hndl->destroy(skb, nlh);
 	else
 		err = -EOPNOTSUPP;
@@ -265,7 +265,7 @@ static int sock_diag_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 
 		return ret;
 	case SOCK_DIAG_BY_FAMILY:
-	case SOCK_DESTROY_BACKPORT:
+	case SOCK_DESTROY:
 		return __sock_diag_cmd(skb, nlh);
 	default:
 		return -EINVAL;

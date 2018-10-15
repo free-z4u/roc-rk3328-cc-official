@@ -343,16 +343,13 @@ error:
 static void ravb_emac_init(struct net_device *ndev)
 {
 	struct ravb_private *priv = netdev_priv(ndev);
-	u32 ecmr;
 
 	/* Receive frame limit set register */
 	ravb_write(ndev, ndev->mtu + ETH_HLEN + VLAN_HLEN + ETH_FCS_LEN, RFLR);
 
 	/* PAUSE prohibition */
-	ecmr =  ravb_read(ndev, ECMR);
-	ecmr &= ECMR_DM;
-	ecmr |= ECMR_ZPF | (priv->duplex ? ECMR_DM : 0) | ECMR_TE | ECMR_RE;
-	ravb_write(ndev, ecmr, ECMR);
+	ravb_write(ndev, ECMR_ZPF | (priv->duplex ? ECMR_DM : 0) |
+		   ECMR_TE | ECMR_RE, ECMR);
 
 	ravb_set_rate(ndev);
 
@@ -410,9 +407,11 @@ static int ravb_dmac_init(struct net_device *ndev)
 	/* Timestamp enable */
 	ravb_write(ndev, TCCR_TFEN, TCCR);
 
-	/* Interrupt enable: */
+	/* Interrupt init: */
 	/* Frame receive */
 	ravb_write(ndev, RIC0_FRE0 | RIC0_FRE1, RIC0);
+	/* Disable FIFO full warning */
+	ravb_write(ndev, 0, RIC1);
 	/* Receive FIFO full error, descriptor empty */
 	ravb_write(ndev, RIC2_QFE0 | RIC2_QFE1 | RIC2_RFFE, RIC2);
 	/* Frame transmitted, timestamp FIFO updated */
@@ -880,6 +879,7 @@ static int ravb_phy_init(struct net_device *ndev)
 	struct ravb_private *priv = netdev_priv(ndev);
 	struct phy_device *phydev;
 	struct device_node *pn;
+	int err;
 
 	priv->link = 0;
 	priv->speed = 0;
@@ -887,6 +887,17 @@ static int ravb_phy_init(struct net_device *ndev)
 
 	/* Try connecting to PHY */
 	pn = of_parse_phandle(np, "phy-handle", 0);
+	if (!pn) {
+		/* In the case of a fixed PHY, the DT node associated
+		 * to the PHY is the Ethernet MAC DT node.
+		 */
+		if (of_phy_is_fixed_link(np)) {
+			err = of_phy_register_fixed_link(np);
+			if (err)
+				return err;
+		}
+		pn = of_node_get(np);
+	}
 	phydev = of_phy_connect(ndev, pn, ravb_adjust_link, 0,
 				priv->phy_interface);
 	if (!phydev) {
@@ -913,8 +924,7 @@ static int ravb_phy_init(struct net_device *ndev)
 	/* 10BASE is not supported */
 	phydev->supported &= ~PHY_10BT_FEATURES;
 
-	netdev_info(ndev, "attached PHY %d (IRQ %d) to driver %s\n",
-		    phydev->addr, phydev->irq, phydev->drv->name);
+	phy_attached_info(phydev);
 
 	priv->phydev = phydev;
 
@@ -1481,7 +1491,6 @@ static int ravb_close(struct net_device *ndev)
 
 	/* Disable interrupts by clearing the interrupt masks. */
 	ravb_write(ndev, 0, RIC0);
-	ravb_write(ndev, 0, RIC1);
 	ravb_write(ndev, 0, RIC2);
 	ravb_write(ndev, 0, TIC);
 

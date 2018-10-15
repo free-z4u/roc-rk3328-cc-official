@@ -2059,6 +2059,7 @@ int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
 		++datagrams;
 		if (msg_data_left(&msg_sys))
 			break;
+		cond_resched();
 	}
 
 	fput_light(sock->file, fput_needed);
@@ -2256,6 +2257,7 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
 		/* Out of band data, return right away */
 		if (msg_sys.msg_flags & MSG_OOB)
 			break;
+		cond_resched();
 	}
 
 	if (err == 0)

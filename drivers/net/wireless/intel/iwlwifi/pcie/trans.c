@@ -7,6 +7,7 @@
  *
  * Copyright(c) 2007 - 2015 Intel Corporation. All rights reserved.
  * Copyright(c) 2013 - 2015 Intel Mobile Communications GmbH
+ * Copyright(c) 2016 Intel Deutschland GmbH
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -26,13 +27,14 @@
  * in the file called COPYING.
  *
  * Contact Information:
- *  Intel Linux Wireless <ilw@linux.intel.com>
+ *  Intel Linux Wireless <linuxwifi@intel.com>
  * Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
  *
  * BSD LICENSE
  *
  * Copyright(c) 2005 - 2015 Intel Corporation. All rights reserved.
  * Copyright(c) 2013 - 2015 Intel Mobile Communications GmbH
+ * Copyright(c) 2016 Intel Deutschland GmbH
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -924,9 +926,16 @@ monitor:
 	if (dest->monitor_mode == EXTERNAL_MODE && trans_pcie->fw_mon_size) {
 		iwl_write_prph(trans, le32_to_cpu(dest->base_reg),
 			       trans_pcie->fw_mon_phys >> dest->base_shift);
-		iwl_write_prph(trans, le32_to_cpu(dest->end_reg),
-			       (trans_pcie->fw_mon_phys +
-				trans_pcie->fw_mon_size) >> dest->end_shift);
+		if (trans->cfg->device_family == IWL_DEVICE_FAMILY_8000)
+			iwl_write_prph(trans, le32_to_cpu(dest->end_reg),
+				       (trans_pcie->fw_mon_phys +
+					trans_pcie->fw_mon_size - 256) >>
+						dest->end_shift);
+		else
+			iwl_write_prph(trans, le32_to_cpu(dest->end_reg),
+				       (trans_pcie->fw_mon_phys +
+					trans_pcie->fw_mon_size) >>
+						dest->end_shift);
 	}
 }
 
@@ -1442,6 +1451,7 @@ static void iwl_trans_pcie_configure(struct iwl_trans *trans,
 	trans_pcie->wide_cmd_header = trans_cfg->wide_cmd_header;
 	trans_pcie->bc_table_dword = trans_cfg->bc_table_dword;
 	trans_pcie->scd_set_active = trans_cfg->scd_set_active;
+	trans_pcie->sw_csum_tx = trans_cfg->sw_csum_tx;
 
 	trans->command_groups = trans_cfg->command_groups;
 	trans->command_groups_size = trans_cfg->command_groups_size;
@@ -1464,6 +1474,7 @@ static void iwl_trans_pcie_configure(struct iwl_trans *trans,
 void iwl_trans_pcie_free(struct iwl_trans *trans)
 {
 	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
+	int i;
 
 	synchronize_irq(trans_pcie->pci_dev->irq);
 
@@ -1483,6 +1494,15 @@ void iwl_trans_pcie_free(struct iwl_trans *trans)
 
 	iwl_pcie_free_fw_monitor(trans);
 
+	for_each_possible_cpu(i) {
+		struct iwl_tso_hdr_page *p =
+			per_cpu_ptr(trans_pcie->tso_hdr_page, i);
+
+		if (p->page)
+			__free_page(p->page);
+	}
+
+	free_percpu(trans_pcie->tso_hdr_page);
 	iwl_trans_free(trans);
 }
 
@@ -1494,8 +1514,8 @@ static void iwl_trans_pcie_set_pmi(struct iwl_trans *trans, bool state)
 		clear_bit(STATUS_TPOWER_PMI, &trans->status);
 }
 
-static bool iwl_trans_pcie_grab_nic_access(struct iwl_trans *trans, bool silent,
-						unsigned long *flags)
+static bool iwl_trans_pcie_grab_nic_access(struct iwl_trans *trans,
+					   unsigned long *flags)
 {
 	int ret;
 	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
@@ -1536,14 +1556,11 @@ static bool iwl_trans_pcie_grab_nic_access(struct iwl_trans *trans, bool silent,
 			    CSR_GP_CNTRL_REG_FLAG_GOING_TO_SLEEP), 15000);
 	if (unlikely(ret < 0)) {
 		iwl_write32(trans, CSR_RESET, CSR_RESET_REG_FLAG_FORCE_NMI);
-		if (!silent) {
-			u32 val = iwl_read32(trans, CSR_GP_CNTRL);
-			WARN_ONCE(1,
-				  "Timeout waiting for hardware access (CSR_GP_CNTRL 0x%08x)\n",
-				  val);
-			spin_unlock_irqrestore(&trans_pcie->reg_lock, *flags);
-			return false;
-		}
+		WARN_ONCE(1,
+			  "Timeout waiting for hardware access (CSR_GP_CNTRL 0x%08x)\n",
+			  iwl_read32(trans, CSR_GP_CNTRL));
+		spin_unlock_irqrestore(&trans_pcie->reg_lock, *flags);
+		return false;
 	}
 
 out:
@@ -1591,7 +1608,7 @@ static int iwl_trans_pcie_read_mem(struct iwl_trans *trans, u32 addr,
 	int offs, ret = 0;
 	u32 *vals = buf;
 
-	if (iwl_trans_grab_nic_access(trans, false, &flags)) {
+	if (iwl_trans_grab_nic_access(trans, &flags)) {
 		iwl_write32(trans, HBUS_TARG_MEM_RADDR, addr);
 		for (offs = 0; offs < dwords; offs++)
 			vals[offs] = iwl_read32(trans, HBUS_TARG_MEM_RDAT);
@@ -1609,7 +1626,7 @@ static int iwl_trans_pcie_write_mem(struct iwl_trans *trans, u32 addr,
 	int offs, ret = 0;
 	const u32 *vals = buf;
 
-	if (iwl_trans_grab_nic_access(trans, false, &flags)) {
+	if (iwl_trans_grab_nic_access(trans, &flags)) {
 		iwl_write32(trans, HBUS_TARG_MEM_WADDR, addr);
 		for (offs = 0; offs < dwords; offs++)
 			iwl_write32(trans, HBUS_TARG_MEM_WDAT,
@@ -2235,7 +2252,7 @@ static u32 iwl_trans_pcie_fh_regs_dump(struct iwl_trans *trans,
 	__le32 *val;
 	int i;
 
-	if (!iwl_trans_grab_nic_access(trans, false, &flags))
+	if (!iwl_trans_grab_nic_access(trans, &flags))
 		return 0;
 
 	(*data)->type = cpu_to_le32(IWL_FW_ERROR_DUMP_FH_REGS);
@@ -2262,7 +2279,7 @@ iwl_trans_pci_dump_marbh_monitor(struct iwl_trans *trans,
 	unsigned long flags;
 	u32 i;
 
-	if (!iwl_trans_grab_nic_access(trans, false, &flags))
+	if (!iwl_trans_grab_nic_access(trans, &flags))
 		return 0;
 
 	iwl_write_prph_no_grab(trans, MON_DMARB_RD_CTL_ADDR, 0x1);
@@ -2356,7 +2373,7 @@ iwl_trans_pcie_dump_monitor(struct iwl_trans *trans,
 
 static struct iwl_trans_dump_data
 *iwl_trans_pcie_dump_data(struct iwl_trans *trans,
-			  struct iwl_fw_dbg_trigger_tlv *trigger)
+			  const struct iwl_fw_dbg_trigger_tlv *trigger)
 {
 	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
 	struct iwl_fw_error_dump_data *data;
@@ -2541,6 +2558,11 @@ struct iwl_trans *iwl_trans_pcie_alloc(struct pci_dev *pdev,
 	spin_lock_init(&trans_pcie->ref_lock);
 	mutex_init(&trans_pcie->mutex);
 	init_waitqueue_head(&trans_pcie->ucode_write_waitq);
+	trans_pcie->tso_hdr_page = alloc_percpu(struct iwl_tso_hdr_page);
+	if (!trans_pcie->tso_hdr_page) {
+		ret = -ENOMEM;
+		goto out_no_pci;
+	}
 
 	ret = pci_enable_device(pdev);
 	if (ret)
@@ -2642,7 +2664,7 @@ struct iwl_trans *iwl_trans_pcie_alloc(struct pci_dev *pdev,
 			goto out_pci_disable_msi;
 		}
 
-		if (iwl_trans_grab_nic_access(trans, false, &flags)) {
+		if (iwl_trans_grab_nic_access(trans, &flags)) {
 			u32 hw_step;
 
 			hw_step = iwl_read_prph_no_grab(trans, WFPM_CTRL_REG);
@@ -2689,6 +2711,7 @@ out_pci_release_regions:
 out_pci_disable_device:
 	pci_disable_device(pdev);
 out_no_pci:
+	free_percpu(trans_pcie->tso_hdr_page);
 	iwl_trans_free(trans);
 	return ERR_PTR(ret);
 }

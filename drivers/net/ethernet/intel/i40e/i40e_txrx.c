@@ -1380,7 +1380,7 @@ static inline void i40e_rx_checksum(struct i40e_vsi *vsi,
 	if (rx_error & BIT(I40E_RX_DESC_ERROR_PPRS_SHIFT))
 		return;
 
-	/* If VXLAN traffic has an outer UDPv4 checksum we need to check
+	/* If VXLAN/GENEVE traffic has an outer UDPv4 checksum we need to check
 	 * it in the driver, hardware does not do it for us.
 	 * Since L3L4P bit was set we assume a valid IHL value (>=5)
 	 * so the total length of IPv4 header is IHL*4 bytes
@@ -1422,31 +1422,12 @@ checksum_fail:
 }
 
 /**
- * i40e_rx_hash - returns the hash value from the Rx descriptor
- * @ring: descriptor ring
- * @rx_desc: specific descriptor
- **/
-static inline u32 i40e_rx_hash(struct i40e_ring *ring,
-			       union i40e_rx_desc *rx_desc)
-{
-	const __le64 rss_mask =
-		cpu_to_le64((u64)I40E_RX_DESC_FLTSTAT_RSS_HASH <<
-			    I40E_RX_DESC_STATUS_FLTSTAT_SHIFT);
-
-	if ((ring->netdev->features & NETIF_F_RXHASH) &&
-	    (rx_desc->wb.qword1.status_error_len & rss_mask) == rss_mask)
-		return le32_to_cpu(rx_desc->wb.qword0.hi_dword.rss);
-	else
-		return 0;
-}
-
-/**
- * i40e_ptype_to_hash - get a hash type
+ * i40e_ptype_to_htype - get a hash type
  * @ptype: the ptype value from the descriptor
  *
  * Returns a hash type to be used by skb_set_hash
  **/
-static inline enum pkt_hash_types i40e_ptype_to_hash(u8 ptype)
+static inline enum pkt_hash_types i40e_ptype_to_htype(u8 ptype)
 {
 	struct i40e_rx_ptype_decoded decoded = decode_rx_desc_ptype(ptype);
 
@@ -1461,6 +1442,30 @@ static inline enum pkt_hash_types i40e_ptype_to_hash(u8 ptype)
 		return PKT_HASH_TYPE_L3;
 	else
 		return PKT_HASH_TYPE_L2;
+}
+
+/**
+ * i40e_rx_hash - set the hash value in the skb
+ * @ring: descriptor ring
+ * @rx_desc: specific descriptor
+ **/
+static inline void i40e_rx_hash(struct i40e_ring *ring,
+				union i40e_rx_desc *rx_desc,
+				struct sk_buff *skb,
+				u8 rx_ptype)
+{
+	u32 hash;
+	const __le64 rss_mask  =
+		cpu_to_le64((u64)I40E_RX_DESC_FLTSTAT_RSS_HASH <<
+			    I40E_RX_DESC_STATUS_FLTSTAT_SHIFT);
+
+	if (ring->netdev->features & NETIF_F_RXHASH)
+		return;
+
+	if ((rx_desc->wb.qword1.status_error_len & rss_mask) == rss_mask) {
+		hash = le32_to_cpu(rx_desc->wb.qword0.hi_dword.rss);
+		skb_set_hash(skb, hash, i40e_ptype_to_htype(rx_ptype));
+	}
 }
 
 /**
@@ -1612,8 +1617,8 @@ static int i40e_clean_rx_irq_ps(struct i40e_ring *rx_ring, int budget)
 			continue;
 		}
 
-		skb_set_hash(skb, i40e_rx_hash(rx_ring, rx_desc),
-			     i40e_ptype_to_hash(rx_ptype));
+		i40e_rx_hash(rx_ring, rx_desc, skb, rx_ptype);
+
 		if (unlikely(rx_status & I40E_RXD_QW1_STATUS_TSYNVALID_MASK)) {
 			i40e_ptp_rx_hwtstamp(vsi->back, skb, (rx_status &
 					   I40E_RXD_QW1_STATUS_TSYNINDX_MASK) >>
@@ -1741,8 +1746,7 @@ static int i40e_clean_rx_irq_1buf(struct i40e_ring *rx_ring, int budget)
 			continue;
 		}
 
-		skb_set_hash(skb, i40e_rx_hash(rx_ring, rx_desc),
-			     i40e_ptype_to_hash(rx_ptype));
+		i40e_rx_hash(rx_ring, rx_desc, skb, rx_ptype);
 		if (unlikely(rx_status & I40E_RXD_QW1_STATUS_TSYNVALID_MASK)) {
 			i40e_ptp_rx_hwtstamp(vsi->back, skb, (rx_status &
 					   I40E_RXD_QW1_STATUS_TSYNINDX_MASK) >>
@@ -2001,7 +2005,7 @@ static void i40e_atr(struct i40e_ring *tx_ring, struct sk_buff *skb,
 	if (!(tx_flags & (I40E_TX_FLAGS_IPV4 | I40E_TX_FLAGS_IPV6)))
 		return;
 
-	if (!(tx_flags & I40E_TX_FLAGS_VXLAN_TUNNEL)) {
+	if (!(tx_flags & I40E_TX_FLAGS_UDP_TUNNEL)) {
 		/* snag network header to get L4 type and address */
 		hdr.network = skb_network_header(skb);
 
@@ -2086,7 +2090,7 @@ static void i40e_atr(struct i40e_ring *tx_ring, struct sk_buff *skb,
 		     I40E_TXD_FLTR_QW1_FD_STATUS_SHIFT;
 
 	dtype_cmd |= I40E_TXD_FLTR_QW1_CNT_ENA_MASK;
-	if (!(tx_flags & I40E_TX_FLAGS_VXLAN_TUNNEL))
+	if (!(tx_flags & I40E_TX_FLAGS_UDP_TUNNEL))
 		dtype_cmd |=
 			((u32)I40E_FD_ATR_STAT_IDX(pf->hw.pf_id) <<
 			I40E_TXD_FLTR_QW1_CNTINDEX_SHIFT) &
@@ -2319,7 +2323,7 @@ static void i40e_tx_enable_csum(struct sk_buff *skb, u32 *tx_flags,
 			oudph = udp_hdr(skb);
 			oiph = ip_hdr(skb);
 			l4_tunnel = I40E_TXD_CTX_UDP_TUNNELING;
-			*tx_flags |= I40E_TX_FLAGS_VXLAN_TUNNEL;
+			*tx_flags |= I40E_TX_FLAGS_UDP_TUNNEL;
 			break;
 		case IPPROTO_GRE:
 			l4_tunnel = I40E_TXD_CTX_GRE_TUNNELING;

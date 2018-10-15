@@ -1067,12 +1067,12 @@ static netdev_features_t bond_fix_features(struct net_device *dev,
 	return features;
 }
 
-#define BOND_VLAN_FEATURES	(NETIF_F_ALL_CSUM | NETIF_F_SG | \
+#define BOND_VLAN_FEATURES	(NETIF_F_HW_CSUM | NETIF_F_SG | \
 				 NETIF_F_FRAGLIST | NETIF_F_ALL_TSO | \
 				 NETIF_F_HIGHDMA | NETIF_F_LRO)
 
-#define BOND_ENC_FEATURES	(NETIF_F_ALL_CSUM | NETIF_F_SG | NETIF_F_RXCSUM |\
-				 NETIF_F_ALL_TSO)
+#define BOND_ENC_FEATURES	(NETIF_F_HW_CSUM | NETIF_F_SG | \
+				 NETIF_F_RXCSUM | NETIF_F_ALL_TSO)
 
 static void bond_compute_features(struct bonding *bond)
 {
@@ -1226,7 +1226,6 @@ static int bond_master_upper_dev_link(struct bonding *bond, struct slave *slave)
 					   &lag_upper_info);
 	if (err)
 		return err;
-	slave->dev->flags |= IFF_SLAVE;
 	rtmsg_ifinfo(RTM_NEWLINK, slave->dev, IFF_SLAVE, GFP_KERNEL);
 	return 0;
 }
@@ -1493,6 +1492,9 @@ int bond_enslave(struct net_device *bond_dev, struct net_device *slave_dev)
 		}
 	}
 
+	/* set slave flag before open to prevent IPv6 addrconf */
+	slave_dev->flags |= IFF_SLAVE;
+
 	/* open the slave since the application closed it */
 	res = dev_open(slave_dev);
 	if (res) {
@@ -1758,6 +1760,7 @@ err_close:
 	dev_close(slave_dev);
 
 err_restore_mac:
+	slave_dev->flags &= ~IFF_SLAVE;
 	if (!bond->params.fail_over_mac ||
 	    BOND_MODE(bond) != BOND_MODE_ACTIVEBACKUP) {
 		/* XXX TODO - fom follow mode needs to change master's
@@ -4182,7 +4185,6 @@ void bond_setup(struct net_device *bond_dev)
 				NETIF_F_HW_VLAN_CTAG_RX |
 				NETIF_F_HW_VLAN_CTAG_FILTER;
 
-	bond_dev->hw_features &= ~(NETIF_F_ALL_CSUM & ~NETIF_F_HW_CSUM);
 	bond_dev->hw_features |= NETIF_F_GSO_ENCAP_ALL;
 	bond_dev->features |= bond_dev->hw_features;
 }
