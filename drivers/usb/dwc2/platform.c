@@ -606,7 +606,7 @@ static int dwc2_driver_probe(struct platform_device *dev)
 
 	retval = dwc2_get_dr_mode(hsotg);
 	if (retval)
-		goto error;
+		return retval;
 
 	/*
 	 * Reset before dwc2_get_hwparams() then it could get power-on real
