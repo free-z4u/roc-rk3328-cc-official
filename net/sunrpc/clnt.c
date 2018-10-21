@@ -1230,6 +1230,7 @@ static int rpc_anyaddr(int family, struct sockaddr *buf, size_t buflen)
 			return -EINVAL;
 		memcpy(buf, &rpc_in6addr_loopback,
 				sizeof(rpc_in6addr_loopback));
+		break;
 	default:
 		dprintk("RPC:       %s: address family not supported\n",
 			__func__);
