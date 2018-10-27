@@ -18,14 +18,14 @@
 bool rockchip_fb_is_logo(struct drm_framebuffer *fb);
 struct drm_framebuffer *
 rockchip_drm_framebuffer_init(struct drm_device *dev,
-			      struct drm_mode_fb_cmd2 *mode_cmd,
+			      const struct drm_mode_fb_cmd2 *mode_cmd,
 			      struct drm_gem_object *obj);
 void rockchip_drm_framebuffer_fini(struct drm_framebuffer *fb);
 
 void rockchip_drm_mode_config_init(struct drm_device *dev);
 
 struct drm_framebuffer *
-rockchip_fb_alloc(struct drm_device *dev, struct drm_mode_fb_cmd2 *mode_cmd,
+rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cmd,
 		  struct drm_gem_object **obj, struct rockchip_logo *logo,
 		  unsigned int num_planes);
 

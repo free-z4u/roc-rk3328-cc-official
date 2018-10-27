@@ -93,7 +93,7 @@ static const struct drm_framebuffer_funcs rockchip_drm_fb_funcs = {
 };
 
 struct drm_framebuffer *
-rockchip_fb_alloc(struct drm_device *dev, struct drm_mode_fb_cmd2 *mode_cmd,
+rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cmd,
 		  struct drm_gem_object **obj, struct rockchip_logo *logo,
 		  unsigned int num_planes)
 {
@@ -147,7 +147,7 @@ err_free_fb:
 
 static struct drm_framebuffer *
 rockchip_user_fb_create(struct drm_device *dev, struct drm_file *file_priv,
-			struct drm_mode_fb_cmd2 *mode_cmd)
+			const struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct drm_framebuffer *fb;
 	struct drm_gem_object *objs[ROCKCHIP_MAX_FB_BUFFER];
@@ -375,7 +375,7 @@ static const struct drm_mode_config_funcs rockchip_drm_mode_config_funcs = {
 
 struct drm_framebuffer *
 rockchip_drm_framebuffer_init(struct drm_device *dev,
-			      struct drm_mode_fb_cmd2 *mode_cmd,
+			      const struct drm_mode_fb_cmd2 *mode_cmd,
 			      struct drm_gem_object *obj)
 {
 	struct drm_framebuffer *fb;
