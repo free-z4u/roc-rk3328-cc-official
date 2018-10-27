@@ -45,14 +45,9 @@ struct xgene_gpio {
 	u32			set_dr_val[XGENE_MAX_GPIO_BANKS];
 };
 
-static inline struct xgene_gpio *to_xgene_gpio(struct gpio_chip *chip)
-{
-	return container_of(chip, struct xgene_gpio, chip);
-}
-
 static int xgene_gpio_get(struct gpio_chip *gc, unsigned int offset)
 {
-	struct xgene_gpio *chip = to_xgene_gpio(gc);
+	struct xgene_gpio *chip = gpiochip_get_data(gc);
 	unsigned long bank_offset;
 	u32 bit_offset;
 
@@ -63,7 +58,7 @@ static int xgene_gpio_get(struct gpio_chip *gc, unsigned int offset)
 
 static void __xgene_gpio_set(struct gpio_chip *gc, unsigned int offset, int val)
 {
-	struct xgene_gpio *chip = to_xgene_gpio(gc);
+	struct xgene_gpio *chip = gpiochip_get_data(gc);
 	unsigned long bank_offset;
 	u32 setval, bit_offset;
 
@@ -80,7 +75,7 @@ static void __xgene_gpio_set(struct gpio_chip *gc, unsigned int offset, int val)
 
 static void xgene_gpio_set(struct gpio_chip *gc, unsigned int offset, int val)
 {
-	struct xgene_gpio *chip = to_xgene_gpio(gc);
+	struct xgene_gpio *chip = gpiochip_get_data(gc);
 	unsigned long flags;
 
 	spin_lock_irqsave(&chip->lock, flags);
@@ -90,7 +85,7 @@ static void xgene_gpio_set(struct gpio_chip *gc, unsigned int offset, int val)
 
 static int xgene_gpio_dir_in(struct gpio_chip *gc, unsigned int offset)
 {
-	struct xgene_gpio *chip = to_xgene_gpio(gc);
+	struct xgene_gpio *chip = gpiochip_get_data(gc);
 	unsigned long flags, bank_offset;
 	u32 dirval, bit_offset;
 
@@ -111,7 +106,7 @@ static int xgene_gpio_dir_in(struct gpio_chip *gc, unsigned int offset)
 static int xgene_gpio_dir_out(struct gpio_chip *gc,
 					unsigned int offset, int val)
 {
-	struct xgene_gpio *chip = to_xgene_gpio(gc);
+	struct xgene_gpio *chip = gpiochip_get_data(gc);
 	unsigned long flags, bank_offset;
 	u32 dirval, bit_offset;
 
@@ -181,7 +176,7 @@ static int xgene_gpio_probe(struct platform_device *pdev)
 	gpio->chip.ngpio = XGENE_MAX_GPIOS;
 
 	spin_lock_init(&gpio->lock);
-	gpio->chip.dev = &pdev->dev;
+	gpio->chip.parent = &pdev->dev;
 	gpio->chip.direction_input = xgene_gpio_dir_in;
 	gpio->chip.direction_output = xgene_gpio_dir_out;
 	gpio->chip.get = xgene_gpio_get;
@@ -191,7 +186,7 @@ static int xgene_gpio_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, gpio);
 
-	err = gpiochip_add(&gpio->chip);
+	err = gpiochip_add_data(&gpio->chip, gpio);
 	if (err) {
 		dev_err(&pdev->dev,
 			"failed to register gpiochip.\n");
