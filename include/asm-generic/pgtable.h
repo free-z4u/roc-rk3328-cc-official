@@ -1,6 +1,8 @@
 #ifndef _ASM_GENERIC_PGTABLE_H
 #define _ASM_GENERIC_PGTABLE_H
 
+#include <linux/pfn.h>
+
 #ifndef __ASSEMBLY__
 #ifdef CONFIG_MMU
 
@@ -205,11 +207,6 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
 	BUILD_BUG();
 }
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-#endif
-
-#ifndef __HAVE_ARCH_PMDP_SPLITTING_FLUSH
-extern void pmdp_splitting_flush(struct vm_area_struct *vma,
-				 unsigned long address, pmd_t *pmdp);
 #endif
 
 #ifndef pmdp_collapse_flush
@@ -569,7 +566,7 @@ static inline int track_pfn_remap(struct vm_area_struct *vma, pgprot_t *prot,
  * by vm_insert_pfn().
  */
 static inline int track_pfn_insert(struct vm_area_struct *vma, pgprot_t *prot,
-				   unsigned long pfn)
+				   pfn_t pfn)
 {
 	return 0;
 }
@@ -604,7 +601,7 @@ extern int track_pfn_remap(struct vm_area_struct *vma, pgprot_t *prot,
 			   unsigned long pfn, unsigned long addr,
 			   unsigned long size);
 extern int track_pfn_insert(struct vm_area_struct *vma, pgprot_t *prot,
-			    unsigned long pfn);
+			    pfn_t pfn);
 extern int track_pfn_copy(struct vm_area_struct *vma);
 extern void untrack_pfn(struct vm_area_struct *vma, unsigned long pfn,
 			unsigned long size);
@@ -639,10 +636,6 @@ static inline unsigned long my_zero_pfn(unsigned long addr)
 
 #ifndef CONFIG_TRANSPARENT_HUGEPAGE
 static inline int pmd_trans_huge(pmd_t pmd)
-{
-	return 0;
-}
-static inline int pmd_trans_splitting(pmd_t pmd)
 {
 	return 0;
 }
@@ -806,19 +799,6 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
 	return 0;
 }
 #endif	/* CONFIG_HAVE_ARCH_HUGE_VMAP */
-
-#ifndef __HAVE_ARCH_PFN_MODIFY_ALLOWED
-static inline bool pfn_modify_allowed(unsigned long pfn, pgprot_t prot)
-{
-	return true;
-}
-
-static inline bool arch_has_pfn_modify_check(void)
-{
-	return false;
-}
-#endif /* !_HAVE_ARCH_PFN_MODIFY_ALLOWED */
-
 #endif /* !__ASSEMBLY__ */
 
 #ifndef io_remap_pfn_range
