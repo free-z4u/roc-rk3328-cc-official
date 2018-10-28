@@ -87,4 +87,18 @@ else
 	echo "$0: filesystem loading works"
 fi
 
+# Try the asynchronous version too
+if ! echo -n "$NAME" >"$DIR"/trigger_async_request ; then
+	echo "$0: could not trigger async request" >&2
+	exit 1
+fi
+
+# Verify the contents are what we expect.
+if ! diff -q "$FW" /dev/test_firmware >/dev/null ; then
+	echo "$0: firmware was not loaded (async)" >&2
+	exit 1
+else
+	echo "$0: async filesystem loading works"
+fi
+
 exit 0
