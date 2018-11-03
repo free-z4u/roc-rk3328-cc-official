@@ -181,7 +181,8 @@ struct key {
 #define KEY_FLAG_TRUSTED_ONLY	7	/* set if keyring only accepts links to trusted keys */
 #define KEY_FLAG_BUILTIN	8	/* set if key is builtin */
 #define KEY_FLAG_ROOT_CAN_INVAL	9	/* set if key can be invalidated by root without permission */
-#define KEY_FLAG_UID_KEYRING	10	/* set if key is a user or user session keyring */
+#define KEY_FLAG_KEEP		10	/* set if key should not be removed */
+#define KEY_FLAG_UID_KEYRING	11	/* set if key is a user or user session keyring */
 
 	/* the key type and key description string
 	 * - the desc is used to match a key against search criteria
