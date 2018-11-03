@@ -205,7 +205,6 @@ static void mem_cgroup_oom_notify(struct mem_cgroup *memcg);
 /* "mc" and its members are protected by cgroup_mutex */
 static struct move_charge_struct {
 	spinlock_t	  lock; /* for from, to */
-	struct mm_struct  *mm;
 	struct mem_cgroup *from;
 	struct mem_cgroup *to;
 	unsigned long flags;
@@ -4765,8 +4764,6 @@ static void __mem_cgroup_clear_mc(void)
 
 static void mem_cgroup_clear_mc(void)
 {
-	struct mm_struct *mm = mc.mm;
-
 	/*
 	 * we must clear moving_task before waking up waiters at the end of
 	 * task migration.
@@ -4776,10 +4773,7 @@ static void mem_cgroup_clear_mc(void)
 	spin_lock(&mc.lock);
 	mc.from = NULL;
 	mc.to = NULL;
-	mc.mm = NULL;
 	spin_unlock(&mc.lock);
-
-	mmput(mm);
 }
 
 static int mem_cgroup_can_attach(struct cgroup_taskset *tset)
@@ -4836,7 +4830,6 @@ static int mem_cgroup_can_attach(struct cgroup_taskset *tset)
 		VM_BUG_ON(mc.moved_swap);
 
 		spin_lock(&mc.lock);
-		mc.mm = mm;
 		mc.from = from;
 		mc.to = memcg;
 		mc.flags = move_flags;
@@ -4846,9 +4839,8 @@ static int mem_cgroup_can_attach(struct cgroup_taskset *tset)
 		ret = mem_cgroup_precharge_mc(mm);
 		if (ret)
 			mem_cgroup_clear_mc();
-	} else {
-		mmput(mm);
 	}
+	mmput(mm);
 	return ret;
 }
 
@@ -4956,11 +4948,11 @@ put:			/* get_mctgt_type() gets the page */
 	return ret;
 }
 
-static void mem_cgroup_move_charge(void)
+static void mem_cgroup_move_charge(struct mm_struct *mm)
 {
 	struct mm_walk mem_cgroup_move_charge_walk = {
 		.pmd_entry = mem_cgroup_move_charge_pte_range,
-		.mm = mc.mm,
+		.mm = mm,
 	};
 
 	lru_add_drain_all();
@@ -4972,7 +4964,7 @@ static void mem_cgroup_move_charge(void)
 	atomic_inc(&mc.from->moving_account);
 	synchronize_rcu();
 retry:
-	if (unlikely(!down_read_trylock(&mc.mm->mmap_sem))) {
+	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
 		/*
 		 * Someone who are holding the mmap_sem might be waiting in
 		 * waitq. So we cancel all extra charges, wake up all waiters,
@@ -4989,16 +4981,23 @@ retry:
 	 * additional charge, the page walk just aborts.
 	 */
 	walk_page_range(0, ~0UL, &mem_cgroup_move_charge_walk);
-	up_read(&mc.mm->mmap_sem);
+	up_read(&mm->mmap_sem);
 	atomic_dec(&mc.from->moving_account);
 }
 
-static void mem_cgroup_move_task(void)
+static void mem_cgroup_move_task(struct cgroup_taskset *tset)
 {
-	if (mc.to) {
-		mem_cgroup_move_charge();
-		mem_cgroup_clear_mc();
+	struct cgroup_subsys_state *css;
+	struct task_struct *p = cgroup_taskset_first(tset, &css);
+	struct mm_struct *mm = get_task_mm(p);
+
+	if (mm) {
+		if (mc.to)
+			mem_cgroup_move_charge(mm);
+		mmput(mm);
 	}
+	if (mc.to)
+		mem_cgroup_clear_mc();
 }
 #else	/* !CONFIG_MMU */
 static int mem_cgroup_can_attach(struct cgroup_taskset *tset)
@@ -5008,7 +5007,7 @@ static int mem_cgroup_can_attach(struct cgroup_taskset *tset)
 static void mem_cgroup_cancel_attach(struct cgroup_taskset *tset)
 {
 }
-static void mem_cgroup_move_task(void)
+static void mem_cgroup_move_task(struct cgroup_taskset *tset)
 {
 }
 #endif
@@ -5222,7 +5221,7 @@ struct cgroup_subsys memory_cgrp_subsys = {
 	.css_reset = mem_cgroup_css_reset,
 	.can_attach = mem_cgroup_can_attach,
 	.cancel_attach = mem_cgroup_cancel_attach,
-	.post_attach = mem_cgroup_move_task,
+	.attach = mem_cgroup_move_task,
 	.bind = mem_cgroup_bind,
 	.dfl_cftypes = memory_files,
 	.legacy_cftypes = mem_cgroup_legacy_files,
