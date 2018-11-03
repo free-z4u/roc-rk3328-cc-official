@@ -1651,9 +1651,9 @@ struct task_struct {
 	unsigned in_iowait:1;
 #ifdef CONFIG_MEMCG
 	unsigned memcg_may_oom:1;
-#endif
-#ifdef CONFIG_MEMCG_KMEM
+#ifndef CONFIG_SLOB
 	unsigned memcg_kmem_skip_account:1;
+#endif
 #endif
 #ifdef CONFIG_COMPAT_BRK
 	unsigned brk_randomized:1;
@@ -1822,6 +1822,9 @@ struct task_struct {
 	unsigned int lockdep_recursion;
 	struct held_lock held_locks[MAX_LOCK_DEPTH];
 	gfp_t lockdep_reclaim_gfp;
+#endif
+#ifdef CONFIG_UBSAN
+	unsigned int in_ubsan;
 #endif
 
 /* journalling filesystem info */
