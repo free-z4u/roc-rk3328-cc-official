@@ -64,6 +64,10 @@ struct panel_desc {
 
 	unsigned int bpc;
 
+	/**
+	 * @width: width (in millimeters) of the panel's active display area
+	 * @height: height (in millimeters) of the panel's active display area
+	 */
 	struct {
 		unsigned int width;
 		unsigned int height;
@@ -1311,6 +1315,34 @@ static const struct panel_desc innolux_g121i1_l01 = {
 	},
 };
 
+static const struct drm_display_mode innolux_g121x1_l03_mode = {
+	.clock = 65000,
+	.hdisplay = 1024,
+	.hsync_start = 1024 + 0,
+	.hsync_end = 1024 + 1,
+	.htotal = 1024 + 0 + 1 + 320,
+	.vdisplay = 768,
+	.vsync_start = 768 + 38,
+	.vsync_end = 768 + 38 + 1,
+	.vtotal = 768 + 38 + 1 + 0,
+	.vrefresh = 60,
+};
+
+static const struct panel_desc innolux_g121x1_l03 = {
+	.modes = &innolux_g121x1_l03_mode,
+	.num_modes = 1,
+	.bpc = 6,
+	.size = {
+		.width = 246,
+		.height = 185,
+	},
+	.delay = {
+		.enable = 200,
+		.unprepare = 200,
+		.disable = 400,
+	},
+};
+
 static const struct drm_display_mode innolux_n116bge_mode = {
 	.clock = 76420,
 	.hdisplay = 1366,
@@ -1408,6 +1440,30 @@ static const struct panel_desc innolux_zj070na_01p = {
 		.width = 1024,
 		.height = 600,
 	},
+};
+
+static const struct display_timing kyo_tcg121xglp_timing = {
+	.pixelclock = { 52000000, 65000000, 71000000 },
+	.hactive = { 1024, 1024, 1024 },
+	.hfront_porch = { 2, 2, 2 },
+	.hback_porch = { 2, 2, 2 },
+	.hsync_len = { 86, 124, 244 },
+	.vactive = { 768, 768, 768 },
+	.vfront_porch = { 2, 2, 2 },
+	.vback_porch = { 2, 2, 2 },
+	.vsync_len = { 6, 34, 73 },
+	.flags = DISPLAY_FLAGS_DE_HIGH,
+};
+
+static const struct panel_desc kyo_tcg121xglp = {
+	.timings = &kyo_tcg121xglp_timing,
+	.num_timings = 1,
+	.bpc = 8,
+	.size = {
+		.width = 246,
+		.height = 184,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X7X4_SPWG,
 };
 
 static const struct drm_display_mode lg_lb070wv8_mode = {
@@ -1688,6 +1744,30 @@ static const struct panel_desc samsung_lsn122dl01_c01 = {
 	},
 };
 
+static const struct drm_display_mode qd43003c0_40_mode = {
+	.clock = 9000,
+	.hdisplay = 480,
+	.hsync_start = 480 + 8,
+	.hsync_end = 480 + 8 + 4,
+	.htotal = 480 + 8 + 4 + 39,
+	.vdisplay = 272,
+	.vsync_start = 272 + 4,
+	.vsync_end = 272 + 4 + 10,
+	.vtotal = 272 + 4 + 10 + 2,
+	.vrefresh = 60,
+};
+
+static const struct panel_desc qd43003c0_40 = {
+	.modes = &qd43003c0_40_mode,
+	.num_modes = 1,
+	.bpc = 8,
+	.size = {
+		.width = 95,
+		.height = 53,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
+};
+
 static const struct drm_display_mode samsung_ltn101nt05_mode = {
 	.clock = 54030,
 	.hdisplay = 1024,
@@ -1840,6 +1920,9 @@ static const struct of_device_id platform_of_match[] = {
 		.compatible ="innolux,g121i1-l01",
 		.data = &innolux_g121i1_l01
 	}, {
+		.compatible = "innolux,g121x1-l03",
+		.data = &innolux_g121x1_l03,
+	}, {
 		.compatible = "innolux,n116bge",
 		.data = &innolux_n116bge,
 	}, {
@@ -1851,6 +1934,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "innolux,zj070na-01p",
 		.data = &innolux_zj070na_01p,
+	}, {
+		.compatible = "kyo,tcg121xglp",
+		.data = &kyo_tcg121xglp,
 	}, {
 		.compatible = "lg,lb070wv8",
 		.data = &lg_lb070wv8,
@@ -1881,6 +1967,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "samsung,lsn122dl01-c01",
 		.data = &samsung_lsn122dl01_c01,
+	}, {
+		.compatible = "qiaodian,qd43003c0-40",
+		.data = &qd43003c0_40,
 	}, {
 		.compatible = "samsung,ltn101nt05",
 		.data = &samsung_ltn101nt05,

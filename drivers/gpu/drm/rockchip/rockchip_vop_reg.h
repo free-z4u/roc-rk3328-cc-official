@@ -853,6 +853,7 @@
 #define RK3328_SAT_Y8				0x00000acc
 
 #define RK3328_HWC_LUT_ADDR			0x00000c00
+/* register definition end */
 
 /* rk3036 register definition */
 #define RK3036_SYS_CTRL			0x00

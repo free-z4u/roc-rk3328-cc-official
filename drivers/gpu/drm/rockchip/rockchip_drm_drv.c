@@ -1273,7 +1273,7 @@ static int rockchip_drm_bind(struct device *dev)
 	if (!drm_dev)
 		return -ENOMEM;
 
-	ret = drm_dev_set_unique(drm_dev, "%s", dev_name(dev));
+	ret = drm_dev_set_unique(drm_dev, dev_name(dev));
 	if (ret)
 		goto err_free;
 

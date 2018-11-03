@@ -677,6 +677,18 @@ static void drm_crtc_unregister_all(struct drm_device *dev)
 	}
 }
 
+static unsigned int drm_num_crtcs(struct drm_device *dev)
+{
+	unsigned int num = 0;
+	struct drm_crtc *tmp;
+
+	drm_for_each_crtc(tmp, dev) {
+		num++;
+	}
+
+	return num;
+}
+
 /**
  * drm_crtc_init_with_planes - Initialise a new CRTC object with
  *    specified primary and cursor planes.
@@ -714,6 +726,21 @@ int drm_crtc_init_with_planes(struct drm_device *dev, struct drm_crtc *crtc,
 	ret = drm_mode_object_get(dev, &crtc->base, DRM_MODE_OBJECT_CRTC);
 	if (ret)
 		return ret;
+
+	if (name) {
+		va_list ap;
+
+		va_start(ap, name);
+		crtc->name = kvasprintf(GFP_KERNEL, name, ap);
+		va_end(ap);
+	} else {
+		crtc->name = kasprintf(GFP_KERNEL, "crtc-%d",
+				       drm_num_crtcs(dev));
+	}
+	if (!crtc->name) {
+		drm_mode_object_put(dev, &crtc->base);
+		return -ENOMEM;
+	}
 
 	crtc->base.properties = &crtc->properties;
 
@@ -760,6 +787,8 @@ void drm_crtc_cleanup(struct drm_crtc *crtc)
 	WARN_ON(crtc->state && !crtc->funcs->atomic_destroy_state);
 	if (crtc->state && crtc->funcs->atomic_destroy_state)
 		crtc->funcs->atomic_destroy_state(crtc, crtc->state);
+
+	kfree(crtc->name);
 
 	memset(crtc, 0, sizeof(*crtc));
 }
@@ -1208,9 +1237,17 @@ int drm_encoder_init(struct drm_device *dev,
 	encoder->dev = dev;
 	encoder->encoder_type = encoder_type;
 	encoder->funcs = funcs;
-	encoder->name = kasprintf(GFP_KERNEL, "%s-%d",
-				  drm_encoder_enum_list[encoder_type].name,
-				  encoder->base.id);
+	if (name) {
+		va_list ap;
+
+		va_start(ap, name);
+		encoder->name = kvasprintf(GFP_KERNEL, name, ap);
+		va_end(ap);
+	} else {
+		encoder->name = kasprintf(GFP_KERNEL, "%s-%d",
+					  drm_encoder_enum_list[encoder_type].name,
+					  encoder->base.id);
+	}
 	if (!encoder->name) {
 		ret = -ENOMEM;
 		goto out_put;
@@ -1251,6 +1288,18 @@ void drm_encoder_cleanup(struct drm_encoder *encoder)
 }
 EXPORT_SYMBOL(drm_encoder_cleanup);
 
+static unsigned int drm_num_planes(struct drm_device *dev)
+{
+	unsigned int num = 0;
+	struct drm_plane *tmp;
+
+	drm_for_each_plane(tmp, dev) {
+		num++;
+	}
+
+	return num;
+}
+
 /**
  * drm_universal_plane_init - Initialize a new universal plane object
  * @dev: DRM device
@@ -1290,6 +1339,22 @@ int drm_universal_plane_init(struct drm_device *dev, struct drm_plane *plane,
 					    GFP_KERNEL);
 	if (!plane->format_types) {
 		DRM_DEBUG_KMS("out of memory when allocating plane\n");
+		drm_mode_object_put(dev, &plane->base);
+		return -ENOMEM;
+	}
+
+	if (name) {
+		va_list ap;
+
+		va_start(ap, name);
+		plane->name = kvasprintf(GFP_KERNEL, name, ap);
+		va_end(ap);
+	} else {
+		plane->name = kasprintf(GFP_KERNEL, "plane-%d",
+					drm_num_planes(dev));
+	}
+	if (!plane->name) {
+		kfree(plane->format_types);
 		drm_mode_object_put(dev, &plane->base);
 		return -ENOMEM;
 	}
@@ -1503,6 +1568,8 @@ void drm_plane_cleanup(struct drm_plane *plane)
 	WARN_ON(plane->state && !plane->funcs->atomic_destroy_state);
 	if (plane->state && plane->funcs->atomic_destroy_state)
 		plane->funcs->atomic_destroy_state(plane, plane->state);
+
+	kfree(plane->name);
 
 	memset(plane, 0, sizeof(*plane));
 }
@@ -2135,7 +2202,8 @@ int drm_mode_getresources(struct drm_device *dev, void *data,
 		copied = 0;
 		crtc_id = (uint32_t __user *)(unsigned long)card_res->crtc_id_ptr;
 		drm_for_each_crtc(crtc, dev) {
-			DRM_DEBUG_KMS("[CRTC:%d]\n", crtc->base.id);
+			DRM_DEBUG_KMS("[CRTC:%d:%s]\n",
+				      crtc->base.id, crtc->name);
 			if (put_user(crtc->base.id, crtc_id + copied)) {
 				ret = -EFAULT;
 				goto out;
@@ -2988,7 +3056,7 @@ int drm_mode_setcrtc(struct drm_device *dev, void *data,
 		ret = -ENOENT;
 		goto out;
 	}
-	DRM_DEBUG_KMS("[CRTC:%d]\n", crtc->base.id);
+	DRM_DEBUG_KMS("[CRTC:%d:%s]\n", crtc->base.id, crtc->name);
 
 	if (crtc_req->mode_valid) {
 		/* If we have a mode we need a framebuffer. */
@@ -5201,9 +5269,7 @@ static int drm_mode_connector_set_obj_prop(struct drm_mode_object *obj,
 
 	/* Do DPMS ourselves */
 	if (property == connector->dev->mode_config.dpms_property) {
-		ret = 0;
-		if (connector->funcs->dpms)
-			ret = (*connector->funcs->dpms)(connector, (int)value);
+		ret = (*connector->funcs->dpms)(connector, (int)value);
 	} else if (connector->funcs->set_property)
 		ret = connector->funcs->set_property(connector, property, value);
 
