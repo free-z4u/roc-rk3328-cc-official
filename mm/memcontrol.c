@@ -1279,7 +1279,7 @@ static unsigned long mem_cgroup_get_limit(struct mem_cgroup *memcg)
 	return limit;
 }
 
-static bool mem_cgroup_out_of_memory(struct mem_cgroup *memcg, gfp_t gfp_mask,
+static void mem_cgroup_out_of_memory(struct mem_cgroup *memcg, gfp_t gfp_mask,
 				     int order)
 {
 	struct oom_control oc = {
@@ -1357,7 +1357,6 @@ static bool mem_cgroup_out_of_memory(struct mem_cgroup *memcg, gfp_t gfp_mask,
 	}
 unlock:
 	mutex_unlock(&oom_lock);
-	return chosen;
 }
 
 #if MAX_NUMNODES > 1
@@ -5122,8 +5121,6 @@ static ssize_t memory_max_write(struct kernfs_open_file *of,
 				char *buf, size_t nbytes, loff_t off)
 {
 	struct mem_cgroup *memcg = mem_cgroup_from_css(of_css(of));
-	unsigned int nr_reclaims = MEM_CGROUP_RECLAIM_RETRIES;
-	bool drained = false;
 	unsigned long max;
 	int err;
 
@@ -5132,36 +5129,9 @@ static ssize_t memory_max_write(struct kernfs_open_file *of,
 	if (err)
 		return err;
 
-	xchg(&memcg->memory.limit, max);
-
-	for (;;) {
-		unsigned long nr_pages = page_counter_read(&memcg->memory);
-
-		if (nr_pages <= max)
-			break;
-
-		if (signal_pending(current)) {
-			err = -EINTR;
-			break;
-		}
-
-		if (!drained) {
-			drain_all_stock(memcg);
-			drained = true;
-			continue;
-		}
-
-		if (nr_reclaims) {
-			if (!try_to_free_mem_cgroup_pages(memcg, nr_pages - max,
-							  GFP_KERNEL, true))
-				nr_reclaims--;
-			continue;
-		}
-
-		mem_cgroup_events(memcg, MEMCG_OOM, 1);
-		if (!mem_cgroup_out_of_memory(memcg, GFP_KERNEL, 0))
-			break;
-	}
+	err = mem_cgroup_resize_limit(memcg, max);
+	if (err)
+		return err;
 
 	memcg_wb_domain_size_changed(memcg);
 	return nbytes;
