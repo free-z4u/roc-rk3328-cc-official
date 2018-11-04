@@ -2673,10 +2673,10 @@ static int nvme_dev_add(struct nvme_dev *dev)
 	return 0;
 }
 
-static int nvme_pci_enable(struct nvme_dev *dev)
+static int nvme_dev_map(struct nvme_dev *dev)
 {
 	u64 cap;
-	int result = -ENOMEM;
+	int bars, result = -ENOMEM;
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
 	if (pci_enable_device_mem(pdev))
@@ -2684,14 +2684,24 @@ static int nvme_pci_enable(struct nvme_dev *dev)
 
 	dev->entry[0].vector = pdev->irq;
 	pci_set_master(pdev);
+	bars = pci_select_bars(pdev, IORESOURCE_MEM);
+	if (!bars)
+		goto disable_pci;
+
+	if (pci_request_selected_regions(pdev, bars, "nvme"))
+		goto disable_pci;
 
 	if (dma_set_mask_and_coherent(dev->dev, DMA_BIT_MASK(64)) &&
 	    dma_set_mask_and_coherent(dev->dev, DMA_BIT_MASK(32)))
 		goto disable;
 
+	dev->bar = ioremap(pci_resource_start(pdev, 0), 8192);
+	if (!dev->bar)
+		goto disable;
+
 	if (readl(&dev->bar->csts) == -1) {
 		result = -ENODEV;
-		goto disable;
+		goto unmap;
 	}
 
 	/*
@@ -2701,7 +2711,7 @@ static int nvme_pci_enable(struct nvme_dev *dev)
 	if (!pdev->irq) {
 		result = pci_enable_msix(pdev, dev->entry, 1);
 		if (result < 0)
-			goto disable;
+			goto unmap;
 	}
 
 	cap = lo_hi_readq(&dev->bar->cap);
@@ -2725,20 +2735,17 @@ static int nvme_pci_enable(struct nvme_dev *dev)
 
 	return 0;
 
+ unmap:
+	iounmap(dev->bar);
+	dev->bar = NULL;
  disable:
 	pci_release_regions(pdev);
-
+ disable_pci:
+	pci_disable_device(pdev);
 	return result;
 }
 
 static void nvme_dev_unmap(struct nvme_dev *dev)
-{
-	if (dev->bar)
-		iounmap(dev->bar);
-	pci_release_regions(to_pci_dev(dev->dev));
-}
-
-static void nvme_pci_disable(struct nvme_dev *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
 
@@ -2746,6 +2753,12 @@ static void nvme_pci_disable(struct nvme_dev *dev)
 		pci_disable_msi(pdev);
 	else if (pdev->msix_enabled)
 		pci_disable_msix(pdev);
+
+	if (dev->bar) {
+		iounmap(dev->bar);
+		dev->bar = NULL;
+		pci_release_regions(pdev);
+	}
 
 	if (pci_is_enabled(pdev))
 		pci_disable_device(pdev);
@@ -2950,7 +2963,7 @@ static void nvme_dev_shutdown(struct nvme_dev *dev)
 
 	nvme_dev_list_remove(dev);
 
-	if (pci_is_enabled(to_pci_dev(dev->dev))) {
+	if (dev->bar) {
 		nvme_freeze_queues(dev);
 		csts = readl(&dev->bar->csts);
 	}
@@ -2964,7 +2977,7 @@ static void nvme_dev_shutdown(struct nvme_dev *dev)
 		nvme_shutdown_ctrl(dev);
 		nvme_disable_queue(dev, 0);
 	}
-	nvme_pci_disable(dev);
+	nvme_dev_unmap(dev);
 
 	for (i = dev->queue_count - 1; i >= 0; i--)
 		nvme_clear_queue(dev->queues[i]);
@@ -3124,7 +3137,7 @@ static void nvme_probe_work(struct work_struct *work)
 	bool start_thread = false;
 	int result;
 
-	result = nvme_pci_enable(dev);
+	result = nvme_dev_map(dev);
 	if (result)
 		goto out;
 
@@ -3280,27 +3293,6 @@ static ssize_t nvme_sysfs_reset(struct device *dev,
 }
 static DEVICE_ATTR(reset_controller, S_IWUSR, NULL, nvme_sysfs_reset);
 
-static int nvme_dev_map(struct nvme_dev *dev)
-{
-	int bars;
-	struct pci_dev *pdev = to_pci_dev(dev->dev);
-
-	bars = pci_select_bars(pdev, IORESOURCE_MEM);
-	if (!bars)
-		return -ENODEV;
-	if (pci_request_selected_regions(pdev, bars, "nvme"))
-		return -ENODEV;
-
-	dev->bar = ioremap(pci_resource_start(pdev, 0), 8192);
-	if (!dev->bar)
-		goto release;
-
-	return 0;
-release:
-	pci_release_regions(pdev);
-	return -ENODEV;
-}
-
 static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	int node, result = -ENOMEM;
@@ -3326,11 +3318,6 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	INIT_WORK(&dev->reset_work, nvme_reset_work);
 	dev->dev = get_device(&pdev->dev);
 	pci_set_drvdata(pdev, dev);
-
-	result = nvme_dev_map(dev);
-	if (result)
-		goto free;
-
 	result = nvme_set_instance(dev);
 	if (result)
 		goto put_pci;
@@ -3369,7 +3356,6 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	nvme_release_instance(dev);
  put_pci:
 	put_device(dev->dev);
-	nvme_dev_unmap(dev);
  free:
 	kfree(dev->queues);
 	kfree(dev->entry);
@@ -3413,7 +3399,6 @@ static void nvme_remove(struct pci_dev *pdev)
 	nvme_free_queues(dev, 0);
 	nvme_release_cmb(dev);
 	nvme_release_prp_pools(dev);
-	nvme_dev_unmap(dev);
 	kref_put(&dev->kref, nvme_free_dev);
 }
 
