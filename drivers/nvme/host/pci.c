@@ -2726,7 +2726,7 @@ static int nvme_pci_enable(struct nvme_dev *dev)
 	return 0;
 
  disable:
-	pci_disable_device(pdev);
+	pci_release_regions(pdev);
 
 	return result;
 }
