@@ -2218,8 +2218,8 @@ static int nvme_kthread(void *data)
 							csts & NVME_CSTS_CFS) {
 				if (!__nvme_reset(dev)) {
 					dev_warn(dev->dev,
-						"Failed status: 0x%x, reset controller\n",
-						csts);
+						"Failed status: %x, reset controller\n",
+						readl(&dev->bar->csts));
 				}
 				continue;
 			}
