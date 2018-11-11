@@ -152,7 +152,7 @@ void devm_memunmap(struct device *dev, void *addr)
 }
 EXPORT_SYMBOL(devm_memunmap);
 
-pfn_t phys_to_pfn_t(dma_addr_t addr, unsigned long flags)
+pfn_t phys_to_pfn_t(phys_addr_t addr, unsigned long flags)
 {
 	return __pfn_to_pfn_t(addr >> PAGE_SHIFT, flags);
 }
@@ -185,7 +185,11 @@ EXPORT_SYMBOL(put_zone_device_page);
 
 static void pgmap_radix_release(struct resource *res)
 {
-	resource_size_t key;
+	resource_size_t key, align_start, align_size, align_end;
+
+	align_start = res->start & ~(SECTION_SIZE - 1);
+	align_size = ALIGN(resource_size(res), SECTION_SIZE);
+	align_end = align_start + align_size - 1;
 
 	mutex_lock(&pgmap_lock);
 	for (key = res->start; key <= res->end; key += SECTION_SIZE)
@@ -228,13 +232,12 @@ static void devm_memremap_pages_release(struct device *dev, void *data)
 		percpu_ref_put(pgmap->ref);
 	}
 
-	pgmap_radix_release(res);
-
 	/* pages are dead and unused, undo the arch mapping */
 	mem_hotplug_begin();
 	align_start = res->start & ~(SECTION_SIZE - 1);
 	align_size = ALIGN(resource_size(res), SECTION_SIZE);
 	arch_remove_memory(align_start, align_size);
+	pgmap_radix_release(res);
 	dev_WARN_ONCE(dev, pgmap->altmap && pgmap->altmap->alloc,
 			"%s: failed to free all reserved pages\n", __func__);
 	mem_hotplug_done();
@@ -271,7 +274,7 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 {
 	int is_ram = region_intersects(res->start, resource_size(res),
 			"System RAM");
-	resource_size_t key, align_start, align_size;
+	resource_size_t key, align_start, align_size, align_end;
 	struct dev_pagemap *pgmap;
 	struct page_map *page_map;
 	unsigned long pfn;
@@ -313,7 +316,10 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 
 	mutex_lock(&pgmap_lock);
 	error = 0;
-	for (key = res->start; key <= res->end; key += SECTION_SIZE) {
+	align_start = res->start & ~(SECTION_SIZE - 1);
+	align_size = ALIGN(resource_size(res), SECTION_SIZE);
+	align_end = align_start + align_size - 1;
+	for (key = align_start; key <= align_end; key += SECTION_SIZE) {
 		struct dev_pagemap *dup;
 
 		rcu_read_lock();
@@ -341,8 +347,6 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 		nid = numa_mem_id();
 
 	mem_hotplug_begin();
-	align_start = res->start & ~(SECTION_SIZE - 1);
-	align_size = ALIGN(resource_size(res), SECTION_SIZE);
 	error = arch_add_memory(nid, align_start, align_size, true);
 	mem_hotplug_done();
 	if (error)
