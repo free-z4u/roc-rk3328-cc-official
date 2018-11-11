@@ -122,7 +122,6 @@ struct mlxsw_sp {
 #define MLXSW_SP_MAX_AGEING_TIME 1000000
 #define MLXSW_SP_DEFAULT_AGEING_TIME 300
 	u32 ageing_time;
-	struct mutex fdb_lock;	/* Make sure FDB sessions are atomic. */
 	struct mlxsw_sp_upper master_bridge;
 	struct mlxsw_sp_upper lags[MLXSW_SP_LAG_MAX];
 };
@@ -256,5 +255,6 @@ int mlxsw_sp_port_kill_vid(struct net_device *dev,
 			   __be16 __always_unused proto, u16 vid);
 int mlxsw_sp_vport_flood_set(struct mlxsw_sp_port *mlxsw_sp_vport, u16 vfid,
 			     bool set, bool only_uc);
+void mlxsw_sp_port_active_vlans_del(struct mlxsw_sp_port *mlxsw_sp_port);
 
 #endif
