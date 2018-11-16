@@ -2980,6 +2980,9 @@ int drm_dp_mst_topology_mgr_init(struct drm_dp_mst_topology_mgr *mgr,
 	mgr->max_dpcd_transaction_bytes = max_dpcd_transaction_bytes;
 	mgr->max_payloads = max_payloads;
 	mgr->conn_base_id = conn_base_id;
+	if (max_payloads + 1 > sizeof(mgr->payload_mask) * 8 ||
+	    max_payloads + 1 > sizeof(mgr->vcpi_mask) * 8)
+		return -EINVAL;
 	mgr->payloads = kcalloc(max_payloads, sizeof(struct drm_dp_payload), GFP_KERNEL);
 	if (!mgr->payloads)
 		return -ENOMEM;
@@ -2987,7 +2990,9 @@ int drm_dp_mst_topology_mgr_init(struct drm_dp_mst_topology_mgr *mgr,
 	if (!mgr->proposed_vcpis)
 		return -ENOMEM;
 	set_bit(0, &mgr->payload_mask);
-	test_calc_pbn_mode();
+	if (test_calc_pbn_mode() < 0)
+		DRM_ERROR("MST PBN self-test failed\n");
+
 	return 0;
 }
 EXPORT_SYMBOL(drm_dp_mst_topology_mgr_init);
