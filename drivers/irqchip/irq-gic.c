@@ -404,9 +404,6 @@ static struct irq_chip gic_chip = {
 #ifdef CONFIG_ARCH_ROCKCHIP
 	.irq_retrigger          = gic_retrigger,
 #endif
-#ifdef CONFIG_SMP
-	.irq_set_affinity	= gic_set_affinity,
-#endif
 	.irq_get_irqchip_state	= gic_irq_get_irqchip_state,
 	.irq_set_irqchip_state	= gic_irq_set_irqchip_state,
 	.flags			= IRQCHIP_SET_TYPE_MASKED |
@@ -422,9 +419,6 @@ static struct irq_chip gic_eoimode1_chip = {
 	.irq_set_type		= gic_set_type,
 #ifdef CONFIG_ARCH_ROCKCHIP
 	.irq_retrigger          = gic_retrigger,
-#endif
-#ifdef CONFIG_SMP
-	.irq_set_affinity	= gic_set_affinity,
 #endif
 	.irq_get_irqchip_state	= gic_irq_get_irqchip_state,
 	.irq_set_irqchip_state	= gic_irq_set_irqchip_state,
@@ -466,7 +460,7 @@ static void gic_cpu_if_up(struct gic_chip_data *gic)
 	u32 bypass = 0;
 	u32 mode = 0;
 
-	if (static_key_true(&supports_deactivate))
+	if (gic == &gic_data[0] && static_key_true(&supports_deactivate))
 		mode = GIC_CPU_CTRL_EOImodeNS;
 
 	/*
@@ -1061,6 +1055,11 @@ static void __init __gic_init_bases(unsigned int gic_nr, int irq_start,
 		gic->chip = gic_chip;
 		gic->chip.name = kasprintf(GFP_KERNEL, "GIC-%d", gic_nr);
 	}
+
+#ifdef CONFIG_SMP
+	if (gic_nr == 0)
+		gic->chip.irq_set_affinity = gic_set_affinity;
+#endif
 
 #ifdef CONFIG_GIC_NON_BANKED
 	if (percpu_offset) { /* Frankein-GIC without banked registers... */
