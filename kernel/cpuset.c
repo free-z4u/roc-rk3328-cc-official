@@ -1030,7 +1030,7 @@ static void cpuset_migrate_mm(struct mm_struct *mm, const nodemask_t *from,
 	}
 }
 
-static void cpuset_post_attach(void)
+void cpuset_post_attach_flush(void)
 {
 	flush_workqueue(cpuset_migrate_mm_wq);
 }
@@ -2123,7 +2123,7 @@ struct cgroup_subsys cpuset_cgrp_subsys = {
 	.can_attach	= cpuset_can_attach,
 	.cancel_attach	= cpuset_cancel_attach,
 	.attach		= cpuset_attach,
-	.post_attach	= cpuset_post_attach,
+	.post_attach	= cpuset_post_attach_flush,
 	.bind		= cpuset_bind,
 	.fork		= cpuset_fork,
 	.legacy_cftypes	= files,
