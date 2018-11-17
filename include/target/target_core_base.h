@@ -141,6 +141,7 @@ enum se_cmd_flags_table {
 	SCF_COMPARE_AND_WRITE_POST	= 0x00100000,
 	SCF_PASSTHROUGH_PROT_SG_TO_MEM_NOALLOC = 0x00200000,
 	SCF_ACK_KREF			= 0x00400000,
+	SCF_USE_CPUID			= 0x00800000,
 	SCF_TASK_ATTR_SET		= 0x01000000,
 };
 
@@ -190,6 +191,7 @@ enum target_sc_flags_table {
 	TARGET_SCF_BIDI_OP		= 0x01,
 	TARGET_SCF_ACK_KREF		= 0x02,
 	TARGET_SCF_UNKNOWN_SIZE		= 0x04,
+	TARGET_SCF_USE_CPUID	= 0x08,
 };
 
 /* fabric independent task management function values */
@@ -494,7 +496,6 @@ struct se_cmd {
 #define CMD_T_SENT		(1 << 4)
 #define CMD_T_STOP		(1 << 5)
 #define CMD_T_DEV_ACTIVE	(1 << 7)
-#define CMD_T_REQUEST_STOP	(1 << 8)
 #define CMD_T_BUSY		(1 << 9)
 #define CMD_T_TAS		(1 << 10)
 #define CMD_T_FABRIC_STOP	(1 << 11)
@@ -517,9 +518,6 @@ struct se_cmd {
 	int			lun_ref_active;
 
 	struct list_head	state_list;
-
-	/* old task stop completion, consider merging with some of the above */
-	struct completion	task_stop_comp;
 
 	/* backend private data */
 	void			*priv;
