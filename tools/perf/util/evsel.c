@@ -226,6 +226,11 @@ struct perf_evsel *perf_evsel__new_idx(struct perf_event_attr *attr, int idx)
 	if (evsel != NULL)
 		perf_evsel__init(evsel, attr, idx);
 
+	if (perf_evsel__is_bpf_output(evsel)) {
+		evsel->attr.sample_type |= PERF_SAMPLE_RAW;
+		evsel->attr.sample_period = 1;
+	}
+
 	return evsel;
 }
 
@@ -898,6 +903,16 @@ void perf_evsel__config(struct perf_evsel *evsel, struct record_opts *opts)
 
 	if (evsel->precise_max)
 		perf_event_attr__set_max_precise_ip(attr);
+
+	if (opts->all_user) {
+		attr->exclude_kernel = 1;
+		attr->exclude_user   = 0;
+	}
+
+	if (opts->all_kernel) {
+		attr->exclude_kernel = 0;
+		attr->exclude_user   = 1;
+	}
 
 	/*
 	 * Apply event specific term settings,
