@@ -110,6 +110,7 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 	struct device_node *np = pdev->dev.of_node;
 	struct plat_stmmacenet_data *plat;
 	struct stmmac_dma_cfg *dma_cfg;
+	struct device_node *child_node = NULL;
 
 	plat = devm_kzalloc(&pdev->dev, sizeof(*plat), GFP_KERNEL);
 	if (!plat)
@@ -139,6 +140,12 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 
 		plat->phy_node = of_node_get(np);
 	}
+
+	for_each_child_of_node(np, child_node)
+		if (of_device_is_compatible(child_node,	"snps,dwmac-mdio")) {
+			plat->mdio_node = child_node;
+			break;
+		}
 
 	/* "snps,phy-addr" is not a standard property. Mark it as deprecated
 	 * and warn of its use. Remove this when phy node support is added.
