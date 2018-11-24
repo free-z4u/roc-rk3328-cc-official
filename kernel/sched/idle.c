@@ -4,6 +4,7 @@
 #include <linux/sched.h>
 #include <linux/cpu.h>
 #include <linux/cpuidle.h>
+#include <linux/cpuhotplug.h>
 #include <linux/tick.h>
 #include <linux/mm.h>
 #include <linux/stackprotector.h>
@@ -194,8 +195,6 @@ exit_idle:
 	rcu_idle_exit();
 }
 
-DEFINE_PER_CPU(bool, cpu_dead_idle);
-
 /*
  * Generic idle loop implementation
  *
@@ -222,10 +221,7 @@ static void cpu_idle_loop(void)
 			rmb();
 
 			if (cpu_is_offline(smp_processor_id())) {
-				rcu_cpu_notify(NULL, CPU_DYING_IDLE,
-					       (void *)(long)smp_processor_id());
-				smp_mb(); /* all activity before dead. */
-				this_cpu_write(cpu_dead_idle, true);
+				cpuhp_report_idle_dead();
 				arch_cpu_idle_dead();
 			}
 
@@ -292,5 +288,6 @@ void cpu_startup_entry(enum cpuhp_state state)
 	boot_init_stack_canary();
 #endif
 	arch_cpu_idle_prepare();
+	cpuhp_online_idle(state);
 	cpu_idle_loop();
 }
