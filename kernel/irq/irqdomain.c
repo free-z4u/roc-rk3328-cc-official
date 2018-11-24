@@ -894,6 +894,7 @@ struct irq_domain *irq_domain_create_hierarchy(struct irq_domain *parent,
 
 	return domain;
 }
+EXPORT_SYMBOL_GPL(irq_domain_create_hierarchy);
 
 static void irq_domain_insert_irq(int virq)
 {
@@ -1044,6 +1045,7 @@ int irq_domain_set_hwirq_and_chip(struct irq_domain *domain, unsigned int virq,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(irq_domain_set_hwirq_and_chip);
 
 /**
  * irq_domain_set_info - Set the complete data for a @virq in @domain
@@ -1077,6 +1079,7 @@ void irq_domain_reset_irq_data(struct irq_data *irq_data)
 	irq_data->chip = &no_irq_chip;
 	irq_data->chip_data = NULL;
 }
+EXPORT_SYMBOL_GPL(irq_domain_reset_irq_data);
 
 /**
  * irq_domain_free_irqs_common - Clear irq_data and free the parent
@@ -1274,6 +1277,7 @@ int irq_domain_alloc_irqs_parent(struct irq_domain *domain,
 						       nr_irqs, arg);
 	return -ENOSYS;
 }
+EXPORT_SYMBOL_GPL(irq_domain_alloc_irqs_parent);
 
 /**
  * irq_domain_free_irqs_parent - Free interrupts from parent domain
@@ -1291,6 +1295,7 @@ void irq_domain_free_irqs_parent(struct irq_domain *domain,
 		irq_domain_free_irqs_recursive(domain->parent, irq_base,
 					       nr_irqs);
 }
+EXPORT_SYMBOL_GPL(irq_domain_free_irqs_parent);
 
 /**
  * irq_domain_activate_irq - Call domain_ops->activate recursively to activate
