@@ -88,6 +88,10 @@ extern void verify_cpu_run_el(void);
 static inline void verify_cpu_run_el(void) {}
 #endif
 
+/* The section containing the hypervisor text */
+extern char __hyp_text_start[];
+extern char __hyp_text_end[];
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* ! __ASM__VIRT_H */
