@@ -296,6 +296,9 @@ int pci_assign_resource(struct pci_dev *dev, int resno)
 	resource_size_t align, size;
 	int ret;
 
+	if (res->flags & IORESOURCE_PCI_FIXED)
+		return 0;
+
 	res->flags |= IORESOURCE_UNSET;
 	align = pci_resource_alignment(dev, res);
 	if (!align) {
@@ -340,6 +343,9 @@ int pci_reassign_resource(struct pci_dev *dev, int resno, resource_size_t addsiz
 	unsigned long flags;
 	resource_size_t new_size;
 	int ret;
+
+	if (res->flags & IORESOURCE_PCI_FIXED)
+		return 0;
 
 	flags = res->flags;
 	res->flags |= IORESOURCE_UNSET;
