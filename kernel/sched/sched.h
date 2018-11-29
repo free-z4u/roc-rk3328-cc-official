@@ -2040,17 +2040,17 @@ DECLARE_PER_CPU(struct update_util_data *, cpufreq_update_util_data);
  */
 static inline void cpufreq_update_util(struct rq *rq, unsigned int flags)
 {
-        struct update_util_data *data;
+	struct update_util_data *data;
 
-        data = rcu_dereference_sched(*this_cpu_ptr(&cpufreq_update_util_data));
-        if (data)
-                data->func(data, rq_clock(rq), flags);
+	data = rcu_dereference_sched(*this_cpu_ptr(&cpufreq_update_util_data));
+	if (data)
+		data->func(data, rq_clock(rq), flags);
 }
 
 static inline void cpufreq_update_this_cpu(struct rq *rq, unsigned int flags)
 {
-        if (cpu_of(rq) == smp_processor_id())
-                cpufreq_update_util(rq, flags);
+	if (cpu_of(rq) == smp_processor_id())
+		cpufreq_update_util(rq, flags);
 }
 #else
 static inline void cpufreq_update_util(struct rq *rq, unsigned int flags) {}
@@ -2070,8 +2070,8 @@ walt_task_in_cum_window_demand(struct rq *rq, struct task_struct *p)
 
 #ifdef arch_scale_freq_capacity
 #ifndef arch_scale_freq_invariant
-#define arch_scale_freq_invariant()     (true)
+#define arch_scale_freq_invariant()	(true)
 #endif
 #else /* arch_scale_freq_capacity */
-#define arch_scale_freq_invariant()     (false)
+#define arch_scale_freq_invariant()	(false)
 #endif
