@@ -879,9 +879,10 @@ static void tc358743_format_change(struct v4l2_subdev *sd)
 			tc358743_s_dv_timings(sd, &timings);
 		}
 
-		v4l2_print_dv_timings(sd->name,
-				"tc358743_format_change: New format: ",
-				&timings, false);
+		if (debug)
+			v4l2_print_dv_timings(sd->name,
+					"tc358743_format_change: New format: ",
+					&timings, false);
 	}
 
 	if (sd->devnode)
