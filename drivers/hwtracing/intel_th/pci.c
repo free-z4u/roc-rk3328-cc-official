@@ -58,6 +58,10 @@ static void intel_th_pci_remove(struct pci_dev *pdev)
 	intel_th_free(th);
 }
 
+static const struct intel_th_drvdata intel_th_2x = {
+	.tscu_enable	= 1,
+};
+
 static const struct pci_device_id intel_th_pci_id_table[] = {
 	{
 		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x9d26),
@@ -68,24 +72,59 @@ static const struct pci_device_id intel_th_pci_id_table[] = {
 		.driver_data = (kernel_ulong_t)0,
 	},
 	{
+		/* Apollo Lake */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x5a8e),
+		.driver_data = (kernel_ulong_t)0,
+	},
+	{
+		/* Broxton */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x0a80),
+		.driver_data = (kernel_ulong_t)0,
+	},
+	{
+		/* Broxton B-step */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x1a8e),
+		.driver_data = (kernel_ulong_t)0,
+	},
+	{
 		/* Kaby Lake PCH-H */
 		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0xa2a6),
 		.driver_data = (kernel_ulong_t)0,
 	},
 	{
-		/* Cannon Lake H */
-		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0xa326),
+		/* Denverton */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x19e1),
 		.driver_data = (kernel_ulong_t)0,
 	},
 	{
-		/* Cannon Lake LP */
-		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x9da6),
+		/* Lewisburg PCH */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0xa1a6),
 		.driver_data = (kernel_ulong_t)0,
 	},
 	{
 		/* Gemini Lake */
 		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x318e),
-		.driver_data = (kernel_ulong_t)0,
+		.driver_data = (kernel_ulong_t)&intel_th_2x,
+	},
+	{
+		/* Cannon Lake H */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0xa326),
+		.driver_data = (kernel_ulong_t)&intel_th_2x,
+	},
+	{
+		/* Cannon Lake LP */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x9da6),
+		.driver_data = (kernel_ulong_t)&intel_th_2x,
+	},
+	{
+		/* Cedar Fork PCH */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x18e1),
+		.driver_data = (kernel_ulong_t)&intel_th_2x,
+	},
+	{
+		/* Ice Lake PCH */
+		PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x34a6),
+		.driver_data = (kernel_ulong_t)&intel_th_2x,
 	},
 	{ 0 },
 };
