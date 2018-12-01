@@ -32,6 +32,13 @@
 #include <linux/mfd/syscon.h>
 #include <linux/delay.h>
 
+static int enable_usb_uart;
+
+#define HIWORD_UPDATE(val, mask) \
+		((val) | (mask) << 16)
+
+#define UOC_CON0_SIDDQ BIT(13)
+
 /*
  * The higher 16-bit of this register is used for write protection
  * only if BIT(13 + 16) set to 1 the BIT(13) can be written.
@@ -53,11 +60,14 @@ struct rockchip_usb_phys {
 	const char *pll_name;
 };
 
+struct rockchip_usb_phy_base;
 struct rockchip_usb_phy_pdata {
 	struct rockchip_usb_phys *phys;
 	unsigned int phy_pw_on;
 	unsigned int phy_pw_off;
 	bool siddq_ctl;
+	int (*init_usb_uart)(struct regmap *grf);
+	int usb_uart_phy;
 };
 
 struct rockchip_usb_phy_base {
@@ -75,15 +85,15 @@ struct rockchip_usb_phy {
 	struct clk      *clk480m;
 	struct clk_hw	clk480m_hw;
 	struct phy	*phy;
+	bool		uart_enabled;
 	struct reset_control *reset;
 };
 
 static int rockchip_usb_phy_power(struct rockchip_usb_phy *phy,
-					   bool off)
+					   bool siddq)
 {
-	unsigned int val;
+	u32 val = !siddq ? phy->base->pdata->phy_pw_on : phy->base->pdata->phy_pw_off;
 
-	val = !off ? phy->base->pdata->phy_pw_on : phy->base->pdata->phy_pw_off;
 	return regmap_write(phy->base->reg_base, phy->reg_offset, val);
 }
 
@@ -149,6 +159,9 @@ static int rockchip_usb_phy_power_off(struct phy *_phy)
 	int ret = 0;
 	struct rockchip_usb_phy *phy = phy_get_drvdata(_phy);
 
+	if (phy->uart_enabled)
+		return -EBUSY;
+
 	if (!phy->base->pdata->siddq_ctl) {
 		ret = rockchip_usb_phy_power(phy, 1);
 		if (ret)
@@ -164,6 +177,9 @@ static int rockchip_usb_phy_power_on(struct phy *_phy)
 	int ret = 0;
 	struct rockchip_usb_phy *phy = phy_get_drvdata(_phy);
 
+	if (phy->uart_enabled)
+		return -EBUSY;
+
 	ret = clk_prepare_enable(phy->clk480m);
 	if (ret)
 		return ret;
@@ -177,6 +193,9 @@ static int rockchip_usb_phy_power_on(struct phy *_phy)
 static int rockchip_usb_phy_reset(struct phy *_phy)
 {
 	struct rockchip_usb_phy *phy = phy_get_drvdata(_phy);
+
+	if (phy->uart_enabled)
+		return -EBUSY;
 
 	if (phy->reset) {
 		reset_control_assert(phy->reset);
@@ -198,8 +217,10 @@ static void rockchip_usb_phy_action(void *data)
 {
 	struct rockchip_usb_phy *rk_phy = data;
 
-	of_clk_del_provider(rk_phy->np);
-	clk_unregister(rk_phy->clk480m);
+	if (!rk_phy->uart_enabled) {
+		of_clk_del_provider(rk_phy->np);
+		clk_unregister(rk_phy->clk480m);
+	}
 
 	if (rk_phy->clk)
 		clk_put(rk_phy->clk);
@@ -253,30 +274,35 @@ static int rockchip_usb_phy_init(struct rockchip_usb_phy_base *base,
 		return -EINVAL;
 	}
 
-	if (rk_phy->clk) {
-		clk_name = __clk_get_name(rk_phy->clk);
-		init.flags = 0;
-		init.parent_names = &clk_name;
-		init.num_parents = 1;
+	if (enable_usb_uart && base->pdata->usb_uart_phy == i) {
+		dev_dbg(base->dev, "phy%d used as uart output\n", i);
+		rk_phy->uart_enabled = true;
 	} else {
-		init.flags = CLK_IS_ROOT;
-		init.parent_names = NULL;
-		init.num_parents = 0;
+		if (rk_phy->clk) {
+			clk_name = __clk_get_name(rk_phy->clk);
+			init.flags = 0;
+			init.parent_names = &clk_name;
+			init.num_parents = 1;
+		} else {
+			init.flags = CLK_IS_ROOT;
+			init.parent_names = NULL;
+			init.num_parents = 0;
+		}
+
+		init.ops = &rockchip_usb_phy480m_ops;
+		rk_phy->clk480m_hw.init = &init;
+
+		rk_phy->clk480m = clk_register(base->dev, &rk_phy->clk480m_hw);
+		if (IS_ERR(rk_phy->clk480m)) {
+			err = PTR_ERR(rk_phy->clk480m);
+			goto err_clk;
+		}
+
+		err = of_clk_add_provider(child, of_clk_src_simple_get,
+					rk_phy->clk480m);
+		if (err < 0)
+			goto err_clk_prov;
 	}
-
-	init.ops = &rockchip_usb_phy480m_ops;
-	rk_phy->clk480m_hw.init = &init;
-
-	rk_phy->clk480m = clk_register(base->dev, &rk_phy->clk480m_hw);
-	if (IS_ERR(rk_phy->clk480m)) {
-		err = PTR_ERR(rk_phy->clk480m);
-		goto err_clk;
-	}
-
-	err = of_clk_add_provider(child, of_clk_src_simple_get,
-				  rk_phy->clk480m);
-	if (err < 0)
-		goto err_clk_prov;
 
 	err = devm_add_action(base->dev, rockchip_usb_phy_action, rk_phy);
 	if (err)
@@ -304,13 +330,21 @@ static int rockchip_usb_phy_init(struct rockchip_usb_phy_base *base,
 	    reg_offset == 0x334)
 		regmap_write(base->reg_base, reg_offset, BIT(16));
 
-	/* only power up usb phy when it use, so disable it when init*/
-	return rockchip_usb_phy_power(rk_phy, 1);
+	/*
+	 * When acting as uart-pipe, just keep clock on otherwise
+	 * only power up usb phy when it use, so disable it when init
+	 */
+	if (rk_phy->uart_enabled)
+		return clk_prepare_enable(rk_phy->clk);
+	else
+		return rockchip_usb_phy_power(rk_phy, 1);
 
 err_devm_action:
-	of_clk_del_provider(child);
+	if (!rk_phy->uart_enabled)
+		of_clk_del_provider(child);
 err_clk_prov:
-	clk_unregister(rk_phy->clk480m);
+	if (!rk_phy->uart_enabled)
+		clk_unregister(rk_phy->clk480m);
 err_clk:
 	if (rk_phy->clk)
 		clk_put(rk_phy->clk);
@@ -339,6 +373,86 @@ static const struct rockchip_usb_phy_pdata rk3188_pdata = {
 	.siddq_ctl  = true,
 };
 
+#define RK3288_UOC0_CON0				0x320
+#define RK3288_UOC0_CON0_COMMON_ON_N			BIT(0)
+#define RK3288_UOC0_CON0_DISABLE			BIT(4)
+
+#define RK3288_UOC0_CON2				0x328
+#define RK3288_UOC0_CON2_SOFT_CON_SEL			BIT(2)
+
+#define RK3288_UOC0_CON3				0x32c
+#define RK3288_UOC0_CON3_UTMI_SUSPENDN			BIT(0)
+#define RK3288_UOC0_CON3_UTMI_OPMODE_NODRIVING		(1 << 1)
+#define RK3288_UOC0_CON3_UTMI_OPMODE_MASK		(3 << 1)
+#define RK3288_UOC0_CON3_UTMI_XCVRSEELCT_FSTRANSC	(1 << 3)
+#define RK3288_UOC0_CON3_UTMI_XCVRSEELCT_MASK		(3 << 3)
+#define RK3288_UOC0_CON3_UTMI_TERMSEL_FULLSPEED		BIT(5)
+#define RK3288_UOC0_CON3_BYPASSDMEN			BIT(6)
+#define RK3288_UOC0_CON3_BYPASSSEL			BIT(7)
+
+/*
+ * Enable the bypass of uart2 data through the otg usb phy.
+ * Original description in the TRM.
+ * 1. Disable the OTG block by setting OTGDISABLE0 to 1’b1.
+ * 2. Disable the pull-up resistance on the D+ line by setting
+ *    OPMODE0[1:0] to 2’b01.
+ * 3. To ensure that the XO, Bias, and PLL blocks are powered down in Suspend
+ *    mode, set COMMONONN to 1’b1.
+ * 4. Place the USB PHY in Suspend mode by setting SUSPENDM0 to 1’b0.
+ * 5. Set BYPASSSEL0 to 1’b1.
+ * 6. To transmit data, controls BYPASSDMEN0, and BYPASSDMDATA0.
+ * To receive data, monitor FSVPLUS0.
+ *
+ * The actual code in the vendor kernel does some things differently.
+ */
+static int __init rk3288_init_usb_uart(struct regmap *grf)
+{
+	u32 val;
+	int ret;
+
+	/*
+	 * COMMON_ON and DISABLE settings are described in the TRM,
+	 * but were not present in the original code.
+	 * Also disable the analog phy components to save power.
+	 */
+	val = HIWORD_UPDATE(RK3288_UOC0_CON0_COMMON_ON_N
+				| RK3288_UOC0_CON0_DISABLE
+				| UOC_CON0_SIDDQ,
+			    RK3288_UOC0_CON0_COMMON_ON_N
+				| RK3288_UOC0_CON0_DISABLE
+				| UOC_CON0_SIDDQ);
+	ret = regmap_write(grf, RK3288_UOC0_CON0, val);
+	if (ret)
+		return ret;
+
+	val = HIWORD_UPDATE(RK3288_UOC0_CON2_SOFT_CON_SEL,
+			    RK3288_UOC0_CON2_SOFT_CON_SEL);
+	ret = regmap_write(grf, RK3288_UOC0_CON2, val);
+	if (ret)
+		return ret;
+
+	val = HIWORD_UPDATE(RK3288_UOC0_CON3_UTMI_OPMODE_NODRIVING
+				| RK3288_UOC0_CON3_UTMI_XCVRSEELCT_FSTRANSC
+				| RK3288_UOC0_CON3_UTMI_TERMSEL_FULLSPEED,
+			    RK3288_UOC0_CON3_UTMI_SUSPENDN
+				| RK3288_UOC0_CON3_UTMI_OPMODE_MASK
+				| RK3288_UOC0_CON3_UTMI_XCVRSEELCT_MASK
+				| RK3288_UOC0_CON3_UTMI_TERMSEL_FULLSPEED);
+	ret = regmap_write(grf, RK3288_UOC0_CON3, val);
+	if (ret)
+		return ret;
+
+	val = HIWORD_UPDATE(RK3288_UOC0_CON3_BYPASSSEL
+				| RK3288_UOC0_CON3_BYPASSDMEN,
+			    RK3288_UOC0_CON3_BYPASSSEL
+				| RK3288_UOC0_CON3_BYPASSDMEN);
+	ret = regmap_write(grf, RK3288_UOC0_CON3, val);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 static const struct rockchip_usb_phy_pdata rk3288_pdata = {
 	.phys = (struct rockchip_usb_phys[]){
 		{ .reg = 0x320, .pll_name = "sclk_otgphy0_480m" },
@@ -346,6 +460,8 @@ static const struct rockchip_usb_phy_pdata rk3288_pdata = {
 		{ .reg = 0x348, .pll_name = "sclk_otgphy2_480m" },
 		{ /* sentinel */ }
 	},
+	.init_usb_uart = rk3288_init_usb_uart,
+	.usb_uart_phy = 0,
 	.phy_pw_on  = SIDDQ_WRITE_ENA | SIDDQ_OFF,
 	.phy_pw_off = SIDDQ_WRITE_ENA | SIDDQ_ON,
 	.siddq_ctl  = true,
@@ -357,6 +473,8 @@ static const struct rockchip_usb_phy_pdata rk336x_pdata = {
 		{ .reg = 0x728, .pll_name = "sclk_otgphy1_480m" },
 		{ /* sentinel */ }
 	},
+	.init_usb_uart = NULL,
+	.usb_uart_phy = 0,
 	.phy_pw_on  = USB2_PHY_WRITE_ENA | USB2_PHY_RESUME,
 	.phy_pw_off = USB2_PHY_WRITE_ENA | USB2_PHY_SUSPEND,
 	.siddq_ctl  = false,
@@ -368,6 +486,8 @@ static const struct rockchip_usb_phy_pdata rk3399_pdata = {
 		{ .reg = 0xe468, .pll_name = "sclk_otgphy1_480m" },
 		{ /* sentinel */ }
 	},
+	.init_usb_uart = NULL,
+	.usb_uart_phy = 0,
 	.phy_pw_on  = UTMI_SEL_GRF_WR_ENA | UTMI_SEL_GRF_RESUME,
 	.phy_pw_off = UTMI_SEL_GRF_WR_ENA | UTMI_SEL_GRF_SUSPEND,
 	.siddq_ctl  = false,
@@ -445,6 +565,60 @@ static struct platform_driver rockchip_usb_driver = {
 };
 
 module_platform_driver(rockchip_usb_driver);
+
+#ifndef MODULE
+static int __init rockchip_init_usb_uart(void)
+{
+	const struct of_device_id *match;
+	const struct rockchip_usb_phy_pdata *data;
+	struct device_node *np;
+	struct regmap *grf;
+	int ret;
+
+	if (!enable_usb_uart)
+		return 0;
+
+	np = of_find_matching_node_and_match(NULL, rockchip_usb_phy_dt_ids,
+					     &match);
+	if (!np) {
+		pr_err("%s: failed to find usbphy node\n", __func__);
+		return -ENOTSUPP;
+	}
+
+	pr_debug("%s: using settings for %s\n", __func__, match->compatible);
+	data = match->data;
+
+	if (!data->init_usb_uart) {
+		pr_err("%s: usb-uart not available on %s\n",
+		       __func__, match->compatible);
+		return -ENOTSUPP;
+	}
+
+	grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
+	if (IS_ERR(grf)) {
+		pr_err("%s: Missing rockchip,grf property, %lu\n",
+		       __func__, PTR_ERR(grf));
+		return PTR_ERR(grf);
+	}
+
+	ret = data->init_usb_uart(grf);
+	if (ret) {
+		pr_err("%s: could not init usb_uart, %d\n", __func__, ret);
+		enable_usb_uart = 0;
+		return ret;
+	}
+
+	return 0;
+}
+early_initcall(rockchip_init_usb_uart);
+
+static int __init rockchip_usb_uart(char *buf)
+{
+	enable_usb_uart = true;
+	return 0;
+}
+early_param("rockchip.usb_uart", rockchip_usb_uart);
+#endif
 
 MODULE_AUTHOR("Yunzhi Li <lyz@rock-chips.com>");
 MODULE_DESCRIPTION("Rockchip USB 2.0 PHY driver");
