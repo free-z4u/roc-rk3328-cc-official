@@ -128,6 +128,27 @@ static inline int is_root_hub(struct usb_device *udev)
 #define KERNEL_REL	bin2bcd(((LINUX_VERSION_CODE >> 16) & 0x0ff))
 #define KERNEL_VER	bin2bcd(((LINUX_VERSION_CODE >> 8) & 0x0ff))
 
+/* usb 3.1 root hub device descriptor */
+static const u8 usb31_rh_dev_descriptor[18] = {
+	0x12,       /*  __u8  bLength; */
+	USB_DT_DEVICE, /* __u8 bDescriptorType; Device */
+	0x10, 0x03, /*  __le16 bcdUSB; v3.1 */
+
+	0x09,	    /*  __u8  bDeviceClass; HUB_CLASSCODE */
+	0x00,	    /*  __u8  bDeviceSubClass; */
+	0x03,       /*  __u8  bDeviceProtocol; USB 3 hub */
+	0x09,       /*  __u8  bMaxPacketSize0; 2^9 = 512 Bytes */
+
+	0x6b, 0x1d, /*  __le16 idVendor; Linux Foundation 0x1d6b */
+	0x03, 0x00, /*  __le16 idProduct; device 0x0003 */
+	KERNEL_VER, KERNEL_REL, /*  __le16 bcdDevice */
+
+	0x03,       /*  __u8  iManufacturer; */
+	0x02,       /*  __u8  iProduct; */
+	0x01,       /*  __u8  iSerialNumber; */
+	0x01        /*  __u8  bNumConfigurations; */
+};
+
 /* usb 3.0 root hub device descriptor */
 static const u8 usb3_rh_dev_descriptor[18] = {
 	0x12,       /*  __u8  bLength; */
@@ -559,6 +580,8 @@ static int rh_call_control (struct usb_hcd *hcd, struct urb *urb)
 		case USB_DT_DEVICE << 8:
 			switch (hcd->speed) {
 			case HCD_USB31:
+				bufp = usb31_rh_dev_descriptor;
+				break;
 			case HCD_USB3:
 				bufp = usb3_rh_dev_descriptor;
 				break;
@@ -647,8 +670,14 @@ nongeneric:
 		/* non-generic request */
 		switch (typeReq) {
 		case GetHubStatus:
-		case GetPortStatus:
 			len = 4;
+			break;
+		case GetPortStatus:
+			if (wValue == HUB_PORT_STATUS)
+				len = 4;
+			else
+				/* other port status types return 8 bytes */
+				len = 8;
 			break;
 		case GetHubDescriptor:
 			len = sizeof (struct usb_hub_descriptor);
@@ -2211,7 +2240,7 @@ int usb_hcd_get_frame_number (struct usb_device *udev)
 
 int hcd_bus_suspend(struct usb_device *rhdev, pm_message_t msg)
 {
-	struct usb_hcd	*hcd = container_of(rhdev->bus, struct usb_hcd, self);
+	struct usb_hcd	*hcd = bus_to_hcd(rhdev->bus);
 	int		status;
 	int		old_state = hcd->state;
 
@@ -2260,7 +2289,7 @@ int hcd_bus_suspend(struct usb_device *rhdev, pm_message_t msg)
 
 int hcd_bus_resume(struct usb_device *rhdev, pm_message_t msg)
 {
-	struct usb_hcd	*hcd = container_of(rhdev->bus, struct usb_hcd, self);
+	struct usb_hcd	*hcd = bus_to_hcd(rhdev->bus);
 	int		status;
 	int		old_state = hcd->state;
 
@@ -2375,7 +2404,7 @@ int usb_bus_start_enum(struct usb_bus *bus, unsigned port_num)
 	 * boards with root hubs hooked up to internal devices (instead of
 	 * just the OTG port) may need more attention to resetting...
 	 */
-	hcd = container_of (bus, struct usb_hcd, self);
+	hcd = bus_to_hcd(bus);
 	if (port_num && hcd->driver->start_port_reset)
 		status = hcd->driver->start_port_reset(hcd, port_num);
 
@@ -2793,8 +2822,10 @@ int usb_add_hcd(struct usb_hcd *hcd,
 		rhdev->speed = USB_SPEED_WIRELESS;
 		break;
 	case HCD_USB3:
-	case HCD_USB31:
 		rhdev->speed = USB_SPEED_SUPER;
+		break;
+	case HCD_USB31:
+		rhdev->speed = USB_SPEED_SUPER_PLUS;
 		break;
 	default:
 		retval = -EINVAL;
