@@ -125,7 +125,6 @@ int set_memory_x(unsigned long addr, int numpages)
 }
 EXPORT_SYMBOL_GPL(set_memory_x);
 
-
 int set_memory_valid(unsigned long addr, int numpages, int enable)
 {
 	if (enable)
