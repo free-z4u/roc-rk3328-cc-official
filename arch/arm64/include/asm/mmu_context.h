@@ -240,4 +240,6 @@ void post_ttbr_update_workaround(void);
 
 void verify_cpu_asid_bits(void);
 
+void verify_cpu_asid_bits(void);
+
 #endif
