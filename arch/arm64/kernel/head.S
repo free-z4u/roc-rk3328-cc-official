@@ -680,6 +680,7 @@ secondary_startup:
 	adr_l	x27, __secondary_switch		// address to jump to after enabling the MMU
 	b	__enable_mmu
 ENDPROC(secondary_startup)
+0:	.long	(_text - TEXT_OFFSET) - __secondary_switched
 
 __secondary_switched:
 	adr_l	x5, vectors
