@@ -39,6 +39,14 @@ struct platform_msi_desc {
 };
 
 /**
+ * fsl_mc_msi_desc - FSL-MC device specific msi descriptor data
+ * @msi_index:		The index of the MSI descriptor
+ */
+struct fsl_mc_msi_desc {
+	u16				msi_index;
+};
+
+/**
  * struct msi_desc - Descriptor structure for MSI based interrupts
  * @list:	List head for management
  * @irq:	The base interrupt number
@@ -93,6 +101,7 @@ struct msi_desc {
 		 * tree wide cleanup.
 		 */
 		struct platform_msi_desc platform;
+		struct fsl_mc_msi_desc fsl_mc;
 	};
 };
 

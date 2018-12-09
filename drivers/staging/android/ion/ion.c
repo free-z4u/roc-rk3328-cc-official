@@ -981,6 +981,34 @@ static int ion_debug_client_show_buffer(struct seq_file *s, void *unused)
 }
 #endif
 
+static struct mutex debugfs_mutex;
+static struct rb_root *ion_root_client;
+static int is_client_alive(struct ion_client *client)
+{
+	struct rb_node *node;
+	struct ion_client *tmp;
+	struct ion_device *dev;
+
+	node = ion_root_client->rb_node;
+	dev = container_of(ion_root_client, struct ion_device, clients);
+
+	down_read(&dev->lock);
+	while (node) {
+		tmp = rb_entry(node, struct ion_client, node);
+		if (client < tmp) {
+			node = node->rb_left;
+		} else if (client > tmp) {
+			node = node->rb_right;
+		} else {
+			up_read(&dev->lock);
+			return 1;
+		}
+	}
+
+	up_read(&dev->lock);
+	return 0;
+}
+
 static int ion_debug_client_show(struct seq_file *s, void *unused)
 {
 	struct ion_client *client = s->private;
@@ -988,6 +1016,14 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 	size_t sizes[ION_NUM_HEAP_IDS] = {0};
 	const char *names[ION_NUM_HEAP_IDS] = {NULL};
 	int i;
+
+	mutex_lock(&debugfs_mutex);
+	if (!is_client_alive(client)) {
+		seq_printf(s, "ion_client 0x%p dead, can't dump its buffers\n",
+			   client);
+		mutex_unlock(&debugfs_mutex);
+		return 0;
+	}
 
 	mutex_lock(&client->lock);
 	for (n = rb_first(&client->handles); n; n = rb_next(n)) {
@@ -1000,6 +1036,7 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 		sizes[id] += handle->buffer->size;
 	}
 	mutex_unlock(&client->lock);
+	mutex_unlock(&debugfs_mutex);
 
 	seq_printf(s, "%16.16s: %16.16s\n", "heap_name", "size_in_bytes");
 	for (i = 0; i < ION_NUM_HEAP_IDS; i++) {
@@ -1139,6 +1176,7 @@ void ion_client_destroy(struct ion_client *client)
 	struct rb_node *n;
 
 	pr_debug("%s: %d\n", __func__, __LINE__);
+	mutex_lock(&debugfs_mutex);
 	while ((n = rb_first(&client->handles))) {
 		struct ion_handle *handle = rb_entry(n, struct ion_handle,
 						     node);
@@ -1157,6 +1195,7 @@ void ion_client_destroy(struct ion_client *client)
 	kfree(client->display_name);
 	kfree(client->name);
 	kfree(client);
+	mutex_unlock(&debugfs_mutex);
 }
 EXPORT_SYMBOL(ion_client_destroy);
 
@@ -1524,22 +1563,18 @@ int ion_share_dma_buf_fd(struct ion_client *client, struct ion_handle *handle)
 }
 EXPORT_SYMBOL(ion_share_dma_buf_fd);
 
-struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
+struct ion_handle *ion_import_dma_buf(struct ion_client *client,
+				      struct dma_buf *dmabuf)
 {
-	struct dma_buf *dmabuf;
 	struct ion_buffer *buffer;
 	struct ion_handle *handle;
 	int ret;
 
-	dmabuf = dma_buf_get(fd);
-	if (IS_ERR(dmabuf))
-		return ERR_CAST(dmabuf);
 	/* if this memory came from ion */
 
 	if (dmabuf->ops != &dma_buf_ops) {
 		pr_err("%s: can not import dmabuf from another exporter\n",
 		       __func__);
-		dma_buf_put(dmabuf);
 		return ERR_PTR(-EINVAL);
 	}
 	buffer = dmabuf->priv;
@@ -1567,10 +1602,24 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 	}
 
 end:
-	dma_buf_put(dmabuf);
 	return handle;
 }
 EXPORT_SYMBOL(ion_import_dma_buf);
+
+struct ion_handle *ion_import_dma_buf_fd(struct ion_client *client, int fd)
+{
+	struct dma_buf *dmabuf;
+	struct ion_handle *handle;
+
+	dmabuf = dma_buf_get(fd);
+	if (IS_ERR(dmabuf))
+		return ERR_CAST(dmabuf);
+
+	handle = ion_import_dma_buf(client, dmabuf);
+	dma_buf_put(dmabuf);
+	return handle;
+}
+EXPORT_SYMBOL(ion_import_dma_buf_fd);
 
 static int ion_sync_for_device(struct ion_client *client, int fd)
 {
@@ -1685,7 +1734,7 @@ static long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		struct ion_handle *handle;
 
-		handle = ion_import_dma_buf(client, data.fd.fd);
+		handle = ion_import_dma_buf_fd(client, data.fd.fd);
 		if (IS_ERR(handle))
 			ret = PTR_ERR(handle);
 		else
@@ -1782,6 +1831,7 @@ static int ion_debug_heap_show(struct seq_file *s, void *unused)
 	seq_printf(s, "%16s %16s %16s\n", "client", "pid", "size");
 	seq_puts(s, "----------------------------------------------------\n");
 
+	mutex_lock(&debugfs_mutex);
 	for (n = rb_first(&dev->clients); n; n = rb_next(n)) {
 		struct ion_client *client = rb_entry(n, struct ion_client,
 						     node);
@@ -1800,6 +1850,8 @@ static int ion_debug_heap_show(struct seq_file *s, void *unused)
 				   client->pid, size);
 		}
 	}
+	mutex_unlock(&debugfs_mutex);
+
 	seq_puts(s, "----------------------------------------------------\n");
 	seq_puts(s, "orphaned allocations (info is from last known client):\n");
 	mutex_lock(&dev->buffer_lock);
@@ -1851,7 +1903,7 @@ static int debug_shrink_set(void *data, u64 val)
 	struct shrink_control sc;
 	int objs;
 
-	sc.gfp_mask = -1;
+	sc.gfp_mask = GFP_HIGHUSER;
 	sc.nr_to_scan = val;
 
 	if (!val) {
@@ -1869,7 +1921,7 @@ static int debug_shrink_get(void *data, u64 *val)
 	struct shrink_control sc;
 	int objs;
 
-	sc.gfp_mask = -1;
+	sc.gfp_mask = GFP_HIGHUSER;
 	sc.nr_to_scan = 0;
 
 	objs = heap->shrinker.count_objects(&heap->shrinker, &sc);
@@ -1998,6 +2050,8 @@ debugfs_done:
 	init_rwsem(&idev->lock);
 	plist_head_init(&idev->heaps);
 	idev->clients = RB_ROOT;
+	ion_root_client = &idev->clients;
+	mutex_init(&debugfs_mutex);
 	return idev;
 }
 EXPORT_SYMBOL(ion_device_create);
