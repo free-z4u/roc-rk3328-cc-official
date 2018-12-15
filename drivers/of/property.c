@@ -55,8 +55,8 @@ int of_property_count_elems_of_size(const struct device_node *np,
 		return -ENODATA;
 
 	if (prop->length % elem_size != 0) {
-		pr_err("size of %s in node %s is not a multiple of %d\n",
-		       propname, np->full_name, elem_size);
+		pr_err("size of %s in node %pOF is not a multiple of %d\n",
+		       propname, np, elem_size);
 		return -EINVAL;
 	}
 
@@ -394,7 +394,7 @@ EXPORT_SYMBOL_GPL(of_property_read_variable_u64_array);
  *
  * The out_string pointer is modified only if a valid string can be decoded.
  */
-int of_property_read_string(struct device_node *np, const char *propname,
+int of_property_read_string(const struct device_node *np, const char *propname,
 				const char **out_string)
 {
 	const struct property *prop = of_find_property(np, propname, NULL);
@@ -418,7 +418,7 @@ EXPORT_SYMBOL_GPL(of_property_read_string);
  * This function searches a string list property and returns the index
  * of a specific string value.
  */
-int of_property_match_string(struct device_node *np, const char *propname,
+int of_property_match_string(const struct device_node *np, const char *propname,
 			     const char *string)
 {
 	const struct property *prop = of_find_property(np, propname, NULL);
@@ -457,7 +457,7 @@ EXPORT_SYMBOL_GPL(of_property_match_string);
  * Don't call this function directly. It is a utility helper for the
  * of_property_read_string*() family of functions.
  */
-int of_property_read_string_helper(struct device_node *np,
+int of_property_read_string_helper(const struct device_node *np,
 				   const char *propname, const char **out_strs,
 				   size_t sz, int skip)
 {
