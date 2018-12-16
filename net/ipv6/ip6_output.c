@@ -345,7 +345,6 @@ static inline int ip6_forward_finish(struct net *net, struct sock *sk,
 
 	IP6_INC_STATS_BH(net, ip6_dst_idev(dst), IPSTATS_MIB_OUTFORWDATAGRAMS);
 	IP6_ADD_STATS_BH(net, ip6_dst_idev(dst), IPSTATS_MIB_OUTOCTETS, skb->len);
-	skb_sender_cpu_clear(skb);
 	return dst_output(net, sk, skb);
 }
 

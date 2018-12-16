@@ -1609,7 +1609,6 @@ static u64 bpf_clone_redirect(u64 r1, u64 ifindex, u64 flags, u64 r4, u64 r5)
 	}
 
 	skb2->dev = dev;
-	skb_sender_cpu_clear(skb2);
 	return dev_queue_xmit(skb2);
 }
 
@@ -1662,7 +1661,6 @@ int skb_do_redirect(struct sk_buff *skb)
 	}
 
 	skb->dev = dev;
-	skb_sender_cpu_clear(skb);
 	return dev_queue_xmit(skb);
 }
 
