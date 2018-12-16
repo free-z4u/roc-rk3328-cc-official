@@ -1319,14 +1319,6 @@ retry:
 }
 EXPORT_SYMBOL(netlink_unicast);
 
-struct sk_buff *__netlink_alloc_skb(struct sock *ssk, unsigned int size,
-				    unsigned int ldiff, u32 dst_portid,
-				    gfp_t gfp_mask)
-{
-	return alloc_skb(size, gfp_mask);
-}
-EXPORT_SYMBOL_GPL(__netlink_alloc_skb);
-
 int netlink_has_listeners(struct sock *sk, unsigned int group)
 {
 	int res = 0;
@@ -2156,14 +2148,13 @@ static int netlink_dump(struct sock *sk)
 
 	if (alloc_min_size < nlk->max_recvmsg_len) {
 		alloc_size = nlk->max_recvmsg_len;
-		skb = netlink_alloc_skb(sk, alloc_size, nlk->portid,
-					(GFP_KERNEL & ~__GFP_DIRECT_RECLAIM) |
-					__GFP_NOWARN | __GFP_NORETRY);
+		skb = alloc_skb(alloc_size,
+				(GFP_KERNEL & ~__GFP_DIRECT_RECLAIM) |
+				__GFP_NOWARN | __GFP_NORETRY);
 	}
 	if (!skb) {
 		alloc_size = alloc_min_size;
-		skb = netlink_alloc_skb(sk, alloc_size, nlk->portid,
-					GFP_KERNEL);
+		skb = alloc_skb(alloc_size, GFP_KERNEL);
 	}
 	if (!skb)
 		goto errout_skb;
@@ -2310,8 +2301,7 @@ void netlink_ack(struct sk_buff *in_skb, struct nlmsghdr *nlh, int err)
 	if (!(nlk->flags & NETLINK_F_CAP_ACK) && err)
 		payload += nlmsg_len(nlh);
 
-	skb = netlink_alloc_skb(in_skb->sk, nlmsg_total_size(payload),
-				NETLINK_CB(in_skb).portid, GFP_KERNEL);
+	skb = nlmsg_new(payload, GFP_KERNEL);
 	if (!skb) {
 		struct sock *sk;
 
