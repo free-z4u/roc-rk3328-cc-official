@@ -426,7 +426,7 @@ struct mv88e6xxx_priv_state {
 
 	struct mv88e6xxx_priv_port	ports[DSA_MAX_PORTS];
 
-	unsigned long port_state_update_mask;
+	DECLARE_BITMAP(port_state_update_mask, DSA_MAX_PORTS);
 
 	struct work_struct bridge_work;
 };
@@ -488,7 +488,7 @@ int mv88e6xxx_set_eee(struct dsa_switch *ds, int port,
 		      struct phy_device *phydev, struct ethtool_eee *e);
 int mv88e6xxx_port_bridge_join(struct dsa_switch *ds, int port,
 			       struct net_device *bridge);
-int mv88e6xxx_port_bridge_leave(struct dsa_switch *ds, int port);
+void mv88e6xxx_port_bridge_leave(struct dsa_switch *ds, int port);
 int mv88e6xxx_port_stp_update(struct dsa_switch *ds, int port, u8 state);
 int mv88e6xxx_port_vlan_filtering(struct dsa_switch *ds, int port,
 				  bool vlan_filtering);
@@ -519,7 +519,7 @@ int mv88e6xxx_phy_page_write(struct dsa_switch *ds, int port, int page,
 			     int reg, int val);
 
 extern struct dsa_switch_driver mv88e6131_switch_driver;
-extern struct dsa_switch_driver mv88e6123_61_65_switch_driver;
+extern struct dsa_switch_driver mv88e6123_switch_driver;
 extern struct dsa_switch_driver mv88e6352_switch_driver;
 extern struct dsa_switch_driver mv88e6171_switch_driver;
 

@@ -3042,8 +3042,12 @@ int bnx2x_nic_unload(struct bnx2x *bp, int unload_mode, bool keep_link)
 		bnx2x_save_statistics(bp);
 	}
 
-	/* wait till consumers catch up with producers in all queues */
-	bnx2x_drain_tx_queues(bp);
+	/* wait till consumers catch up with producers in all queues.
+	 * If we're recovering, FW can't write to host so no reason
+	 * to wait for the queues to complete all Tx.
+	 */
+	if (unload_mode != UNLOAD_RECOVERY)
+		bnx2x_drain_tx_queues(bp);
 
 	/* if VF indicate to PF this function is going down (PF will delete sp
 	 * elements and clear initializations
@@ -4275,7 +4279,7 @@ int bnx2x_setup_tc(struct net_device *dev, u8 num_tc)
 int __bnx2x_setup_tc(struct net_device *dev, u32 handle, __be16 proto,
 		     struct tc_to_netdev *tc)
 {
-	if (handle != TC_H_ROOT || tc->type != TC_SETUP_MQPRIO)
+	if (tc->type != TC_SETUP_MQPRIO)
 		return -EINVAL;
 	return bnx2x_setup_tc(dev, tc->tc);
 }

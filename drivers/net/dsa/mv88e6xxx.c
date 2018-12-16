@@ -1051,39 +1051,49 @@ static int _mv88e6xxx_atu_remove(struct dsa_switch *ds, u16 fid, int port,
 	return _mv88e6xxx_atu_move(ds, fid, port, 0x0f, static_too);
 }
 
-static int mv88e6xxx_set_port_state(struct dsa_switch *ds, int port, u8 state)
+static const char * const mv88e6xxx_port_state_names[] = {
+	[PORT_CONTROL_STATE_DISABLED] = "Disabled",
+	[PORT_CONTROL_STATE_BLOCKING] = "Blocking/Listening",
+	[PORT_CONTROL_STATE_LEARNING] = "Learning",
+	[PORT_CONTROL_STATE_FORWARDING] = "Forwarding",
+};
+
+static int _mv88e6xxx_port_state(struct dsa_switch *ds, int port, u8 state)
 {
-	struct mv88e6xxx_priv_state *ps = ds_to_priv(ds);
 	int reg, ret = 0;
 	u8 oldstate;
 
-	mutex_lock(&ps->smi_mutex);
-
 	reg = _mv88e6xxx_reg_read(ds, REG_PORT(port), PORT_CONTROL);
-	if (reg < 0) {
-		ret = reg;
-		goto abort;
-	}
+	if (reg < 0)
+		return reg;
 
 	oldstate = reg & PORT_CONTROL_STATE_MASK;
+
 	if (oldstate != state) {
 		/* Flush forwarding database if we're moving a port
 		 * from Learning or Forwarding state to Disabled or
 		 * Blocking or Listening state.
 		 */
-		if (oldstate >= PORT_CONTROL_STATE_LEARNING &&
-		    state <= PORT_CONTROL_STATE_BLOCKING) {
+		if ((oldstate == PORT_CONTROL_STATE_LEARNING ||
+		     oldstate == PORT_CONTROL_STATE_FORWARDING)
+		    && (state == PORT_CONTROL_STATE_DISABLED ||
+			state == PORT_CONTROL_STATE_BLOCKING)) {
 			ret = _mv88e6xxx_atu_remove(ds, 0, port, false);
 			if (ret)
-				goto abort;
+				return ret;
 		}
+
 		reg = (reg & ~PORT_CONTROL_STATE_MASK) | state;
 		ret = _mv88e6xxx_reg_write(ds, REG_PORT(port), PORT_CONTROL,
 					   reg);
+		if (ret)
+			return ret;
+
+		netdev_dbg(ds->ports[port], "PortState %s (was %s)\n",
+			   mv88e6xxx_port_state_names[state],
+			   mv88e6xxx_port_state_names[oldstate]);
 	}
 
-abort:
-	mutex_unlock(&ps->smi_mutex);
 	return ret;
 }
 
@@ -1146,35 +1156,55 @@ int mv88e6xxx_port_stp_update(struct dsa_switch *ds, int port, u8 state)
 		break;
 	}
 
-	netdev_dbg(ds->ports[port], "port state %d [%d]\n", state, stp_state);
-
 	/* mv88e6xxx_port_stp_update may be called with softirqs disabled,
 	 * so we can not update the port state directly but need to schedule it.
 	 */
 	ps->ports[port].state = stp_state;
-	set_bit(port, &ps->port_state_update_mask);
+	set_bit(port, ps->port_state_update_mask);
 	schedule_work(&ps->bridge_work);
 
 	return 0;
 }
 
-static int _mv88e6xxx_port_pvid_get(struct dsa_switch *ds, int port, u16 *pvid)
+static int _mv88e6xxx_port_pvid(struct dsa_switch *ds, int port, u16 *new,
+				u16 *old)
 {
+	u16 pvid;
 	int ret;
 
 	ret = _mv88e6xxx_reg_read(ds, REG_PORT(port), PORT_DEFAULT_VLAN);
 	if (ret < 0)
 		return ret;
 
-	*pvid = ret & PORT_DEFAULT_VLAN_MASK;
+	pvid = ret & PORT_DEFAULT_VLAN_MASK;
+
+	if (new) {
+		ret &= ~PORT_DEFAULT_VLAN_MASK;
+		ret |= *new & PORT_DEFAULT_VLAN_MASK;
+
+		ret = _mv88e6xxx_reg_write(ds, REG_PORT(port),
+					   PORT_DEFAULT_VLAN, ret);
+		if (ret < 0)
+			return ret;
+
+		netdev_dbg(ds->ports[port], "DefaultVID %d (was %d)\n", *new,
+			   pvid);
+	}
+
+	if (old)
+		*old = pvid;
 
 	return 0;
 }
 
+static int _mv88e6xxx_port_pvid_get(struct dsa_switch *ds, int port, u16 *pvid)
+{
+	return _mv88e6xxx_port_pvid(ds, port, NULL, pvid);
+}
+
 static int _mv88e6xxx_port_pvid_set(struct dsa_switch *ds, int port, u16 pvid)
 {
-	return _mv88e6xxx_reg_write(ds, REG_PORT(port), PORT_DEFAULT_VLAN,
-				   pvid & PORT_DEFAULT_VLAN_MASK);
+	return _mv88e6xxx_port_pvid(ds, port, &pvid, NULL);
 }
 
 static int _mv88e6xxx_vtu_wait(struct dsa_switch *ds)
@@ -1735,16 +1765,21 @@ int mv88e6xxx_port_vlan_filtering(struct dsa_switch *ds, int port,
 
 	old = ret & PORT_CONTROL_2_8021Q_MASK;
 
-	ret &= ~PORT_CONTROL_2_8021Q_MASK;
-	ret |= new & PORT_CONTROL_2_8021Q_MASK;
+	if (new != old) {
+		ret &= ~PORT_CONTROL_2_8021Q_MASK;
+		ret |= new & PORT_CONTROL_2_8021Q_MASK;
 
-	ret = _mv88e6xxx_reg_write(ds, REG_PORT(port), PORT_CONTROL_2, ret);
-	if (ret < 0)
-		goto unlock;
+		ret = _mv88e6xxx_reg_write(ds, REG_PORT(port), PORT_CONTROL_2,
+					   ret);
+		if (ret < 0)
+			goto unlock;
 
-	netdev_dbg(ds->ports[port], "802.1Q Mode: %s (was %s)\n",
-		   mv88e6xxx_port_8021q_mode_names[new],
-		   mv88e6xxx_port_8021q_mode_names[old]);
+		netdev_dbg(ds->ports[port], "802.1Q Mode %s (was %s)\n",
+			   mv88e6xxx_port_8021q_mode_names[new],
+			   mv88e6xxx_port_8021q_mode_names[old]);
+	}
+
+	ret = 0;
 unlock:
 	mutex_unlock(&ps->smi_mutex);
 
@@ -2184,39 +2219,29 @@ unlock:
 	return err;
 }
 
-int mv88e6xxx_port_bridge_leave(struct dsa_switch *ds, int port)
+void mv88e6xxx_port_bridge_leave(struct dsa_switch *ds, int port)
 {
 	struct mv88e6xxx_priv_state *ps = ds_to_priv(ds);
 	struct net_device *bridge = ps->ports[port].bridge_dev;
 	u16 fid;
-	int i, err;
+	int i;
 
 	mutex_lock(&ps->smi_mutex);
 
 	/* Give the port a fresh Filtering Information Database */
-	err = _mv88e6xxx_fid_new(ds, &fid);
-	if (err)
-		goto unlock;
-
-	err = _mv88e6xxx_port_fid_set(ds, port, fid);
-	if (err)
-		goto unlock;
+	if (_mv88e6xxx_fid_new(ds, &fid) ||
+	    _mv88e6xxx_port_fid_set(ds, port, fid))
+		netdev_warn(ds->ports[port], "failed to assign a new FID\n");
 
 	/* Unassign the bridge and remap each port's VLANTable */
 	ps->ports[port].bridge_dev = NULL;
 
-	for (i = 0; i < ps->num_ports; ++i) {
-		if (i == port || ps->ports[i].bridge_dev == bridge) {
-			err = _mv88e6xxx_port_based_vlan_map(ds, i);
-			if (err)
-				break;
-		}
-	}
+	for (i = 0; i < ps->num_ports; ++i)
+		if (i == port || ps->ports[i].bridge_dev == bridge)
+			if (_mv88e6xxx_port_based_vlan_map(ds, i))
+				netdev_warn(ds->ports[i], "failed to remap\n");
 
-unlock:
 	mutex_unlock(&ps->smi_mutex);
-
-	return err;
 }
 
 static void mv88e6xxx_bridge_work(struct work_struct *work)
@@ -2228,11 +2253,15 @@ static void mv88e6xxx_bridge_work(struct work_struct *work)
 	ps = container_of(work, struct mv88e6xxx_priv_state, bridge_work);
 	ds = ((struct dsa_switch *)ps) - 1;
 
-	while (ps->port_state_update_mask) {
-		port = __ffs(ps->port_state_update_mask);
-		clear_bit(port, &ps->port_state_update_mask);
-		mv88e6xxx_set_port_state(ds, port, ps->ports[port].state);
-	}
+	mutex_lock(&ps->smi_mutex);
+
+	for (port = 0; port < ps->num_ports; ++port)
+		if (test_and_clear_bit(port, ps->port_state_update_mask) &&
+		    _mv88e6xxx_port_state(ds, port, ps->ports[port].state))
+			netdev_warn(ds->ports[port], "failed to update state to %s\n",
+				    mv88e6xxx_port_state_names[ps->ports[port].state]);
+
+	mutex_unlock(&ps->smi_mutex);
 }
 
 static int mv88e6xxx_setup_port(struct dsa_switch *ds, int port)
@@ -2950,8 +2979,8 @@ static int __init mv88e6xxx_init(void)
 #if IS_ENABLED(CONFIG_NET_DSA_MV88E6131)
 	register_switch_driver(&mv88e6131_switch_driver);
 #endif
-#if IS_ENABLED(CONFIG_NET_DSA_MV88E6123_61_65)
-	register_switch_driver(&mv88e6123_61_65_switch_driver);
+#if IS_ENABLED(CONFIG_NET_DSA_MV88E6123)
+	register_switch_driver(&mv88e6123_switch_driver);
 #endif
 #if IS_ENABLED(CONFIG_NET_DSA_MV88E6352)
 	register_switch_driver(&mv88e6352_switch_driver);
@@ -2971,8 +3000,8 @@ static void __exit mv88e6xxx_cleanup(void)
 #if IS_ENABLED(CONFIG_NET_DSA_MV88E6352)
 	unregister_switch_driver(&mv88e6352_switch_driver);
 #endif
-#if IS_ENABLED(CONFIG_NET_DSA_MV88E6123_61_65)
-	unregister_switch_driver(&mv88e6123_61_65_switch_driver);
+#if IS_ENABLED(CONFIG_NET_DSA_MV88E6123)
+	unregister_switch_driver(&mv88e6123_switch_driver);
 #endif
 #if IS_ENABLED(CONFIG_NET_DSA_MV88E6131)
 	unregister_switch_driver(&mv88e6131_switch_driver);
