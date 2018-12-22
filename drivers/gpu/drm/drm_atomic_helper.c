@@ -616,7 +616,6 @@ disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 		const struct drm_encoder_helper_funcs *funcs;
 		const struct drm_connector_helper_funcs *conn_funcs;
 		struct drm_encoder *encoder;
-		struct drm_crtc_state *old_crtc_state;
 
 		/* Shut down everything that's in the changeset and currently
 		 * still on. So need to check the old, saved state. */
@@ -2972,8 +2971,10 @@ void drm_atomic_helper_plane_reset(struct drm_plane *plane)
 	kfree(plane->state);
 	plane->state = kzalloc(sizeof(*plane->state), GFP_KERNEL);
 
-	if (plane->state)
+	if (plane->state) {
 		plane->state->plane = plane;
+		plane->state->rotation = BIT(DRM_ROTATE_0);
+	}
 }
 EXPORT_SYMBOL(drm_atomic_helper_plane_reset);
 
