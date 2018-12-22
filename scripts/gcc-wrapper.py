@@ -52,7 +52,6 @@ allowed_warnings = set([
     "vdso.c:119", # arch/arm64/kernel/vdso.c:119:6: warning: ‘memcmp’ reading 4 bytes from a region of size 1 [-Wstringop-overflow=]
     "syscalls.h:195", # include/linux/syscalls.h:195:18: warning: ‘sys_set_tid_address’ alias between functions of incompatible types ‘long int(int *)’ and ‘long int(long int)’ [-Wattribute-alias]
     "compat.h:48", # include/linux/compat.h:48:18: warning: ‘compat_sys_sysctl’ alias between functions of incompatible types ‘long int(struct compat_sysctl_args *)’ and ‘long int(long int)’ [-Wattribute-alias]
-    "exec.c:1084", # fs/exec.c:1084:32: warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
     "regcache-rbtree.c:36", # drivers/base/regmap/regcache-rbtree.c:36:1: warning: alignment 1 of ‘struct regcache_rbtree_node’ is less than 8 [-Wpacked-not-aligned]
     "dm.c:2488", # drivers/net/wireless/realtek/rtlwifi/rtl8821ae/dm.c:2488:3: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
     "rtl8812a_mp.c:640", # drivers/net/wireless/rockchip_wlan/rtl8812au/hal/rtl8812a/rtl8812a_mp.c:640:7: warning: statement will never be executed [-Wswitch-unreachable]
@@ -86,7 +85,8 @@ allowed_warnings = set([
     "compat.c:530", # net/compat.c:530:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "compat.c:532", # net/compat.c:532:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "amba-pl011.c:190", # drivers/tty/serial/amba-pl011.c:190:27: warning: ‘vendor_zte’ defined but not used [-Wunused-variable]
-    "exec.c:1176", # fs/exec.c:1176:32: warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
+    "exec.c:1180", # warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
+    "task_mmu.c:154", # warning: ‘get_user_pages8’ is deprecated [-Wdeprecated-declarations]
  ])
 
 # Capture the name of the object file, can find it.
