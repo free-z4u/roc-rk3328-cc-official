@@ -705,10 +705,8 @@ struct drm_driver {
 	int (*gem_prime_mmap)(struct drm_gem_object *obj,
 				struct vm_area_struct *vma);
 	int (*gem_prime_begin_cpu_access)(struct drm_gem_object *obj,
-					  size_t, size_t,
 					  enum dma_data_direction);
 	void (*gem_prime_end_cpu_access)(struct drm_gem_object *obj,
-					 size_t, size_t,
 					 enum dma_data_direction);
 
 	/* vga arb irq handler */

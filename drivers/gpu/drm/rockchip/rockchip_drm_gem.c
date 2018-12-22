@@ -1134,7 +1134,6 @@ void rockchip_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr)
 }
 
 int rockchip_gem_prime_begin_cpu_access(struct drm_gem_object *obj,
-					size_t start, size_t len,
 					enum dma_data_direction dir)
 {
 	struct rockchip_gem_object *rk_obj = to_rockchip_obj(obj);
@@ -1149,7 +1148,6 @@ int rockchip_gem_prime_begin_cpu_access(struct drm_gem_object *obj,
 }
 
 void rockchip_gem_prime_end_cpu_access(struct drm_gem_object *obj,
-				   size_t start, size_t len,
 				   enum dma_data_direction dir)
 {
 	struct rockchip_gem_object *rk_obj = to_rockchip_obj(obj);

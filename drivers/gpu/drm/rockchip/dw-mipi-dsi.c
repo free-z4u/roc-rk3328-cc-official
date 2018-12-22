@@ -1151,13 +1151,6 @@ static void dw_mipi_dsi_encoder_disable(struct drm_encoder *encoder)
 	dw_mipi_dsi_post_disable(dsi);
 }
 
-static bool dw_mipi_dsi_encoder_mode_fixup(struct drm_encoder *encoder,
-					const struct drm_display_mode *mode,
-					struct drm_display_mode *adjusted_mode)
-{
-	return true;
-}
-
 static void dw_mipi_dsi_pre_init(struct dw_mipi_dsi *dsi)
 {
 	if (dsi->dphy.phy)
@@ -1292,7 +1285,6 @@ dw_mipi_dsi_encoder_atomic_check(struct drm_encoder *encoder,
 
 static const struct drm_encoder_helper_funcs
 dw_mipi_dsi_encoder_helper_funcs = {
-	.mode_fixup = dw_mipi_dsi_encoder_mode_fixup,
 	.mode_set = dw_mipi_dsi_encoder_mode_set,
 	.enable = dw_mipi_dsi_encoder_enable,
 	.disable = dw_mipi_dsi_encoder_disable,
