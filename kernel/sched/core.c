@@ -5520,6 +5520,7 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
 		walt_set_window_start(rq);
 		raw_spin_unlock_irqrestore(&rq->lock, flags);
 		rq->calc_load_update = calc_load_update;
+		account_reset_rq(rq);
 		break;
 
 	case CPU_ONLINE:
@@ -8378,6 +8379,8 @@ cpu_cgroup_css_alloc(struct cgroup_subsys_state *parent_css)
 	tg = sched_create_group(parent);
 	if (IS_ERR(tg))
 		return ERR_PTR(-ENOMEM);
+
+	sched_online_group(tg, parent);
 
 	return &tg->css;
 }
