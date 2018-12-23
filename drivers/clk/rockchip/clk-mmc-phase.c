@@ -171,7 +171,7 @@ struct clk *rockchip_clk_register_mmc(const char *name,
 
 	mmc_clock = kmalloc(sizeof(*mmc_clock), GFP_KERNEL);
 	if (!mmc_clock)
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 
 	init.name = name;
 	init.flags = 0;
@@ -185,11 +185,7 @@ struct clk *rockchip_clk_register_mmc(const char *name,
 
 	clk = clk_register(NULL, &mmc_clock->hw);
 	if (IS_ERR(clk))
-		goto err_free;
+		kfree(mmc_clock);
 
 	return clk;
-
-err_free:
-	kfree(mmc_clock);
-	return NULL;
 }
