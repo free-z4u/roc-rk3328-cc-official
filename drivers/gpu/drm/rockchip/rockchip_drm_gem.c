@@ -1147,15 +1147,16 @@ int rockchip_gem_prime_begin_cpu_access(struct drm_gem_object *obj,
 	return 0;
 }
 
-void rockchip_gem_prime_end_cpu_access(struct drm_gem_object *obj,
+int rockchip_gem_prime_end_cpu_access(struct drm_gem_object *obj,
 				   enum dma_data_direction dir)
 {
 	struct rockchip_gem_object *rk_obj = to_rockchip_obj(obj);
 	struct drm_device *drm = obj->dev;
 
 	if (!rk_obj->sgt)
-		return;
+		return 0;
 
 	dma_sync_sg_for_device(drm->dev, rk_obj->sgt->sgl,
 			       rk_obj->sgt->nents, dir);
+	return 0;
 }

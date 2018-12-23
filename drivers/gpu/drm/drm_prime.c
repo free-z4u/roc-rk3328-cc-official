@@ -305,16 +305,16 @@ static int drm_gem_dmabuf_begin_cpu_access(struct dma_buf *dma_buf,
 	return dev->driver->gem_prime_begin_cpu_access(obj, dir);
 }
 
-static void drm_gem_dmabuf_end_cpu_access(struct dma_buf *dma_buf,
-					  enum dma_data_direction dir)
+static int drm_gem_dmabuf_end_cpu_access(struct dma_buf *dma_buf,
+					 enum dma_data_direction dir)
 {
 	struct drm_gem_object *obj = dma_buf->priv;
 	struct drm_device *dev = obj->dev;
 
 	if (!dev->driver->gem_prime_end_cpu_access)
-		return;
+		return -ENOSYS;
 
-	dev->driver->gem_prime_end_cpu_access(obj, dir);
+	return dev->driver->gem_prime_end_cpu_access(obj, dir);
 }
 
 static const struct dma_buf_ops drm_gem_prime_dmabuf_ops =  {
