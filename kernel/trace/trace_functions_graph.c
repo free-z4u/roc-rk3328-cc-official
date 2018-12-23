@@ -1245,6 +1245,13 @@ print_graph_function(struct trace_iterator *iter)
 	return print_graph_function_flags(iter, tracer_flags.val);
 }
 
+static enum print_line_t
+print_graph_function_event(struct trace_iterator *iter, int flags,
+			   struct trace_event *event)
+{
+	return print_graph_function(iter);
+}
+
 static void print_lat_header(struct seq_file *s, u32 flags)
 {
 	static const char spaces[] = "                "	/* 16 spaces */
@@ -1371,7 +1378,7 @@ void graph_trace_open(struct trace_iterator *iter)
  out_err_free:
 	kfree(data);
  out_err:
-	pr_warning("function graph tracer: not enough memory\n");
+	pr_warn("function graph tracer: not enough memory\n");
 }
 
 void graph_trace_close(struct trace_iterator *iter)
@@ -1399,6 +1406,19 @@ func_graph_set_flag(struct trace_array *tr, u32 old_flags, u32 bit, int set)
 	return 0;
 }
 
+static struct trace_event_functions graph_functions = {
+	.trace		= print_graph_function_event,
+};
+
+static struct trace_event graph_trace_entry_event = {
+	.type		= TRACE_GRAPH_ENT,
+	.funcs		= &graph_functions,
+};
+
+static struct trace_event graph_trace_ret_event = {
+	.type		= TRACE_GRAPH_RET,
+	.funcs		= &graph_functions
+};
 
 static struct tracer graph_trace __tracer_data = {
 	.name		= "function_graph",
@@ -1474,6 +1494,16 @@ fs_initcall(init_graph_tracefs);
 static __init int init_graph_trace(void)
 {
 	max_bytes_for_cpu = snprintf(NULL, 0, "%d", nr_cpu_ids - 1);
+
+	if (!register_trace_event(&graph_trace_entry_event)) {
+		pr_warn("Warning: could not register graph trace events\n");
+		return 1;
+	}
+
+	if (!register_trace_event(&graph_trace_ret_event)) {
+		pr_warn("Warning: could not register graph trace events\n");
+		return 1;
+	}
 
 	return register_tracer(&graph_trace);
 }
