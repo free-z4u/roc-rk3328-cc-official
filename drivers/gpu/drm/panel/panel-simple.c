@@ -1326,6 +1326,7 @@ static const struct drm_display_mode innolux_g121x1_l03_mode = {
 	.vsync_end = 768 + 38 + 1,
 	.vtotal = 768 + 38 + 1 + 0,
 	.vrefresh = 60,
+	.flags = DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC,
 };
 
 static const struct panel_desc innolux_g121x1_l03 = {
@@ -1621,6 +1622,29 @@ static const struct panel_desc lg_lp097qx1_spa1 = {
 	},
 };
 
+static const struct drm_display_mode lg_lp120up1_mode = {
+	.clock = 162300,
+	.hdisplay = 1920,
+	.hsync_start = 1920 + 40,
+	.hsync_end = 1920 + 40 + 40,
+	.htotal = 1920 + 40 + 40+ 80,
+	.vdisplay = 1280,
+	.vsync_start = 1280 + 4,
+	.vsync_end = 1280 + 4 + 4,
+	.vtotal = 1280 + 4 + 4 + 12,
+	.vrefresh = 60,
+};
+
+static const struct panel_desc lg_lp120up1 = {
+	.modes = &lg_lp120up1_mode,
+	.num_modes = 1,
+	.bpc = 8,
+	.size = {
+		.width = 267,
+		.height = 183,
+	},
+};
+
 static const struct drm_display_mode lg_lp129qe_mode = {
 	.clock = 285250,
 	.hdisplay = 2560,
@@ -1655,6 +1679,7 @@ static const struct drm_display_mode nec_nl4827hc19_05b_mode = {
 	.vsync_end = 272 + 2 + 4,
 	.vtotal = 272 + 2 + 4 + 2,
 	.vrefresh = 74,
+	.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
 };
 
 static const struct panel_desc nec_nl4827hc19_05b = {
@@ -1837,6 +1862,42 @@ static const struct panel_desc shelly_sca07010_bfn_lnn = {
 	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
 };
 
+static const struct display_timing urt_umsh_8596md_timing = {
+	.pixelclock = { 33260000, 33260000, 33260000 },
+	.hactive = { 800, 800, 800 },
+	.hfront_porch = { 41, 41, 41 },
+	.hback_porch = { 216 - 128, 216 - 128, 216 - 128 },
+	.hsync_len = { 71, 128, 128 },
+	.vactive = { 480, 480, 480 },
+	.vfront_porch = { 10, 10, 10 },
+	.vback_porch = { 35 - 2, 35 - 2, 35 - 2 },
+	.vsync_len = { 2, 2, 2 },
+	.flags = DISPLAY_FLAGS_DE_HIGH | DISPLAY_FLAGS_PIXDATA_NEGEDGE |
+		DISPLAY_FLAGS_HSYNC_LOW | DISPLAY_FLAGS_VSYNC_LOW,
+};
+
+static const struct panel_desc urt_umsh_8596md_lvds = {
+	.timings = &urt_umsh_8596md_timing,
+	.num_timings = 1,
+	.bpc = 6,
+	.size = {
+		.width = 152,
+		.height = 91,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB666_1X7X3_SPWG,
+};
+
+static const struct panel_desc urt_umsh_8596md_parallel = {
+	.timings = &urt_umsh_8596md_timing,
+	.num_timings = 1,
+	.bpc = 6,
+	.size = {
+		.width = 152,
+		.height = 91,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB666_1X18,
+};
+
 static const struct of_device_id platform_of_match[] = {
 	{
 		.compatible = "simple-panel",
@@ -1953,6 +2014,9 @@ static const struct of_device_id platform_of_match[] = {
 		.compatible = "lg,lp097qx1-spa1",
 		.data = &lg_lp097qx1_spa1,
 	}, {
+		.compatible = "lg,lp120up1",
+		.data = &lg_lp120up1,
+	}, {
 		.compatible = "lg,lp129qe",
 		.data = &lg_lp129qe,
 	}, {
@@ -1982,6 +2046,24 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "shelly,sca07010-bfn-lnn",
 		.data = &shelly_sca07010_bfn_lnn,
+	}, {
+		.compatible = "urt,umsh-8596md-t",
+		.data = &urt_umsh_8596md_parallel,
+	}, {
+		.compatible = "urt,umsh-8596md-1t",
+		.data = &urt_umsh_8596md_parallel,
+	}, {
+		.compatible = "urt,umsh-8596md-7t",
+		.data = &urt_umsh_8596md_parallel,
+	}, {
+		.compatible = "urt,umsh-8596md-11t",
+		.data = &urt_umsh_8596md_lvds,
+	}, {
+		.compatible = "urt,umsh-8596md-19t",
+		.data = &urt_umsh_8596md_lvds,
+	}, {
+		.compatible = "urt,umsh-8596md-20t",
+		.data = &urt_umsh_8596md_parallel,
 	}, {
 		/* sentinel */
 	}
@@ -2169,7 +2251,6 @@ static const struct panel_desc_dsi panasonic_vvx10f004b00 = {
 	.format = MIPI_DSI_FMT_RGB888,
 	.lanes = 4,
 };
-
 
 static const struct of_device_id dsi_of_match[] = {
 	{
