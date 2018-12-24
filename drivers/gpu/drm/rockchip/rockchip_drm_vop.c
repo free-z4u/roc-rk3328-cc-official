@@ -1418,7 +1418,6 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	struct drm_framebuffer *fb = state->fb;
 	struct vop_win *win = to_vop_win(plane);
 	struct vop_plane_state *vop_plane_state = to_vop_plane_state(state);
-	struct drm_crtc_state *crtc_state;
 	const struct vop_data *vop_data;
 	struct vop *vop;
 	bool visible;
@@ -1439,11 +1438,6 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	 */
 	if (!crtc || !fb)
 		goto out_disable;
-
-	crtc_state = drm_atomic_get_crtc_state(state->state, crtc);
-	if (IS_ERR(crtc_state))
-		return PTR_ERR(crtc_state);
-
 	src->x1 = state->src_x;
 	src->y1 = state->src_y;
 	src->x2 = state->src_x + state->src_w;
@@ -1455,8 +1449,8 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 
 	clip.x1 = 0;
 	clip.y1 = 0;
-	clip.x2 = crtc_state->mode.hdisplay;
-	clip.y2 = crtc_state->mode.vdisplay;
+	clip.x2 = crtc->mode.hdisplay;
+	clip.y2 = crtc->mode.vdisplay;
 
 	ret = drm_plane_helper_check_update(plane, crtc, state->fb,
 					    src, dest, &clip,
