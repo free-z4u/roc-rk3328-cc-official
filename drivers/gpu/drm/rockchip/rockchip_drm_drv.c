@@ -1437,18 +1437,6 @@ static void rockchip_drm_unbind(struct device *dev)
 	drm_dev_unref(drm_dev);
 }
 
-static void rockchip_drm_crtc_cancel_pending_vblank(struct drm_crtc *crtc,
-						    struct drm_file *file_priv)
-{
-	struct rockchip_drm_private *priv = crtc->dev->dev_private;
-	int pipe = drm_crtc_index(crtc);
-
-	if (pipe < ROCKCHIP_MAX_CRTC &&
-	    priv->crtc_funcs[pipe] &&
-	    priv->crtc_funcs[pipe]->cancel_pending_vblank)
-		priv->crtc_funcs[pipe]->cancel_pending_vblank(crtc, file_priv);
-}
-
 int rockchip_drm_register_subdrv(struct drm_rockchip_subdrv *subdrv)
 {
 	if (!subdrv)
@@ -1507,6 +1495,24 @@ err_free_file_priv:
 	return ret;
 }
 
+static void rockchip_drm_postclose(struct drm_device *dev, struct drm_file *file)
+{
+	kfree(file->driver_priv);
+	file->driver_priv = NULL;
+}
+
+static void rockchip_drm_crtc_cancel_pending_vblank(struct drm_crtc *crtc,
+						    struct drm_file *file_priv)
+{
+	struct rockchip_drm_private *priv = crtc->dev->dev_private;
+	int pipe = drm_crtc_index(crtc);
+
+	if (pipe < ROCKCHIP_MAX_CRTC &&
+	    priv->crtc_funcs[pipe] &&
+	    priv->crtc_funcs[pipe]->cancel_pending_vblank)
+		priv->crtc_funcs[pipe]->cancel_pending_vblank(crtc, file_priv);
+}
+
 static void rockchip_drm_preclose(struct drm_device *dev,
 				  struct drm_file *file_priv)
 {
@@ -1538,12 +1544,6 @@ static void rockchip_drm_preclose(struct drm_device *dev,
 	list_for_each_entry(subdrv, &rockchip_drm_subdrv_list, list)
 		subdrv->close(dev, subdrv->dev, file_priv);
 	mutex_unlock(&subdrv_list_mutex);
-}
-
-static void rockchip_drm_postclose(struct drm_device *dev, struct drm_file *file)
-{
-	kfree(file->driver_priv);
-	file->driver_priv = NULL;
 }
 
 void rockchip_drm_lastclose(struct drm_device *dev)

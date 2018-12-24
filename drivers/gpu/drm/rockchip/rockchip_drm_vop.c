@@ -1872,25 +1872,6 @@ static void vop_crtc_disable_vblank(struct drm_crtc *crtc)
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
 }
 
-static void vop_crtc_cancel_pending_vblank(struct drm_crtc *crtc,
-					   struct drm_file *file_priv)
-{
-	struct drm_device *drm = crtc->dev;
-	struct vop *vop = to_vop(crtc);
-	struct drm_pending_vblank_event *e;
-	unsigned long flags;
-
-	spin_lock_irqsave(&drm->event_lock, flags);
-	e = vop->event;
-	if (e && e->base.file_priv == file_priv) {
-		vop->event = NULL;
-
-		e->base.destroy(&e->base);
-		file_priv->event_space += sizeof(e->event);
-	}
-	spin_unlock_irqrestore(&drm->event_lock, flags);
-}
-
 static int vop_crtc_loader_protect(struct drm_crtc *crtc, bool on)
 {
 	struct rockchip_drm_private *private = crtc->dev->dev_private;
@@ -2263,6 +2244,25 @@ static size_t vop_crtc_bandwidth(struct drm_crtc *crtc,
 	do_div(bandwidth, htotal * 1000);
 
 	return bandwidth;
+}
+
+static void vop_crtc_cancel_pending_vblank(struct drm_crtc *crtc,
+					   struct drm_file *file_priv)
+{
+	struct drm_device *drm = crtc->dev;
+	struct vop *vop = to_vop(crtc);
+	struct drm_pending_vblank_event *e;
+	unsigned long flags;
+
+	spin_lock_irqsave(&drm->event_lock, flags);
+	e = vop->event;
+	if (e && e->base.file_priv == file_priv) {
+		vop->event = NULL;
+
+		e->base.destroy(&e->base);
+		file_priv->event_space += sizeof(e->event);
+	}
+	spin_unlock_irqrestore(&drm->event_lock, flags);
 }
 
 static const struct rockchip_crtc_funcs private_crtc_funcs = {
