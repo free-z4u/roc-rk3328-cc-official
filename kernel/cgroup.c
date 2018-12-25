@@ -2882,7 +2882,6 @@ out_unlock_threadgroup:
 		if (ss->post_attach)
 			ss->post_attach();
 	cgroup_kn_unlock(of->kn);
-	cpuset_post_attach_flush();
 	return ret ?: nbytes;
 }
 
