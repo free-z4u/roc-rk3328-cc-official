@@ -90,6 +90,8 @@ static void kvm_timer_inject_irq_work(struct work_struct *work)
 
 	vcpu = container_of(work, struct kvm_vcpu, arch.timer_cpu.expired);
 
+	WARN_ON(!kvm_timer_should_fire(vcpu));
+
 	/*
 	 * If the vcpu is blocked we want to wake it up so that it will see
 	 * the timer has expired when entering the guest.
