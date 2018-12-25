@@ -198,8 +198,8 @@ int stmmac_mdio_register(struct net_device *ndev)
 	struct mii_bus *new_bus;
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	struct stmmac_mdio_bus_data *mdio_bus_data = priv->plat->mdio_bus_data;
-	int addr, found;
 	struct device_node *mdio_node = priv->plat->mdio_node;
+	int addr, found;
 	struct device_node *child_node = NULL;
 
 	if (!mdio_bus_data)
