@@ -81,6 +81,8 @@ extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
 
 extern struct dentry *lookup_one_len(const char *, struct dentry *, int);
 extern struct dentry *lookup_one_len_unlocked(const char *, struct dentry *, int);
+struct qstr;
+extern struct dentry *lookup_hash(const struct qstr *, struct dentry *);
 
 extern int follow_down_one(struct path *);
 extern int follow_down(struct path *);
