@@ -1319,6 +1319,7 @@ static bool tcp_shifted_skb(struct sock *sk, struct sk_buff *skb,
 	if (skb == tcp_highest_sack(sk))
 		tcp_advance_highest_sack(sk, skb);
 
+	tcp_skb_collapse_tstamp(prev, skb);
 	tcp_unlink_write_queue(skb, sk);
 	sk_wmem_free_skb(sk, skb);
 
@@ -3106,7 +3107,8 @@ static void tcp_ack_tstamp(struct sock *sk, struct sk_buff *skb,
 
 	shinfo = skb_shinfo(skb);
 	if ((shinfo->tx_flags & SKBTX_ACK_TSTAMP) &&
-	    between(shinfo->tskey, prior_snd_una, tcp_sk(sk)->snd_una - 1))
+	    !before(shinfo->tskey, prior_snd_una) &&
+	    before(shinfo->tskey, tcp_sk(sk)->snd_una))
 		__skb_tstamp_tx(skb, NULL, sk, SCM_TSTAMP_ACK);
 }
 
