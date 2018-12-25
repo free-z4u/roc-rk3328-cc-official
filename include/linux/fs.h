@@ -2089,7 +2089,7 @@ extern int generic_update_time(struct inode *, struct timespec *, int);
 /* /sys/fs */
 extern struct kobject *fs_kobj;
 
-#define MAX_RW_COUNT (INT_MAX & PAGE_CACHE_MASK)
+#define MAX_RW_COUNT (INT_MAX & PAGE_MASK)
 
 #ifdef CONFIG_MANDATORY_FILE_LOCKING
 extern int locks_mandatory_locked(struct file *);
