@@ -130,7 +130,6 @@ static void release_task_mempolicy(struct proc_maps_private *priv)
 static void seq_print_vma_name(struct seq_file *m, struct vm_area_struct *vma)
 {
 	const char __user *name = vma_get_anon_name(vma);
-	struct mm_struct *mm = vma->vm_mm;
 
 	unsigned long page_start_vaddr;
 	unsigned long page_offset;
@@ -151,7 +150,7 @@ static void seq_print_vma_name(struct seq_file *m, struct vm_area_struct *vma)
 		long pages_pinned;
 		struct page *page;
 
-		pages_pinned = get_user_pages(current, mm, page_start_vaddr,
+		pages_pinned = get_user_pages(page_start_vaddr,
 				1, 0, 0, &page, NULL);
 		if (pages_pinned < 1) {
 			seq_puts(m, "<fault>]");
