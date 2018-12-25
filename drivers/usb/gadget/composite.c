@@ -664,7 +664,8 @@ static int bos_desc(struct usb_composite_dev *cdev)
 		ssp_cap->bmAttributes = cpu_to_le32(1);
 
 		/* Min RX/TX Lane Count = 1 */
-		ssp_cap->wFunctionalitySupport = (1 << 8) | (1 << 12);
+		ssp_cap->wFunctionalitySupport =
+			cpu_to_le16((1 << 8) | (1 << 12));
 
 		/*
 		 * bmSublinkSpeedAttr[0]:
@@ -674,7 +675,7 @@ static int bos_desc(struct usb_composite_dev *cdev)
 		 *   LSM = 10 (10 Gbps)
 		 */
 		ssp_cap->bmSublinkSpeedAttr[0] =
-			(3 << 4) | (1 << 14) | (0xa << 16);
+			cpu_to_le32((3 << 4) | (1 << 14) | (0xa << 16));
 		/*
 		 * bmSublinkSpeedAttr[1] =
 		 *   ST  = Symmetric, TX
@@ -683,7 +684,8 @@ static int bos_desc(struct usb_composite_dev *cdev)
 		 *   LSM = 10 (10 Gbps)
 		 */
 		ssp_cap->bmSublinkSpeedAttr[1] =
-			(3 << 4) | (1 << 14) | (0xa << 16) | (1 << 7);
+			cpu_to_le32((3 << 4) | (1 << 14) |
+				    (0xa << 16) | (1 << 7));
 	}
 
 	return le16_to_cpu(bos->wTotalLength);
