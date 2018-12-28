@@ -704,10 +704,6 @@ struct drm_driver {
 	void (*gem_prime_vunmap)(struct drm_gem_object *obj, void *vaddr);
 	int (*gem_prime_mmap)(struct drm_gem_object *obj,
 				struct vm_area_struct *vma);
-	int (*gem_prime_begin_cpu_access)(struct drm_gem_object *obj,
-					  enum dma_data_direction);
-	int (*gem_prime_end_cpu_access)(struct drm_gem_object *obj,
-					enum dma_data_direction);
 
 	/* vga arb irq handler */
 	void (*vgaarb_irq)(struct drm_device *dev, bool state);
@@ -1135,8 +1131,7 @@ static inline int drm_debugfs_remove_files(const struct drm_info_list *files,
 #endif
 
 extern struct dma_buf *drm_gem_prime_export(struct drm_device *dev,
-					    struct drm_gem_object *obj,
-					    int flags);
+		struct drm_gem_object *obj, int flags);
 extern int drm_gem_prime_handle_to_fd(struct drm_device *dev,
 		struct drm_file *file_priv, uint32_t handle, uint32_t flags,
 		int *prime_fd);

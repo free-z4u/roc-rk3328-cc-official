@@ -293,30 +293,6 @@ static int drm_gem_dmabuf_mmap(struct dma_buf *dma_buf,
 	return dev->driver->gem_prime_mmap(obj, vma);
 }
 
-static int drm_gem_dmabuf_begin_cpu_access(struct dma_buf *dma_buf,
-					   enum dma_data_direction dir)
-{
-	struct drm_gem_object *obj = dma_buf->priv;
-	struct drm_device *dev = obj->dev;
-
-	if (!dev->driver->gem_prime_begin_cpu_access)
-		return -ENOSYS;
-
-	return dev->driver->gem_prime_begin_cpu_access(obj, dir);
-}
-
-static int drm_gem_dmabuf_end_cpu_access(struct dma_buf *dma_buf,
-					 enum dma_data_direction dir)
-{
-	struct drm_gem_object *obj = dma_buf->priv;
-	struct drm_device *dev = obj->dev;
-
-	if (!dev->driver->gem_prime_end_cpu_access)
-		return -ENOSYS;
-
-	return dev->driver->gem_prime_end_cpu_access(obj, dir);
-}
-
 static const struct dma_buf_ops drm_gem_prime_dmabuf_ops =  {
 	.attach = drm_gem_map_attach,
 	.detach = drm_gem_map_detach,
@@ -330,8 +306,6 @@ static const struct dma_buf_ops drm_gem_prime_dmabuf_ops =  {
 	.mmap = drm_gem_dmabuf_mmap,
 	.vmap = drm_gem_dmabuf_vmap,
 	.vunmap = drm_gem_dmabuf_vunmap,
-	.begin_cpu_access = drm_gem_dmabuf_begin_cpu_access,
-	.end_cpu_access = drm_gem_dmabuf_end_cpu_access,
 };
 
 /**
@@ -366,17 +340,14 @@ static const struct dma_buf_ops drm_gem_prime_dmabuf_ops =  {
  * using the PRIME helpers.
  */
 struct dma_buf *drm_gem_prime_export(struct drm_device *dev,
-				     struct drm_gem_object *obj,
-				     int flags)
+				     struct drm_gem_object *obj, int flags)
 {
-	struct dma_buf_export_info exp_info = {
-		.exp_name = KBUILD_MODNAME, /* white lie for debug */
-		.owner = dev->driver->fops->owner,
-		.ops = &drm_gem_prime_dmabuf_ops,
-		.size = obj->size,
-		.flags = flags,
-		.priv = obj,
-	};
+	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
+
+	exp_info.ops = &drm_gem_prime_dmabuf_ops;
+	exp_info.size = obj->size;
+	exp_info.flags = flags;
+	exp_info.priv = obj;
 
 	if (dev->driver->gem_prime_res_obj)
 		exp_info.resv = dev->driver->gem_prime_res_obj(obj);
@@ -596,6 +567,7 @@ struct drm_gem_object *drm_gem_prime_import(struct drm_device *dev,
 		ret = PTR_ERR(obj);
 		goto fail_unmap;
 	}
+
 	obj->import_attach = attach;
 	cb_data->obj = obj;
 	cb_data->sgt = sgt;
