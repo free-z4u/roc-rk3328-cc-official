@@ -103,8 +103,21 @@ out:
 	preempt_enable();
 }
 
-int perf_output_begin(struct perf_output_handle *handle,
-		      struct perf_event *event, unsigned int size)
+static bool __always_inline
+ring_buffer_has_space(unsigned long head, unsigned long tail,
+		      unsigned long data_size, unsigned int size,
+		      bool backward)
+{
+	if (!backward)
+		return CIRC_SPACE(head, tail, data_size) >= size;
+	else
+		return CIRC_SPACE(tail, head, data_size) >= size;
+}
+
+static int __always_inline
+__perf_output_begin(struct perf_output_handle *handle,
+		    struct perf_event *event, unsigned int size,
+		    bool backward)
 {
 	struct ring_buffer *rb;
 	unsigned long tail, offset, head;
@@ -126,8 +139,11 @@ int perf_output_begin(struct perf_output_handle *handle,
 	if (unlikely(!rb))
 		goto out;
 
-	if (unlikely(!rb->nr_pages))
+	if (unlikely(rb->paused)) {
+		if (rb->nr_pages)
+			local_inc(&rb->lost);
 		goto out;
+	}
 
 	handle->rb    = rb;
 	handle->event = event;
@@ -144,9 +160,12 @@ int perf_output_begin(struct perf_output_handle *handle,
 	do {
 		tail = READ_ONCE(rb->user_page->data_tail);
 		offset = head = local_read(&rb->head);
-		if (!rb->overwrite &&
-		    unlikely(CIRC_SPACE(head, tail, perf_data_size(rb)) < size))
-			goto fail;
+		if (!rb->overwrite) {
+			if (unlikely(!ring_buffer_has_space(head, tail,
+							    perf_data_size(rb),
+							    size, backward)))
+				goto fail;
+		}
 
 		/*
 		 * The above forms a control dependency barrier separating the
@@ -160,8 +179,16 @@ int perf_output_begin(struct perf_output_handle *handle,
 		 * See perf_output_put_handle().
 		 */
 
-		head += size;
+		if (!backward)
+			head += size;
+		else
+			head -= size;
 	} while (local_cmpxchg(&rb->head, offset, head) != offset);
+
+	if (backward) {
+		offset = head;
+		head = (u64)(-head);
+	}
 
 	/*
 	 * We rely on the implied barrier() by local_cmpxchg() to ensure
@@ -204,6 +231,26 @@ out:
 	return -ENOSPC;
 }
 
+int perf_output_begin_forward(struct perf_output_handle *handle,
+			     struct perf_event *event, unsigned int size)
+{
+	return __perf_output_begin(handle, event, size, false);
+}
+
+int perf_output_begin_backward(struct perf_output_handle *handle,
+			       struct perf_event *event, unsigned int size)
+{
+	return __perf_output_begin(handle, event, size, true);
+}
+
+int perf_output_begin(struct perf_output_handle *handle,
+		      struct perf_event *event, unsigned int size)
+{
+
+	return __perf_output_begin(handle, event, size,
+				   unlikely(is_write_backward(event)));
+}
+
 unsigned int perf_output_copy(struct perf_output_handle *handle,
 		      const void *buf, unsigned int len)
 {
@@ -242,6 +289,13 @@ ring_buffer_init(struct ring_buffer *rb, long watermark, int flags)
 
 	INIT_LIST_HEAD(&rb->event_list);
 	spin_lock_init(&rb->event_lock);
+
+	/*
+	 * perf_output_begin() only checks rb->paused, therefore
+	 * rb->paused must be true if we have no pages for output.
+	 */
+	if (!rb->nr_pages)
+		rb->paused = 1;
 }
 
 /*
