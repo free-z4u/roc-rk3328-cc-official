@@ -71,11 +71,6 @@ struct drm_prime_attachment {
 	enum dma_data_direction dir;
 };
 
-struct drm_prime_callback_data {
-	struct drm_gem_object *obj;
-	struct sg_table *sgt;
-};
-
 static int drm_prime_add_buf_handle(struct drm_prime_file_private *prime_fpriv,
 				    struct dma_buf *dma_buf, uint32_t handle)
 {
@@ -489,23 +484,6 @@ out_unlock:
 }
 EXPORT_SYMBOL(drm_gem_prime_handle_to_fd);
 
-static void drm_gem_prime_dmabuf_release_callback(void *data)
-{
-	struct drm_prime_callback_data *cb_data = data;
-
-	if (cb_data && cb_data->obj && cb_data->obj->import_attach) {
-		struct dma_buf_attachment *attach = cb_data->obj->import_attach;
-		struct sg_table *sgt = cb_data->sgt;
-
-		if (sgt)
-			dma_buf_unmap_attachment(attach, sgt,
-						 DMA_BIDIRECTIONAL);
-		dma_buf_detach(attach->dmabuf, attach);
-		drm_gem_object_unreference_unlocked(cb_data->obj);
-		kfree(cb_data);
-	}
-}
-
 /**
  * drm_gem_prime_import - helper library implementation of the import callback
  * @dev: drm_device to import into
@@ -520,7 +498,6 @@ struct drm_gem_object *drm_gem_prime_import(struct drm_device *dev,
 	struct dma_buf_attachment *attach;
 	struct sg_table *sgt;
 	struct drm_gem_object *obj;
-	struct drm_prime_callback_data *cb_data;
 	int ret;
 
 	if (dma_buf->ops == &drm_gem_prime_dmabuf_ops) {
@@ -535,13 +512,6 @@ struct drm_gem_object *drm_gem_prime_import(struct drm_device *dev,
 		}
 	}
 
-	cb_data = dma_buf_get_release_callback_data(dma_buf,
-					drm_gem_prime_dmabuf_release_callback);
-	if (cb_data && cb_data->obj && cb_data->obj->dev == dev) {
-		drm_gem_object_reference(cb_data->obj);
-		return cb_data->obj;
-	}
-
 	if (!dev->driver->gem_prime_import_sg_table)
 		return ERR_PTR(-EINVAL);
 
@@ -550,16 +520,11 @@ struct drm_gem_object *drm_gem_prime_import(struct drm_device *dev,
 		return ERR_CAST(attach);
 
 	get_dma_buf(dma_buf);
-	cb_data = kmalloc(sizeof(*cb_data), GFP_KERNEL);
-	if (!cb_data) {
-		ret = -ENOMEM;
-		goto fail_detach;
-	}
 
 	sgt = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
 	if (IS_ERR(sgt)) {
 		ret = PTR_ERR(sgt);
-		goto fail_free;
+		goto fail_detach;
 	}
 
 	obj = dev->driver->gem_prime_import_sg_table(dev, attach, sgt);
@@ -569,19 +534,11 @@ struct drm_gem_object *drm_gem_prime_import(struct drm_device *dev,
 	}
 
 	obj->import_attach = attach;
-	cb_data->obj = obj;
-	cb_data->sgt = sgt;
-	dma_buf_set_release_callback(dma_buf,
-			drm_gem_prime_dmabuf_release_callback, cb_data);
-	dma_buf_put(dma_buf);
-	drm_gem_object_reference(obj);
 
 	return obj;
 
 fail_unmap:
 	dma_buf_unmap_attachment(attach, sgt, DMA_BIDIRECTIONAL);
-fail_free:
-	kfree(cb_data);
 fail_detach:
 	dma_buf_detach(dma_buf, attach);
 	dma_buf_put(dma_buf);
