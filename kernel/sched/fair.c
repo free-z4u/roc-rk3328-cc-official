@@ -222,7 +222,7 @@ static void __update_inv_weight(struct load_weight *lw)
  *   OR
  * (delta_exec * (weight * lw->inv_weight)) >> WMULT_SHIFT
  *
- * Either weight := NICE_0_LOAD and lw \e prio_to_wmult[], in which case
+ * Either weight := NICE_0_LOAD and lw \e sched_prio_to_wmult[], in which case
  * we're guaranteed shift stays positive because inv_weight is guaranteed to
  * fit 32 bits, and NICE_0_LOAD gives another 10 bits; therefore shift >= 22.
  *
@@ -747,13 +747,6 @@ void init_entity_runnable_average(struct sched_entity *se)
 	if (entity_is_task(se))
 		sa->load_avg = scale_load_down(se->load.weight);
 	sa->load_sum = sa->load_avg * LOAD_AVG_MAX;
-	/*
-	 * In previous Android versions, we used to have:
-	 * 	sa->util_avg = scale_load_down(SCHED_LOAD_SCALE);
-	 * 	sa->util_sum = sa->util_avg * LOAD_AVG_MAX;
-	 * However, that functionality has been moved to enqueue.
-	 * It is unclear if we should restore this in enqueue.
-	 */
 	/*
 	 * At this point, util_avg won't be used in select_task_rq_fair anyway
 	 */
@@ -2592,10 +2585,12 @@ account_entity_dequeue(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	update_load_sub(&cfs_rq->load, se->load.weight);
 	if (!parent_entity(se))
 		update_load_sub(&rq_of(cfs_rq)->load, se->load.weight);
+#ifdef CONFIG_SMP
 	if (entity_is_task(se)) {
 		account_numa_dequeue(rq_of(cfs_rq), task_of(se));
 		list_del_init(&se->group_node);
 	}
+#endif
 	cfs_rq->nr_running--;
 }
 
@@ -7331,7 +7326,7 @@ static bool yield_to_task_fair(struct rq *rq, struct task_struct *p, bool preemp
  *   W_i,0 = \Sum_j w_i,j                                             (2)
  *
  * Where w_i,j is the weight of the j-th runnable task on cpu i. This weight
- * is derived from the nice value as per prio_to_weight[].
+ * is derived from the nice value as per sched_prio_to_weight[].
  *
  * The weight average is an exponential decay average of the instantaneous
  * weight:
@@ -9293,10 +9288,7 @@ more_balance:
 					&busiest->active_balance_work);
 			}
 
-			/*
-			 * We've kicked active balancing, reset the failure
-			 * counter.
-			 */
+			/* We've kicked active balancing, force task migration. */
 			sd->nr_balance_failed = sd->cache_nice_tries+1;
 		}
 	} else
@@ -9546,10 +9538,13 @@ static int active_load_balance_cpu_stop(void *data)
 		update_rq_clock(busiest_rq);
 
 		p = detach_one_task(&env);
-		if (p)
+		if (p) {
 			schedstat_inc(sd, alb_pushed);
-		else
+			/* Active balancing done, reset the failure counter. */
+			sd->nr_balance_failed = 0;
+		} else {
 			schedstat_inc(sd, alb_failed);
+		}
 	}
 	rcu_read_unlock();
 out_unlock:
