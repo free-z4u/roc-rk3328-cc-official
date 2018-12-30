@@ -36,7 +36,6 @@
 
 #include "sched.h"
 #include "tune.h"
-#include "walt.h"
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -59,8 +58,6 @@ unsigned int sysctl_sched_cstate_aware = 1;
 #ifdef CONFIG_SCHED_WALT
 unsigned int sysctl_sched_use_walt_cpu_util = 1;
 unsigned int sysctl_sched_use_walt_task_util = 1;
-__read_mostly unsigned int sysctl_sched_walt_cpu_high_irqload =
-    (10 * NSEC_PER_MSEC);
 #endif
 /*
  * The initial- and re-scaling of tunables is configurable
@@ -4824,6 +4821,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	}
 
 #endif /* CONFIG_SMP */
+
 	hrtick_update(rq);
 }
 
@@ -6431,17 +6429,6 @@ static int cpu_util_wake(int cpu, struct task_struct *p)
 {
 	unsigned long util, capacity;
 
-#ifdef CONFIG_SCHED_WALT
-	/*
-	 * WALT does not decay idle tasks in the same manner
-	 * as PELT, so it makes little sense to subtract task
-	 * utilization from cpu utilization. Instead just use
-	 * cpu_util for this case.
-	 */
-	if (!walt_disabled && sysctl_sched_use_walt_cpu_util &&
-	    p->state == TASK_WAKING)
-		return cpu_util(cpu);
-#endif
 	/* Task has no contribution or is new */
 	if (cpu != task_cpu(p) || !p->se.avg.last_update_time)
 		return cpu_util(cpu);
