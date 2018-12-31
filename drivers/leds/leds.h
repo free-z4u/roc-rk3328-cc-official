@@ -30,6 +30,7 @@ void led_set_brightness_nosleep(struct led_classdev *led_cdev,
 
 extern struct rw_semaphore leds_list_lock;
 extern struct list_head leds_list;
+extern struct list_head trigger_list;
 
 #ifdef CONFIG_LEDS_TRIGGER_MULTI_CTRL
 void led_trigger_set_by_name(struct led_classdev *led_cdev, char *trig_name);
