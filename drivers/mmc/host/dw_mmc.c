@@ -725,7 +725,7 @@ static const struct dw_mci_dma_ops dw_mci_idmac_ops = {
 
 static void dw_mci_edmac_stop_dma(struct dw_mci *host)
 {
-	dmaengine_terminate_all(host->dms->ch);
+	dmaengine_terminate_async(host->dms->ch);
 }
 
 static int dw_mci_edmac_start_dma(struct dw_mci *host,
@@ -3229,15 +3229,6 @@ int dw_mci_probe(struct dw_mci *host)
 		if (ret) {
 			dev_err(host->dev,
 				"implementation specific init failed\n");
-			goto err_clk_ciu;
-		}
-	}
-
-	if (drv_data && drv_data->setup_clock) {
-		ret = drv_data->setup_clock(host);
-		if (ret) {
-			dev_err(host->dev,
-				"implementation specific clock setup failed\n");
 			goto err_clk_ciu;
 		}
 	}
