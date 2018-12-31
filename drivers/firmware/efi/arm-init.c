@@ -174,6 +174,7 @@ static __init void reserve_regions(void)
 {
 	efi_memory_desc_t *md;
 	u64 paddr, npages, size;
+	int resv;
 
 	if (efi_enabled(EFI_DBG))
 		pr_info("Processing EFI memory map:\n");
@@ -186,16 +187,18 @@ static __init void reserve_regions(void)
 	memblock_dump_all();
 	memblock_remove(0, (phys_addr_t)ULLONG_MAX);
 
-	for_each_efi_memory_desc(&memmap, md) {
+	for_each_efi_memory_desc(md) {
 		paddr = md->phys_addr;
 		npages = md->num_pages;
 
+		resv = is_reserve_region(md);
 		if (efi_enabled(EFI_DBG)) {
 			char buf[64];
 
-			pr_info("  0x%012llx-0x%012llx %s",
+			pr_info("  0x%012llx-0x%012llx %s%s\n",
 				paddr, paddr + (npages << EFI_PAGE_SHIFT) - 1,
-				efi_md_typeattr_format(buf, sizeof(buf), md));
+				efi_md_typeattr_format(buf, sizeof(buf), md),
+				resv ? "*" : "");
 		}
 
 		memrange_efi_to_native(&paddr, &npages);
@@ -204,14 +207,9 @@ static __init void reserve_regions(void)
 		if (is_normal_ram(md))
 			early_init_dt_add_memory_arch(paddr, size);
 
-		if (is_reserve_region(md)) {
+		if (resv)
 			memblock_mark_nomap(paddr, size);
-			if (efi_enabled(EFI_DBG))
-				pr_cont("*");
-		}
 
-		if (efi_enabled(EFI_DBG))
-			pr_cont("\n");
 	}
 
 	set_bit(EFI_MEMMAP, &efi.flags);
