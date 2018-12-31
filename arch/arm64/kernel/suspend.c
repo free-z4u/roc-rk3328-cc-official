@@ -45,6 +45,14 @@ void notrace __cpu_suspend_exit(void)
 	cpu_uninstall_idmap();
 
 	/*
+	 * PSTATE was not saved over suspend/resume, re-enable any detected
+	 * features that might not have been set correctly.
+	 */
+	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN,
+				CONFIG_ARM64_PAN));
+	uao_thread_switch(current);
+
+	/*
 	 * Restore HW breakpoint registers to sane values
 	 * before debug exceptions are possibly reenabled
 	 * through local_dbg_restore.
@@ -85,17 +93,11 @@ int cpu_suspend(unsigned long arg, int (*fn)(unsigned long))
 		ret = fn(arg);
 
 		/*
-		 * PSTATE was not saved over suspend/resume, re-enable any
-		 * detected features that might not have been set correctly.
-		 */
-		asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN,
-				CONFIG_ARM64_PAN));
-		uao_thread_switch(current);
-
-		/*
-		 * Restore HW breakpoint registers to sane values
-		 * before debug exceptions are possibly reenabled
-		 * through local_dbg_restore.
+		 * Never gets here, unless the suspend finisher fails.
+		 * Successful cpu_suspend() should return from cpu_resume(),
+		 * returning through this code path is considered an error
+		 * If the return value is set to 0 force ret = -EOPNOTSUPP
+		 * to make sure a proper error condition is propagated
 		 */
 		if (!ret)
 			ret = -EOPNOTSUPP;

@@ -211,8 +211,8 @@ efi_header_end:
 ENTRY(stext)
 	bl	preserve_boot_args
 	bl	el2_setup			// Drop to EL1, w20=cpu_boot_mode
-	mov	x23, xzr			// KASLR offset, defaults to 0
 	adrp	x24, __PHYS_OFFSET
+	and	x23, x24, MIN_KIMG_ALIGN - 1	// KASLR offset, defaults to 0
 	bl	set_cpu_boot_mode_flag
 	bl	__create_page_tables		// x25=TTBR0, x26=TTBR1
 	/*
@@ -456,11 +456,13 @@ __primary_switched:
 	bl	kasan_early_init
 #endif
 #ifdef CONFIG_RANDOMIZE_BASE
-	cbnz	x23, 0f				// already running randomized?
+	tst	x23, ~(MIN_KIMG_ALIGN - 1)	// already running randomized?
+	b.ne	0f
 	mov	x0, x21				// pass FDT address in x0
+	mov	x1, x23				// pass modulo offset in x1
 	bl	kaslr_early_init		// parse FDT for KASLR options
 	cbz	x0, 0f				// KASLR disabled? just proceed
-	mov	x23, x0				// record KASLR offset
+	orr	x23, x23, x0			// record KASLR offset
 	ret	x28				// we must enable KASLR, return
 						// to __enable_mmu()
 0:
@@ -688,7 +690,6 @@ secondary_startup:
 	adr_l	x27, __secondary_switch		// address to jump to after enabling the MMU
 	b	__enable_mmu
 ENDPROC(secondary_startup)
-0:	.long	(_text - TEXT_OFFSET) - __secondary_switched
 
 __secondary_switched:
 	adr_l	x5, vectors
