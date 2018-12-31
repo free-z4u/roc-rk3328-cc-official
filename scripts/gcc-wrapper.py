@@ -78,6 +78,11 @@ allowed_warnings = set([
     "amba-pl011.c:190", # drivers/tty/serial/amba-pl011.c:190:27: warning: ‘vendor_zte’ defined but not used [-Wunused-variable]
     "exec.c:1180", # warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
     "task_mmu.c:154", # warning: ‘get_user_pages8’ is deprecated [-Wdeprecated-declarations]
+    "dsi_host.c:329", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
+    "dsi_phy.c:181", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
+    "core.c:2538", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
+    "core.c:2522", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
+    "export.h:63", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
  ])
 
 # Capture the name of the object file, can find it.
