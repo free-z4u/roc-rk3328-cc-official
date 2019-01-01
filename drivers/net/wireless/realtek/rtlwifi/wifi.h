@@ -1360,7 +1360,7 @@ struct rtl_mac {
 	u32 tx_ss_num;
 	u32 rx_ss_num;
 
-	struct ieee80211_supported_band bands[IEEE80211_NUM_BANDS];
+	struct ieee80211_supported_band bands[NUM_NL80211_BANDS];
 	struct ieee80211_hw *hw;
 	struct ieee80211_vif *vif;
 	enum nl80211_iftype opmode;
@@ -2871,7 +2871,7 @@ value to host byte ordering.*/
 	(ppsc->cur_ps_level |= _ps_flg)
 
 #define container_of_dwork_rtl(x, y, z) \
-	container_of(container_of(x, struct delayed_work, work), y, z)
+	container_of(to_delayed_work(x), y, z)
 
 #define FILL_OCTET_STRING(_os, _octet, _len)	\
 		(_os).octet = (u8 *)(_octet);		\

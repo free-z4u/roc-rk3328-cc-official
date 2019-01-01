@@ -428,13 +428,16 @@ void tcp_init_sock(struct sock *sk)
 }
 EXPORT_SYMBOL(tcp_init_sock);
 
-static void tcp_tx_timestamp(struct sock *sk, struct sk_buff *skb)
+static void tcp_tx_timestamp(struct sock *sk, u16 tsflags, struct sk_buff *skb)
 {
-	if (sk->sk_tsflags) {
+	if (tsflags) {
 		struct skb_shared_info *shinfo = skb_shinfo(skb);
+		struct tcp_skb_cb *tcb = TCP_SKB_CB(skb);
 
-		sock_tx_timestamp(sk, &shinfo->tx_flags);
-		if (shinfo->tx_flags & SKBTX_ANY_TSTAMP)
+		sock_tx_timestamp(sk, tsflags, &shinfo->tx_flags);
+		if (tsflags & SOF_TIMESTAMPING_TX_ACK)
+			tcb->txstamp_ack = 1;
+		if (tsflags & SOF_TIMESTAMPING_TX_RECORD_MASK)
 			shinfo->tskey = TCP_SKB_CB(skb)->seq + skb->len - 1;
 	}
 }
@@ -912,7 +915,8 @@ static ssize_t do_tcp_sendpages(struct sock *sk, struct page *page, int offset,
 		int copy, i;
 		bool can_coalesce;
 
-		if (!tcp_send_head(sk) || (copy = size_goal - skb->len) <= 0) {
+		if (!tcp_send_head(sk) || (copy = size_goal - skb->len) <= 0 ||
+		    !tcp_skb_can_collapse_to(skb)) {
 new_segment:
 			if (!sk_stream_memory_free(sk))
 				goto wait_for_sndbuf;
@@ -963,7 +967,7 @@ new_segment:
 		offset += copy;
 		size -= copy;
 		if (!size) {
-			tcp_tx_timestamp(sk, skb);
+			tcp_tx_timestamp(sk, sk->sk_tsflags, skb);
 			goto out;
 		}
 
@@ -1086,8 +1090,10 @@ int tcp_sendmsg(struct sock *sk, struct msghdr *msg, size_t size)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *skb;
+	struct sockcm_cookie sockc;
 	int flags, err, copied = 0;
 	int mss_now = 0, size_goal, copied_syn = 0;
+	bool process_backlog = false;
 	bool sg;
 	long timeo;
 
@@ -1128,13 +1134,23 @@ int tcp_sendmsg(struct sock *sk, struct msghdr *msg, size_t size)
 		/* 'common' sending to sendq */
 	}
 
+	sockc.tsflags = sk->sk_tsflags;
+	if (msg->msg_controllen) {
+		err = sock_cmsg_send(sk, msg, &sockc);
+		if (unlikely(err)) {
+			err = -EINVAL;
+			goto out_err;
+		}
+	}
+
 	/* This should be in poll */
 	sk_clear_bit(SOCKWQ_ASYNC_NOSPACE, sk);
 
-	mss_now = tcp_send_mss(sk, &size_goal, flags);
-
 	/* Ok commence sending. */
 	copied = 0;
+
+restart:
+	mss_now = tcp_send_mss(sk, &size_goal, flags);
 
 	err = -EPIPE;
 	if (sk->sk_err || (sk->sk_shutdown & SEND_SHUTDOWN))
@@ -1153,7 +1169,7 @@ int tcp_sendmsg(struct sock *sk, struct msghdr *msg, size_t size)
 			copy = max - skb->len;
 		}
 
-		if (copy <= 0) {
+		if (copy <= 0 || !tcp_skb_can_collapse_to(skb)) {
 new_segment:
 			/* Allocate new segment. If the interface is SG,
 			 * allocate skb fitting to single page.
@@ -1161,6 +1177,10 @@ new_segment:
 			if (!sk_stream_memory_free(sk))
 				goto wait_for_sndbuf;
 
+			if (process_backlog && sk_flush_backlog(sk)) {
+				process_backlog = false;
+				goto restart;
+			}
 			skb = sk_stream_alloc_skb(sk,
 						  select_size(sk, sg),
 						  sk->sk_allocation,
@@ -1168,6 +1188,7 @@ new_segment:
 			if (!skb)
 				goto wait_for_memory;
 
+			process_backlog = true;
 			/*
 			 * Check whether we can use HW checksum.
 			 */
@@ -1246,7 +1267,9 @@ new_segment:
 
 		copied += copy;
 		if (!msg_data_left(msg)) {
-			tcp_tx_timestamp(sk, skb);
+			tcp_tx_timestamp(sk, sockc.tsflags, skb);
+			if (unlikely(flags & MSG_EOR))
+				TCP_SKB_CB(skb)->eor = 1;
 			goto out;
 		}
 
@@ -1440,14 +1463,10 @@ static void tcp_prequeue_process(struct sock *sk)
 	struct sk_buff *skb;
 	struct tcp_sock *tp = tcp_sk(sk);
 
-	NET_INC_STATS_USER(sock_net(sk), LINUX_MIB_TCPPREQUEUED);
+	NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPPREQUEUED);
 
-	/* RX process wants to run with disabled BHs, though it is not
-	 * necessary */
-	local_bh_disable();
 	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL)
 		sk_backlog_rcv(sk, skb);
-	local_bh_enable();
 
 	/* Clear memory counter. */
 	tp->ucopy.memory = 0;
@@ -1774,7 +1793,7 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 
 			chunk = len - tp->ucopy.len;
 			if (chunk != 0) {
-				NET_ADD_STATS_USER(sock_net(sk), LINUX_MIB_TCPDIRECTCOPYFROMBACKLOG, chunk);
+				NET_ADD_STATS(sock_net(sk), LINUX_MIB_TCPDIRECTCOPYFROMBACKLOG, chunk);
 				len -= chunk;
 				copied += chunk;
 			}
@@ -1786,7 +1805,7 @@ do_prequeue:
 
 				chunk = len - tp->ucopy.len;
 				if (chunk != 0) {
-					NET_ADD_STATS_USER(sock_net(sk), LINUX_MIB_TCPDIRECTCOPYFROMPREQUEUE, chunk);
+					NET_ADD_STATS(sock_net(sk), LINUX_MIB_TCPDIRECTCOPYFROMPREQUEUE, chunk);
 					len -= chunk;
 					copied += chunk;
 				}
@@ -1872,7 +1891,7 @@ skip_copy:
 			tcp_prequeue_process(sk);
 
 			if (copied > 0 && (chunk = len - tp->ucopy.len) != 0) {
-				NET_ADD_STATS_USER(sock_net(sk), LINUX_MIB_TCPDIRECTCOPYFROMPREQUEUE, chunk);
+				NET_ADD_STATS(sock_net(sk), LINUX_MIB_TCPDIRECTCOPYFROMPREQUEUE, chunk);
 				len -= chunk;
 				copied += chunk;
 			}
@@ -2062,13 +2081,13 @@ void tcp_close(struct sock *sk, long timeout)
 		sk->sk_prot->disconnect(sk, 0);
 	} else if (data_was_unread) {
 		/* Unread data was tossed, zap the connection. */
-		NET_INC_STATS_USER(sock_net(sk), LINUX_MIB_TCPABORTONCLOSE);
+		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPABORTONCLOSE);
 		tcp_set_state(sk, TCP_CLOSE);
 		tcp_send_active_reset(sk, sk->sk_allocation);
 	} else if (sock_flag(sk, SOCK_LINGER) && !sk->sk_lingertime) {
 		/* Check zero linger _after_ checking for unread data. */
 		sk->sk_prot->disconnect(sk, 0);
-		NET_INC_STATS_USER(sock_net(sk), LINUX_MIB_TCPABORTONDATA);
+		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPABORTONDATA);
 	} else if (tcp_close_state(sk)) {
 		/* We FIN if the application ate all the data before
 		 * zapping the connection.
@@ -2145,7 +2164,7 @@ adjudge_to_death:
 		if (tp->linger2 < 0) {
 			tcp_set_state(sk, TCP_CLOSE);
 			tcp_send_active_reset(sk, GFP_ATOMIC);
-			NET_INC_STATS_BH(sock_net(sk),
+			__NET_INC_STATS(sock_net(sk),
 					LINUX_MIB_TCPABORTONLINGER);
 		} else {
 			const int tmo = tcp_fin_time(sk);
@@ -2164,7 +2183,7 @@ adjudge_to_death:
 		if (tcp_check_oom(sk, 0)) {
 			tcp_set_state(sk, TCP_CLOSE);
 			tcp_send_active_reset(sk, GFP_ATOMIC);
-			NET_INC_STATS_BH(sock_net(sk),
+			__NET_INC_STATS(sock_net(sk),
 					LINUX_MIB_TCPABORTONMEMORY);
 		} else if (!check_net(sock_net(sk))) {
 			/* Not possible to send reset; just close */
@@ -3106,7 +3125,7 @@ void tcp_done(struct sock *sk)
 	struct request_sock *req = tcp_sk(sk)->fastopen_rsk;
 
 	if (sk->sk_state == TCP_SYN_SENT || sk->sk_state == TCP_SYN_RECV)
-		TCP_INC_STATS_BH(sock_net(sk), TCP_MIB_ATTEMPTFAILS);
+		TCP_INC_STATS(sock_net(sk), TCP_MIB_ATTEMPTFAILS);
 
 	tcp_set_state(sk, TCP_CLOSE);
 	tcp_clear_xmit_timers(sk);

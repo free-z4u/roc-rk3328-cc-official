@@ -138,5 +138,7 @@ struct plat_stmmacenet_data {
 	void (*get_eth_addr)(void *priv, unsigned char *addr);
 	void *bsp_priv;
 	struct stmmac_axi *axi;
+	int has_gmac4;
+	bool tso_en;
 };
 #endif

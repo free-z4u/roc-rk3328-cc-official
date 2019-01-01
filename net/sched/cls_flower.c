@@ -232,6 +232,25 @@ static void fl_destroy_rcu(struct rcu_head *rcu)
 	schedule_work(&head->work);
 }
 
+static void fl_hw_update_stats(struct tcf_proto *tp, struct cls_fl_filter *f)
+{
+	struct net_device *dev = tp->q->dev_queue->dev;
+	struct tc_cls_flower_offload offload = {0};
+	struct tc_to_netdev tc;
+
+	if (!tc_should_offload(dev, 0))
+		return;
+
+	offload.command = TC_CLSFLOWER_STATS;
+	offload.cookie = (unsigned long)f;
+	offload.exts = &f->exts;
+
+	tc.type = TC_SETUP_CLSFLOWER;
+	tc.cls_flower = &offload;
+
+	dev->netdev_ops->ndo_setup_tc(dev, tp->q->handle, tp->protocol, &tc);
+}
+
 static bool fl_destroy(struct tcf_proto *tp, bool force)
 {
 	struct cls_fl_head *head = rtnl_dereference(tp->root);
@@ -682,6 +701,8 @@ static int fl_dump(struct net *net, struct tcf_proto *tp, unsigned long fh,
 		if (dev && nla_put_string(skb, TCA_FLOWER_INDEV, dev->name))
 			goto nla_put_failure;
 	}
+
+	fl_hw_update_stats(tp, f);
 
 	if (fl_dump_key_val(skb, key->eth.dst, TCA_FLOWER_KEY_ETH_DST,
 			    mask->eth.dst, TCA_FLOWER_KEY_ETH_DST_MASK,

@@ -455,9 +455,10 @@ int ipv6_recv_error(struct sock *sk, struct msghdr *msg, int len, int *addr_len)
 		copied = len;
 	}
 	err = skb_copy_datagram_msg(skb, 0, msg, copied);
-	if (err)
-		goto out_free_skb;
-
+	if (unlikely(err)) {
+		kfree_skb(skb);
+		return err;
+	}
 	sock_recv_timestamp(msg, sk, skb);
 
 	serr = SKB_EXT_ERR(skb);
@@ -514,8 +515,7 @@ int ipv6_recv_error(struct sock *sk, struct msghdr *msg, int len, int *addr_len)
 	msg->msg_flags |= MSG_ERRQUEUE;
 	err = copied;
 
-out_free_skb:
-	kfree_skb(skb);
+	consume_skb(skb);
 out:
 	return err;
 }
@@ -735,13 +735,13 @@ EXPORT_SYMBOL_GPL(ip6_datagram_recv_ctl);
 
 int ip6_datagram_send_ctl(struct net *net, struct sock *sk,
 			  struct msghdr *msg, struct flowi6 *fl6,
-			  struct ipv6_txoptions *opt,
-			  int *hlimit, int *tclass, int *dontfrag)
+			  struct ipcm6_cookie *ipc6, struct sockcm_cookie *sockc)
 {
 	struct in6_pktinfo *src_info;
 	struct cmsghdr *cmsg;
 	struct ipv6_rt_hdr *rthdr;
 	struct ipv6_opt_hdr *hdr;
+	struct ipv6_txoptions *opt = ipc6->opt;
 	int len;
 	int err = 0;
 
@@ -751,6 +751,13 @@ int ip6_datagram_send_ctl(struct net *net, struct sock *sk,
 		if (!CMSG_OK(msg, cmsg)) {
 			err = -EINVAL;
 			goto exit_f;
+		}
+
+		if (cmsg->cmsg_level == SOL_SOCKET) {
+			err = __sock_cmsg_send(sk, msg, cmsg, sockc);
+			if (err)
+				return err;
+			continue;
 		}
 
 		if (cmsg->cmsg_level != SOL_IPV6)
@@ -954,8 +961,8 @@ int ip6_datagram_send_ctl(struct net *net, struct sock *sk,
 				goto exit_f;
 			}
 
-			*hlimit = *(int *)CMSG_DATA(cmsg);
-			if (*hlimit < -1 || *hlimit > 0xff) {
+			ipc6->hlimit = *(int *)CMSG_DATA(cmsg);
+			if (ipc6->hlimit < -1 || ipc6->hlimit > 0xff) {
 				err = -EINVAL;
 				goto exit_f;
 			}
@@ -975,7 +982,7 @@ int ip6_datagram_send_ctl(struct net *net, struct sock *sk,
 				goto exit_f;
 
 			err = 0;
-			*tclass = tc;
+			ipc6->tclass = tc;
 
 			break;
 		    }
@@ -993,7 +1000,7 @@ int ip6_datagram_send_ctl(struct net *net, struct sock *sk,
 				goto exit_f;
 
 			err = 0;
-			*dontfrag = df;
+			ipc6->dontfrag = df;
 
 			break;
 		    }
