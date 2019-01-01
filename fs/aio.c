@@ -1467,8 +1467,6 @@ rw_common:
 			return ret;
 		}
 
-		len = ret;
-
 		if (rw == WRITE)
 			file_start_write(file);
 
