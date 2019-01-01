@@ -24,20 +24,6 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 
-/*
- * The polling frequency depends on the capability of the processor. Default
- * polling frequency is 1000 times the transition latency of the processor. The
- * governor will work on any processor with transition latency <= 10ms, using
- * appropriate sampling rate.
- *
- * For CPUs with transition latency > 10ms (mostly drivers with CPUFREQ_ETERNAL)
- * this governor will not work. All times here are in us (micro seconds).
- */
-#define MIN_SAMPLING_RATE_RATIO			(2)
-#define LATENCY_MULTIPLIER			(1000)
-#define MIN_LATENCY_MULTIPLIER			(20)
-#define TRANSITION_LATENCY_LIMIT		(10 * 1000 * 1000)
-
 /* Ondemand Sampling types */
 enum {OD_NORMAL_SAMPLE, OD_SUB_SAMPLE};
 
@@ -125,7 +111,7 @@ static inline void gov_update_sample_delay(struct policy_dbs_info *policy_dbs,
 /* Per cpu structures */
 struct cpu_dbs_info {
 	u64 prev_cpu_idle;
-	u64 prev_cpu_wall;
+	u64 prev_update_time;
 	u64 prev_cpu_nice;
 	/*
 	 * Used to keep track of load in the previous interval. However, when
