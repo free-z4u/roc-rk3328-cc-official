@@ -61,6 +61,7 @@
 	#size-cells = <2>;
 
 	aliases {
+		ethernet0 = &gmac;
 		i2c0 = &i2c0;
 		i2c1 = &i2c1;
 		i2c2 = &i2c2;
@@ -114,9 +115,9 @@
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x0>;
 			enable-method = "psci";
+			clocks = <&cru ARMCLKL>;
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
-			clocks = <&cru ARMCLKL>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
 		};
 
@@ -152,9 +153,9 @@
 			compatible = "arm,cortex-a72", "arm,armv8";
 			reg = <0x0 0x100>;
 			enable-method = "psci";
+			clocks = <&cru ARMCLKB>;
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <436>;
-			clocks = <&cru ARMCLKB>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
 		};
 
@@ -2362,7 +2363,6 @@
 					<4 17 RK_FUNC_GPIO &pcfg_pull_none>,
 					<4 16 RK_FUNC_GPIO &pcfg_pull_none>;
 			};
-
 		};
 
 		i2c4 {

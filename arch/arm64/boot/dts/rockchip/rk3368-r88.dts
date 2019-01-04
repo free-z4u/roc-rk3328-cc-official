@@ -66,16 +66,14 @@
 
 	keys: gpio-keys {
 		compatible = "gpio-keys";
-		#address-cells = <1>;
-		#size-cells = <0>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pwr_key>;
 
-		button@0 {
+		power {
 			wakeup-source;
 			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
 			label = "GPIO Power";
-			linux,code = <116>;
+			linux,code = <KEY_POWER>;
 		};
 	};
 
@@ -211,7 +209,6 @@
 };
 
 &emmc {
-	status = "okay";
 	bus-width = <8>;
 	cap-mmc-highspeed;
 	mmc-hs200-1_8v;
@@ -221,6 +218,7 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_bus8>;
+	status = "okay";
 };
 
 &sdmmc {
