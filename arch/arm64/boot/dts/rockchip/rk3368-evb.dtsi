@@ -153,7 +153,6 @@
 &emmc {
 	bus-width = <8>;
 	cap-mmc-highspeed;
-	mmc-hs200-1_8v;
 	disable-wp;
 	mmc-pwrseq = <&emmc_pwrseq>;
 	non-removable;
