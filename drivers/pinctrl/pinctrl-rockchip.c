@@ -123,7 +123,7 @@ enum rockchip_pin_extra_drv_type {
 };
 
 /**
- * @drv_type: drive strength variant using rockchip_pin_drv_type
+ * @drv_type: drive strength variant using rockchip_perpin_drv_type
  * @offset: if initialized to -1 it will be autocalculated, by specifying
  *	    an initial offset value the relevant source offset can be reset
  *	    to a new value for autocalculating the following drive strength
@@ -227,8 +227,9 @@ struct rockchip_pin_bank {
 		},							\
 	}
 
-#define PIN_BANK_DRV_FLAGS_PULL_FLAGS(id, pins, label, drv0, drv1, drv2,\
-				      drv3, pull0, pull1, pull2, pull3) \
+#define PIN_BANK_DRV_FLAGS_PULL_FLAGS(id, pins, label, drv0, drv1,	\
+				      drv2, drv3, pull0, pull1,		\
+				      pull2, pull3)			\
 	{								\
 		.bank_num	= id,					\
 		.nr_pins	= pins,					\
@@ -244,6 +245,56 @@ struct rockchip_pin_bank {
 			{ .drv_type = drv1, .offset = -1 },		\
 			{ .drv_type = drv2, .offset = -1 },		\
 			{ .drv_type = drv3, .offset = -1 },		\
+		},							\
+		.pull_type[0] = pull0,					\
+		.pull_type[1] = pull1,					\
+		.pull_type[2] = pull2,					\
+		.pull_type[3] = pull3,					\
+	}
+
+#define PIN_BANK_IOMUX_DRV_FLAGS_OFFSET(id, pins, label, iom0, iom1,	\
+					iom2, iom3, drv0, drv1, drv2,	\
+					drv3, offset0, offset1,		\
+					offset2, offset3)		\
+	{								\
+		.bank_num	= id,					\
+		.nr_pins	= pins,					\
+		.name		= label,				\
+		.iomux		= {					\
+			{ .type = iom0, .offset = -1 },			\
+			{ .type = iom1, .offset = -1 },			\
+			{ .type = iom2, .offset = -1 },			\
+			{ .type = iom3, .offset = -1 },			\
+		},							\
+		.drv		= {					\
+			{ .drv_type = drv0, .offset = offset0 },	\
+			{ .drv_type = drv1, .offset = offset1 },	\
+			{ .drv_type = drv2, .offset = offset2 },	\
+			{ .drv_type = drv3, .offset = offset3 },	\
+		},							\
+	}
+
+#define PIN_BANK_IOMUX_FLAGS_DRV_FLAGS_OFFSET_PULL_FLAGS(id, pins,	\
+					      label, iom0, iom1, iom2,  \
+					      iom3, drv0, drv1, drv2,   \
+					      drv3, offset0, offset1,   \
+					      offset2, offset3, pull0,  \
+					      pull1, pull2, pull3)	\
+	{								\
+		.bank_num	= id,					\
+		.nr_pins	= pins,					\
+		.name		= label,				\
+		.iomux		= {					\
+			{ .type = iom0, .offset = -1 },			\
+			{ .type = iom1, .offset = -1 },			\
+			{ .type = iom2, .offset = -1 },			\
+			{ .type = iom3, .offset = -1 },			\
+		},							\
+		.drv		= {					\
+			{ .drv_type = drv0, .offset = offset0 },	\
+			{ .drv_type = drv1, .offset = offset1 },	\
+			{ .drv_type = drv2, .offset = offset2 },	\
+			{ .drv_type = drv3, .offset = offset3 },	\
 		},							\
 		.pull_type[0] = pull0,					\
 		.pull_type[1] = pull1,					\
@@ -291,56 +342,6 @@ struct rockchip_pin_bank {
 			{ .drv_type = drv2, .offset = -1 },		\
 			{ .drv_type = drv3, .offset = -1 },		\
 		},							\
-	}
-
-#define PIN_BANK_IOMUX_FLAGS_DRV_FLAGS_OFFSET(id, pins, label, iom0,	\
-					      iom1, iom2, iom3, drv0,	\
-					      drv1, drv2, drv3, offset0,\
-					      offset1, offset2, offset3)\
-	{								\
-		.bank_num	= id,					\
-		.nr_pins	= pins,					\
-		.name		= label,				\
-		.iomux		= {					\
-			{ .type = iom0, .offset = -1 },			\
-			{ .type = iom1, .offset = -1 },			\
-			{ .type = iom2, .offset = -1 },			\
-			{ .type = iom3, .offset = -1 },			\
-		},							\
-		.drv		= {					\
-			{ .drv_type = drv0, .offset = offset0 },	\
-			{ .drv_type = drv1, .offset = offset1 },	\
-			{ .drv_type = drv2, .offset = offset2 },	\
-			{ .drv_type = drv3, .offset = offset3 },	\
-		},							\
-	}
-
-#define PIN_BANK_IOMUX_FLAGS_DRV_FLAGS_OFFSET_PULL_FLAGS(id, pins,	\
-					      label, iom0, iom1, iom2,  \
-					      iom3, drv0, drv1, drv2,   \
-					      drv3, offset0, offset1,   \
-					      offset2, offset3, pull0,  \
-					      pull1, pull2, pull3)	\
-	{								\
-		.bank_num	= id,					\
-		.nr_pins	= pins,					\
-		.name		= label,				\
-		.iomux		= {					\
-			{ .type = iom0, .offset = -1 },			\
-			{ .type = iom1, .offset = -1 },			\
-			{ .type = iom2, .offset = -1 },			\
-			{ .type = iom3, .offset = -1 },			\
-		},							\
-		.drv		= {					\
-			{ .drv_type = drv0, .offset = offset0 },	\
-			{ .drv_type = drv1, .offset = offset1 },	\
-			{ .drv_type = drv2, .offset = offset2 },	\
-			{ .drv_type = drv3, .offset = offset3 },	\
-		},							\
-		.pull_type[0] = pull0,					\
-		.pull_type[1] = pull1,					\
-		.pull_type[2] = pull2,					\
-		.pull_type[3] = pull3,					\
 	}
 
 /**
@@ -2143,7 +2144,8 @@ static int rockchip_set_pull(struct rockchip_pin_bank *bank,
 		}
 
 		if (ret < 0) {
-			dev_err(info->dev, "unknown pull setting %d\n", pull);
+			dev_err(info->dev, "unsupported pull setting %d\n",
+				pull);
 			return ret;
 		}
 
@@ -2323,6 +2325,16 @@ static int rockchip_pmx_set(struct pinctrl_dev *pctldev, unsigned selector,
 	}
 
 	return 0;
+}
+
+static int rockchip_gpio_get_direction(struct gpio_chip *chip, unsigned offset)
+{
+	struct rockchip_pin_bank *bank = gpiochip_get_data(chip);
+	u32 data;
+
+	data = readl_relaxed(bank->reg_base + GPIO_SWPORT_DDR);
+
+	return !(data & BIT(offset));
 }
 
 /*
@@ -2775,7 +2787,7 @@ static int rockchip_pinctrl_register(struct platform_device *pdev,
 	if (ret)
 		return ret;
 
-	info->pctl_dev = pinctrl_register(ctrldesc, &pdev->dev, info);
+	info->pctl_dev = devm_pinctrl_register(&pdev->dev, ctrldesc, info);
 	if (IS_ERR(info->pctl_dev)) {
 		dev_err(&pdev->dev, "could not register pinctrl driver\n");
 		return PTR_ERR(info->pctl_dev);
@@ -2880,6 +2892,7 @@ static const struct gpio_chip rockchip_gpiolib_chip = {
 	.free = gpiochip_generic_free,
 	.set = rockchip_gpio_set,
 	.get = rockchip_gpio_get,
+	.get_direction	= rockchip_gpio_get_direction,
 	.direction_input = rockchip_gpio_direction_input,
 	.direction_output = rockchip_gpio_direction_output,
 	.to_irq = rockchip_gpio_to_irq,
@@ -3869,20 +3882,21 @@ static struct rockchip_pin_bank rk3399_pin_banks[] = {
 							 PULL_TYPE_IO_1V8_ONLY,
 							 PULL_TYPE_IO_1V8_ONLY,
 							 PULL_TYPE_IO_DEFAULT,
-							 PULL_TYPE_IO_DEFAULT),
-	PIN_BANK_IOMUX_FLAGS_DRV_FLAGS_OFFSET(1, 32, "gpio1", IOMUX_SOURCE_PMU,
-					      IOMUX_SOURCE_PMU,
-					      IOMUX_SOURCE_PMU,
-					      IOMUX_SOURCE_PMU,
-					      DRV_TYPE_IO_1V8_OR_3V0,
-					      DRV_TYPE_IO_1V8_OR_3V0,
-					      DRV_TYPE_IO_1V8_OR_3V0,
-					      DRV_TYPE_IO_1V8_OR_3V0,
-					      0xa0,
-					      0xa8,
-					      0xb0,
-					      0xb8
-					      ),
+							 PULL_TYPE_IO_DEFAULT
+							),
+	PIN_BANK_IOMUX_DRV_FLAGS_OFFSET(1, 32, "gpio1", IOMUX_SOURCE_PMU,
+					IOMUX_SOURCE_PMU,
+					IOMUX_SOURCE_PMU,
+					IOMUX_SOURCE_PMU,
+					DRV_TYPE_IO_1V8_OR_3V0,
+					DRV_TYPE_IO_1V8_OR_3V0,
+					DRV_TYPE_IO_1V8_OR_3V0,
+					DRV_TYPE_IO_1V8_OR_3V0,
+					0xa0,
+					0xa8,
+					0xb0,
+					0xb8
+					),
 	PIN_BANK_DRV_FLAGS_PULL_FLAGS(2, 32, "gpio2", DRV_TYPE_IO_1V8_OR_3V0,
 				      DRV_TYPE_IO_1V8_OR_3V0,
 				      DRV_TYPE_IO_1V8_ONLY,
