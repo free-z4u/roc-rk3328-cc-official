@@ -76,7 +76,7 @@ allowed_warnings = set([
     "compat.c:530", # net/compat.c:530:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "compat.c:532", # net/compat.c:532:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "amba-pl011.c:190", # drivers/tty/serial/amba-pl011.c:190:27: warning: ‘vendor_zte’ defined but not used [-Wunused-variable]
-    "exec.c:1180", # warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
+    "exec.c:1193", # warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
     "task_mmu.c:154", # warning: ‘get_user_pages8’ is deprecated [-Wdeprecated-declarations]
     "dsi_host.c:329", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
     "dsi_phy.c:181", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
