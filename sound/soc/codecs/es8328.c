@@ -588,14 +588,6 @@ static int es8328_set_sysclk(struct snd_soc_dai *codec_dai,
 		es8328->sysclk_constraints = &constraints_12288;
 		es8328->mclk_ratios = ratios_12288;
 		break;
-
-	case 24000000:
-		mclkdiv2 = 1;
-		/* fallthru */
-	case 12000000:
-		es8328->sysclk_constraints = &constraints_12000;
-		es8328->mclk_ratios = ratios_12000;
-		break;
 	default:
 		return -EINVAL;
 	}

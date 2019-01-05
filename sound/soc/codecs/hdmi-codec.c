@@ -153,7 +153,7 @@ static int hdmi_codec_startup(struct snd_pcm_substream *substream,
 			      struct snd_soc_dai *dai)
 {
 	struct hdmi_codec_priv *hcp = snd_soc_dai_get_drvdata(dai);
-	int ret;
+	int ret = 0;
 	bool playback = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 
 	dev_dbg(dai->dev, "%s()\n", __func__);
