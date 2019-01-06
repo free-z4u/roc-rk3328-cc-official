@@ -295,7 +295,11 @@ int twl6040_power(struct twl6040 *twl6040, int on)
 		if (twl6040->power_count++)
 			goto out;
 
-		clk_prepare_enable(twl6040->clk32k);
+		ret = clk_prepare_enable(twl6040->clk32k);
+		if (ret) {
+			twl6040->power_count = 0;
+			goto out;
+		}
 
 		/* Allow writes to the chip */
 		regcache_cache_only(twl6040->regmap, false);
@@ -304,6 +308,7 @@ int twl6040_power(struct twl6040 *twl6040, int on)
 			/* use automatic power-up sequence */
 			ret = twl6040_power_up_automatic(twl6040);
 			if (ret) {
+				clk_disable_unprepare(twl6040->clk32k);
 				twl6040->power_count = 0;
 				goto out;
 			}
@@ -311,6 +316,7 @@ int twl6040_power(struct twl6040 *twl6040, int on)
 			/* use manual power-up sequence */
 			ret = twl6040_power_up_manual(twl6040);
 			if (ret) {
+				clk_disable_unprepare(twl6040->clk32k);
 				twl6040->power_count = 0;
 				goto out;
 			}
