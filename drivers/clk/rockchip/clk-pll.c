@@ -309,14 +309,9 @@ static long rockchip_pll_round_rate(struct clk_hw *hw,
  */
 static int rockchip_pll_wait_lock(struct rockchip_clk_pll *pll)
 {
-	struct regmap *grf = rockchip_clk_get_grf(pll->ctx);
+	struct regmap *grf = pll->ctx->grf;
 	unsigned int val;
 	int delay = 24000000, ret;
-
-	if (IS_ERR(grf)) {
-		pr_err("%s: grf regmap not available\n", __func__);
-		return PTR_ERR(grf);
-	}
 
 	while (delay > 0) {
 		ret = regmap_read(grf, pll->lock_offset, &val);
@@ -512,7 +507,7 @@ static int rockchip_rk3036_pll_set_params(struct rockchip_clk_pll *pll,
 	/* wait for the pll to lock */
 	ret = rockchip_pll_wait_lock(pll);
 	if (ret) {
-		pr_warn("%s: pll update unsucessful, trying to restore old params\n",
+		pr_warn("%s: pll update unsuccessful, trying to restore old params\n",
 			__func__);
 		rockchip_rk3036_pll_set_params(pll, &cur);
 	}
@@ -528,17 +523,9 @@ static int rockchip_rk3036_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 {
 	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
 	const struct rockchip_pll_rate_table *rate;
-	unsigned long old_rate = rockchip_rk3036_pll_recalc_rate(hw, prate);
-	struct regmap *grf = rockchip_clk_get_grf(pll->ctx);
 
-	if (IS_ERR(grf)) {
-		pr_debug("%s: grf regmap not available, aborting rate change\n",
-			 __func__);
-		return PTR_ERR(grf);
-	}
-
-	pr_debug("%s: changing %s from %lu to %lu with a parent rate of %lu\n",
-		 __func__, __clk_get_name(hw->clk), old_rate, drate, prate);
+	pr_debug("%s: changing %s to %lu with a parent rate of %lu\n",
+		 __func__, __clk_get_name(hw->clk), drate, prate);
 
 	/* Get required rate settings from table */
 	rate = rockchip_get_pll_settings(pll, drate);
@@ -764,7 +751,7 @@ static int rockchip_rk3066_pll_set_params(struct rockchip_clk_pll *pll,
 	/* wait for the pll to lock */
 	ret = rockchip_pll_wait_lock(pll);
 	if (ret) {
-		pr_warn("%s: pll update unsucessful, trying to restore old params\n",
+		pr_warn("%s: pll update unsuccessful, trying to restore old params\n",
 			__func__);
 		rockchip_rk3066_pll_set_params(pll, &cur);
 	}
@@ -780,18 +767,10 @@ static int rockchip_rk3066_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 {
 	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
 	const struct rockchip_pll_rate_table *rate;
-	unsigned long old_rate = rockchip_rk3066_pll_recalc_rate(hw, prate);
-	struct regmap *grf = rockchip_clk_get_grf(pll->ctx);
 	int ret;
 
-	if (IS_ERR(grf)) {
-		pr_debug("%s: grf regmap not available, aborting rate change\n",
-			 __func__);
-		return PTR_ERR(grf);
-	}
-
-	pr_debug("%s: changing %s from %lu to %lu with a parent rate of %lu\n",
-		 __func__, clk_hw_get_name(hw), old_rate, drate, prate);
+	pr_debug("%s: changing %s to %lu with a parent rate of %lu\n",
+		 __func__, clk_hw_get_name(hw), drate, prate);
 
 	/* Get required rate settings from table */
 	rate = rockchip_get_pll_settings(pll, drate);
@@ -860,11 +839,6 @@ static void rockchip_rk3066_pll_init(struct clk_hw *hw)
 		 rate->no, cur.no, rate->nf, cur.nf, rate->nb, cur.nb);
 	if (rate->nr != cur.nr || rate->no != cur.no || rate->nf != cur.nf
 						     || rate->nb != cur.nb) {
-		struct regmap *grf = rockchip_clk_get_grf(pll->ctx);
-
-		if (IS_ERR(grf))
-			return;
-
 		pr_debug("%s: pll %s: rate params do not match rate table, adjusting\n",
 			 __func__, clk_hw_get_name(hw));
 		rockchip_rk3066_pll_set_params(pll, rate);
@@ -1110,9 +1084,6 @@ static unsigned long rockchip_rk3399_pll_recalc_rate(struct clk_hw *hw,
 	struct rockchip_pll_rate_table cur;
 	u64 rate64 = prate;
 
-	if (pll->sel && pll->scaling)
-		return pll->scaling;
-
 	rockchip_rk3399_pll_get_params(pll, &cur);
 
 	rate64 *= cur.fbdiv;
@@ -1156,11 +1127,6 @@ static int rockchip_rk3399_pll_set_params(struct rockchip_clk_pll *pll,
 		rate_change_remuxed = 1;
 	}
 
-	/* set pll power down */
-	writel(HIWORD_UPDATE(RK3399_PLLCON3_PWRDOWN,
-			     RK3399_PLLCON3_PWRDOWN, 0),
-	       pll->reg_base + RK3399_PLLCON(3));
-
 	/* update pll values */
 	writel_relaxed(HIWORD_UPDATE(rate->fbdiv, RK3399_PLLCON0_FBDIV_MASK,
 						  RK3399_PLLCON0_FBDIV_SHIFT),
@@ -1184,15 +1150,10 @@ static int rockchip_rk3399_pll_set_params(struct rockchip_clk_pll *pll,
 					    RK3399_PLLCON3_DSMPD_SHIFT),
 		       pll->reg_base + RK3399_PLLCON(3));
 
-	/* set pll power up */
-	writel(HIWORD_UPDATE(0,
-			     RK3399_PLLCON3_PWRDOWN, 0),
-	       pll->reg_base + RK3399_PLLCON(3));
-
 	/* wait for the pll to lock */
 	ret = rockchip_rk3399_pll_wait_lock(pll);
 	if (ret) {
-		pr_warn("%s: pll update unsucessful, trying to restore old params\n",
+		pr_warn("%s: pll update unsuccessful, trying to restore old params\n",
 			__func__);
 		rockchip_rk3399_pll_set_params(pll, &cur);
 	}
@@ -1208,11 +1169,9 @@ static int rockchip_rk3399_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 {
 	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
 	const struct rockchip_pll_rate_table *rate;
-	unsigned long old_rate = rockchip_rk3399_pll_recalc_rate(hw, prate);
-	int ret;
 
-	pr_debug("%s: changing %s from %lu to %lu with a parent rate of %lu\n",
-		 __func__, __clk_get_name(hw->clk), old_rate, drate, prate);
+	pr_debug("%s: changing %s to %lu with a parent rate of %lu\n",
+		 __func__, __clk_get_name(hw->clk), drate, prate);
 
 	/* Get required rate settings from table */
 	rate = rockchip_get_pll_settings(pll, drate);
@@ -1222,11 +1181,7 @@ static int rockchip_rk3399_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 		return -EINVAL;
 	}
 
-	ret = rockchip_rk3399_pll_set_params(pll, rate);
-	if (ret)
-		pll->scaling = 0;
-
-	return ret;
+	return rockchip_rk3399_pll_set_params(pll, rate);
 }
 
 static int rockchip_rk3399_pll_enable(struct clk_hw *hw)
@@ -1235,7 +1190,6 @@ static int rockchip_rk3399_pll_enable(struct clk_hw *hw)
 
 	writel(HIWORD_UPDATE(0, RK3399_PLLCON3_PWRDOWN, 0),
 	       pll->reg_base + RK3399_PLLCON(3));
-	rockchip_rk3399_pll_wait_lock(pll);
 
 	return 0;
 }
@@ -1420,13 +1374,13 @@ struct clk *rockchip_clk_register_pll(struct rockchip_clk_provider *ctx,
 	case pll_px30:
 	case pll_rk3036:
 	case pll_rk3328:
-		if (!pll->rate_table)
+		if (!pll->rate_table || IS_ERR(ctx->grf))
 			init.ops = &rockchip_rk3036_pll_clk_norate_ops;
 		else
 			init.ops = &rockchip_rk3036_pll_clk_ops;
 		break;
 	case pll_rk3066:
-		if (!pll->rate_table)
+		if (!pll->rate_table || IS_ERR(ctx->grf))
 			init.ops = &rockchip_rk3066_pll_clk_norate_ops;
 		else
 			init.ops = &rockchip_rk3066_pll_clk_ops;

@@ -672,6 +672,7 @@ static void __init of_ti_am3_no_gate_dpll_setup(struct device_node *node)
 		.max_multiplier = 2047,
 		.max_divider = 128,
 		.min_divider = 1,
+		.max_rate = 1000000000,
 		.modes = (1 << DPLL_LOW_POWER_BYPASS) | (1 << DPLL_LOCKED),
 	};
 
@@ -691,6 +692,7 @@ static void __init of_ti_am3_jtype_dpll_setup(struct device_node *node)
 		.max_divider = 256,
 		.min_divider = 2,
 		.flags = DPLL_J_TYPE,
+		.max_rate = 2000000000,
 		.modes = (1 << DPLL_LOW_POWER_BYPASS) | (1 << DPLL_LOCKED),
 	};
 
@@ -709,6 +711,7 @@ static void __init of_ti_am3_no_gate_jtype_dpll_setup(struct device_node *node)
 		.max_multiplier = 2047,
 		.max_divider = 128,
 		.min_divider = 1,
+		.max_rate = 2000000000,
 		.flags = DPLL_J_TYPE,
 		.modes = (1 << DPLL_LOW_POWER_BYPASS) | (1 << DPLL_LOCKED),
 	};
@@ -729,6 +732,7 @@ static void __init of_ti_am3_dpll_setup(struct device_node *node)
 		.max_multiplier = 2047,
 		.max_divider = 128,
 		.min_divider = 1,
+		.max_rate = 1000000000,
 		.modes = (1 << DPLL_LOW_POWER_BYPASS) | (1 << DPLL_LOCKED),
 	};
 
@@ -746,6 +750,7 @@ static void __init of_ti_am3_core_dpll_setup(struct device_node *node)
 		.max_multiplier = 2047,
 		.max_divider = 128,
 		.min_divider = 1,
+		.max_rate = 1000000000,
 		.modes = (1 << DPLL_LOW_POWER_BYPASS) | (1 << DPLL_LOCKED),
 	};
 
