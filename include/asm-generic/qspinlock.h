@@ -41,8 +41,6 @@ extern void queued_spin_unlock_wait(struct qspinlock *lock);
 static __always_inline int queued_spin_is_locked(struct qspinlock *lock)
 {
 	/*
-	 * See queued_spin_unlock_wait().
-	 *
 	 * Any !0 state indicates it is locked, even if _Q_LOCKED_VAL
 	 * isn't immediately observable.
 	 */
