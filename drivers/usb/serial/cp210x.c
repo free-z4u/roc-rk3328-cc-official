@@ -33,7 +33,7 @@ static int cp210x_open(struct tty_struct *tty, struct usb_serial_port *);
 static void cp210x_close(struct usb_serial_port *);
 static void cp210x_get_termios(struct tty_struct *, struct usb_serial_port *);
 static void cp210x_get_termios_port(struct usb_serial_port *port,
-	tcflag_t *cflagp, unsigned int *baudp);
+	unsigned int *cflagp, unsigned int *baudp);
 static void cp210x_change_speed(struct tty_struct *, struct usb_serial_port *,
 							struct ktermios *);
 static void cp210x_set_termios(struct tty_struct *, struct usb_serial_port *,
@@ -92,9 +92,6 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x10C4, 0x8156) }, /* B&G H3000 link cable */
 	{ USB_DEVICE(0x10C4, 0x815E) }, /* Helicomm IP-Link 1220-DVM */
 	{ USB_DEVICE(0x10C4, 0x815F) }, /* Timewave HamLinkUSB */
-	{ USB_DEVICE(0x10C4, 0x817C) }, /* CESINEL MEDCAL N Power Quality Monitor */
-	{ USB_DEVICE(0x10C4, 0x817D) }, /* CESINEL MEDCAL NT Power Quality Monitor */
-	{ USB_DEVICE(0x10C4, 0x817E) }, /* CESINEL MEDCAL S Power Quality Monitor */
 	{ USB_DEVICE(0x10C4, 0x818B) }, /* AVIT Research USB to TTL */
 	{ USB_DEVICE(0x10C4, 0x819F) }, /* MJS USB Toslink Switcher */
 	{ USB_DEVICE(0x10C4, 0x81A6) }, /* ThinkOptics WavIt */
@@ -112,9 +109,6 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x10C4, 0x826B) }, /* Cygnal Integrated Products, Inc., Fasttrax GPS demonstration module */
 	{ USB_DEVICE(0x10C4, 0x8281) }, /* Nanotec Plug & Drive */
 	{ USB_DEVICE(0x10C4, 0x8293) }, /* Telegesis ETRX2USB */
-	{ USB_DEVICE(0x10C4, 0x82EF) }, /* CESINEL FALCO 6105 AC Power Supply */
-	{ USB_DEVICE(0x10C4, 0x82F1) }, /* CESINEL MEDCAL EFD Earth Fault Detector */
-	{ USB_DEVICE(0x10C4, 0x82F2) }, /* CESINEL MEDCAL ST Network Analyzer */
 	{ USB_DEVICE(0x10C4, 0x82F4) }, /* Starizona MicroTouch */
 	{ USB_DEVICE(0x10C4, 0x82F9) }, /* Procyon AVS */
 	{ USB_DEVICE(0x10C4, 0x8341) }, /* Siemens MC35PU GPRS Modem */
@@ -124,12 +118,8 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x10C4, 0x8411) }, /* Kyocera GPS Module */
 	{ USB_DEVICE(0x10C4, 0x8418) }, /* IRZ Automation Teleport SG-10 GSM/GPRS Modem */
 	{ USB_DEVICE(0x10C4, 0x846E) }, /* BEI USB Sensor Interface (VCP) */
-	{ USB_DEVICE(0x10C4, 0x8470) }, /* Juniper Networks BX Series System Console */
 	{ USB_DEVICE(0x10C4, 0x8477) }, /* Balluff RFID */
 	{ USB_DEVICE(0x10C4, 0x84B6) }, /* Starizona Hyperion */
-	{ USB_DEVICE(0x10C4, 0x851E) }, /* CESINEL MEDCAL PT Network Analyzer */
-	{ USB_DEVICE(0x10C4, 0x85A7) }, /* LifeScan OneTouch Verio IQ */
-	{ USB_DEVICE(0x10C4, 0x85B8) }, /* CESINEL ReCon T Energy Logger */
 	{ USB_DEVICE(0x10C4, 0x85EA) }, /* AC-Services IBUS-IF */
 	{ USB_DEVICE(0x10C4, 0x85EB) }, /* AC-Services CIS-IBUS */
 	{ USB_DEVICE(0x10C4, 0x85F8) }, /* Virtenio Preon32 */
@@ -139,24 +129,14 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x10C4, 0x8857) },	/* CEL EM357 ZigBee USB Stick */
 	{ USB_DEVICE(0x10C4, 0x88A4) }, /* MMB Networks ZigBee USB Device */
 	{ USB_DEVICE(0x10C4, 0x88A5) }, /* Planet Innovation Ingeni ZigBee USB Device */
-	{ USB_DEVICE(0x10C4, 0x88FB) }, /* CESINEL MEDCAL STII Network Analyzer */
-	{ USB_DEVICE(0x10C4, 0x8938) }, /* CESINEL MEDCAL S II Network Analyzer */
 	{ USB_DEVICE(0x10C4, 0x8946) }, /* Ketra N1 Wireless Interface */
-	{ USB_DEVICE(0x10C4, 0x8962) }, /* Brim Brothers charging dock */
 	{ USB_DEVICE(0x10C4, 0x8977) },	/* CEL MeshWorks DevKit Device */
 	{ USB_DEVICE(0x10C4, 0x8998) }, /* KCF Technologies PRN */
-	{ USB_DEVICE(0x10C4, 0x89A4) }, /* CESINEL FTBC Flexible Thyristor Bridge Controller */
-	{ USB_DEVICE(0x10C4, 0x89FB) }, /* Qivicon ZigBee USB Radio Stick */
 	{ USB_DEVICE(0x10C4, 0x8A2A) }, /* HubZ dual ZigBee and Z-Wave dongle */
-	{ USB_DEVICE(0x10C4, 0x8A5E) }, /* CEL EM3588 ZigBee USB Stick Long Range */
-	{ USB_DEVICE(0x10C4, 0x8B34) }, /* Qivicon ZigBee USB Radio Stick */
 	{ USB_DEVICE(0x10C4, 0xEA60) }, /* Silicon Labs factory default */
 	{ USB_DEVICE(0x10C4, 0xEA61) }, /* Silicon Labs factory default */
-	{ USB_DEVICE(0x10C4, 0xEA63) }, /* Silicon Labs Windows Update (CP2101-4/CP2102N) */
 	{ USB_DEVICE(0x10C4, 0xEA70) }, /* Silicon Labs factory default */
 	{ USB_DEVICE(0x10C4, 0xEA71) }, /* Infinity GPS-MIC-1 Radio Monophone */
-	{ USB_DEVICE(0x10C4, 0xEA7A) }, /* Silicon Labs Windows Update (CP2105) */
-	{ USB_DEVICE(0x10C4, 0xEA7B) }, /* Silicon Labs Windows Update (CP2108) */
 	{ USB_DEVICE(0x10C4, 0xF001) }, /* Elan Digital Systems USBscope50 */
 	{ USB_DEVICE(0x10C4, 0xF002) }, /* Elan Digital Systems USBwave12 */
 	{ USB_DEVICE(0x10C4, 0xF003) }, /* Elan Digital Systems USBpulse100 */
@@ -167,7 +147,6 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x12B8, 0xEC62) }, /* Link G4+ ECU */
 	{ USB_DEVICE(0x13AD, 0x9999) }, /* Baltech card reader */
 	{ USB_DEVICE(0x1555, 0x0004) }, /* Owen AC4 USB-RS485 Converter */
-	{ USB_DEVICE(0x155A, 0x1006) },	/* ELDAT Easywave RX09 */
 	{ USB_DEVICE(0x166A, 0x0201) }, /* Clipsal 5500PACA C-Bus Pascal Automation Controller */
 	{ USB_DEVICE(0x166A, 0x0301) }, /* Clipsal 5800PC C-Bus Wireless PC Interface */
 	{ USB_DEVICE(0x166A, 0x0303) }, /* Clipsal 5500PCU C-Bus USB interface */
@@ -188,13 +167,9 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x1843, 0x0200) }, /* Vaisala USB Instrument Cable */
 	{ USB_DEVICE(0x18EF, 0xE00F) }, /* ELV USB-I2C-Interface */
 	{ USB_DEVICE(0x18EF, 0xE025) }, /* ELV Marble Sound Board 1 */
-	{ USB_DEVICE(0x18EF, 0xE030) }, /* ELV ALC 8xxx Battery Charger */
-	{ USB_DEVICE(0x18EF, 0xE032) }, /* ELV TFD500 Data Logger */
 	{ USB_DEVICE(0x1901, 0x0190) }, /* GE B850 CP2105 Recorder interface */
 	{ USB_DEVICE(0x1901, 0x0193) }, /* GE B650 CP2104 PMC interface */
 	{ USB_DEVICE(0x1901, 0x0194) },	/* GE Healthcare Remote Alarm Box */
-	{ USB_DEVICE(0x1901, 0x0195) },	/* GE B850/B650/B450 CP2104 DP UART interface */
-	{ USB_DEVICE(0x1901, 0x0196) },	/* GE B850 CP2105 DP UART interface */
 	{ USB_DEVICE(0x19CF, 0x3000) }, /* Parrot NMEA GPS Flight Recorder */
 	{ USB_DEVICE(0x1ADB, 0x0001) }, /* Schweitzer Engineering C662 Cable */
 	{ USB_DEVICE(0x1B1C, 0x1C00) }, /* Corsair USB Dongle */
@@ -226,7 +201,6 @@ static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x3195, 0xF190) }, /* Link Instruments MSO-19 */
 	{ USB_DEVICE(0x3195, 0xF280) }, /* Link Instruments MSO-28 */
 	{ USB_DEVICE(0x3195, 0xF281) }, /* Link Instruments MSO-28 */
-	{ USB_DEVICE(0x3923, 0x7A0B) }, /* National Instruments USB Serial Console */
 	{ USB_DEVICE(0x413C, 0x9500) }, /* DW700 GPS USB interface */
 	{ } /* Terminating Entry */
 };
@@ -356,6 +330,42 @@ struct cp210x_comm_status {
  * writing 1 to all, however, purges cp2108 well enough to avoid the hang.
  */
 #define PURGE_ALL		0x000f
+
+/* CP210X_GET_FLOW/CP210X_SET_FLOW read/write these 0x10 bytes */
+struct cp210x_flow_ctl {
+	__le32	ulControlHandshake;
+	__le32	ulFlowReplace;
+	__le32	ulXonLimit;
+	__le32	ulXoffLimit;
+} __packed;
+
+/* cp210x_flow_ctl::ulControlHandshake */
+#define CP210X_SERIAL_DTR_MASK		GENMASK(1, 0)
+#define CP210X_SERIAL_DTR_SHIFT(_mode)	(_mode)
+#define CP210X_SERIAL_CTS_HANDSHAKE	BIT(3)
+#define CP210X_SERIAL_DSR_HANDSHAKE	BIT(4)
+#define CP210X_SERIAL_DCD_HANDSHAKE	BIT(5)
+#define CP210X_SERIAL_DSR_SENSITIVITY	BIT(6)
+
+/* values for cp210x_flow_ctl::ulControlHandshake::CP210X_SERIAL_DTR_MASK */
+#define CP210X_SERIAL_DTR_INACTIVE	0
+#define CP210X_SERIAL_DTR_ACTIVE	1
+#define CP210X_SERIAL_DTR_FLOW_CTL	2
+
+/* cp210x_flow_ctl::ulFlowReplace */
+#define CP210X_SERIAL_AUTO_TRANSMIT	BIT(0)
+#define CP210X_SERIAL_AUTO_RECEIVE	BIT(1)
+#define CP210X_SERIAL_ERROR_CHAR	BIT(2)
+#define CP210X_SERIAL_NULL_STRIPPING	BIT(3)
+#define CP210X_SERIAL_BREAK_CHAR	BIT(4)
+#define CP210X_SERIAL_RTS_MASK		GENMASK(7, 6)
+#define CP210X_SERIAL_RTS_SHIFT(_mode)	(_mode << 6)
+#define CP210X_SERIAL_XOFF_CONTINUE	BIT(31)
+
+/* values for cp210x_flow_ctl::ulFlowReplace::CP210X_SERIAL_RTS_MASK */
+#define CP210X_SERIAL_RTS_INACTIVE	0
+#define CP210X_SERIAL_RTS_ACTIVE	1
+#define CP210X_SERIAL_RTS_FLOW_CTL	2
 
 /*
  * Reads a variable-sized block of CP210X_ registers, identified by req.
@@ -709,7 +719,7 @@ static void cp210x_get_termios(struct tty_struct *tty,
 			&tty->termios.c_cflag, &baud);
 		tty_encode_baud_rate(tty, baud, baud);
 	} else {
-		tcflag_t cflag;
+		unsigned int cflag;
 		cflag = 0;
 		cp210x_get_termios_port(port, &cflag, &baud);
 	}
@@ -720,13 +730,14 @@ static void cp210x_get_termios(struct tty_struct *tty,
  * This is the heart of cp210x_get_termios which always uses a &usb_serial_port.
  */
 static void cp210x_get_termios_port(struct usb_serial_port *port,
-	tcflag_t *cflagp, unsigned int *baudp)
+	unsigned int *cflagp, unsigned int *baudp)
 {
 	struct device *dev = &port->dev;
-	tcflag_t cflag;
-	unsigned int flow_ctl[4];
+	unsigned int cflag;
+	struct cp210x_flow_ctl flow_ctl;
 	u32 baud;
 	u16 bits;
+	u32 ctl_hs;
 
 	cp210x_read_u32_reg(port, CP210X_GET_BAUDRATE, &baud);
 
@@ -822,9 +833,10 @@ static void cp210x_get_termios_port(struct usb_serial_port *port,
 		break;
 	}
 
-	cp210x_read_reg_block(port, CP210X_GET_FLOW, flow_ctl,
+	cp210x_read_reg_block(port, CP210X_GET_FLOW, &flow_ctl,
 			sizeof(flow_ctl));
-	if (flow_ctl[0] & 0x08) {
+	ctl_hs = le32_to_cpu(flow_ctl.ulControlHandshake);
+	if (ctl_hs & CP210X_SERIAL_CTS_HANDSHAKE) {
 		dev_dbg(dev, "%s - flow control = CRTSCTS\n", __func__);
 		cflag |= CRTSCTS;
 	} else {
@@ -893,7 +905,6 @@ static void cp210x_set_termios(struct tty_struct *tty,
 	struct device *dev = &port->dev;
 	unsigned int cflag, old_cflag;
 	u16 bits;
-	u8 flow_ctl[16];
 
 	cflag = tty->termios.c_cflag;
 	old_cflag = old_termios->c_cflag;
@@ -922,6 +933,10 @@ static void cp210x_set_termios(struct tty_struct *tty,
 			bits |= BITS_DATA_8;
 			dev_dbg(dev, "%s - data bits = 8\n", __func__);
 			break;
+		/*case CS9:
+			bits |= BITS_DATA_9;
+			dev_dbg(dev, "%s - data bits = 9\n", __func__);
+			break;*/
 		default:
 			dev_dbg(dev, "cp210x driver does not support the number of bits requested, using 8 bit mode\n");
 			bits |= BITS_DATA_8;
@@ -973,33 +988,43 @@ static void cp210x_set_termios(struct tty_struct *tty,
 	}
 
 	if ((cflag & CRTSCTS) != (old_cflag & CRTSCTS)) {
+		struct cp210x_flow_ctl flow_ctl;
+		u32 ctl_hs;
+		u32 flow_repl;
 
-		/* Only bytes 0, 4 and 7 out of first 8 have functional bits */
-
-		cp210x_read_reg_block(port, CP210X_GET_FLOW, flow_ctl,
+		cp210x_read_reg_block(port, CP210X_GET_FLOW, &flow_ctl,
 				sizeof(flow_ctl));
-		dev_dbg(dev, "%s - read modem controls = %02x .. .. .. %02x .. .. %02x\n",
-			__func__, flow_ctl[0], flow_ctl[4], flow_ctl[7]);
+		ctl_hs = le32_to_cpu(flow_ctl.ulControlHandshake);
+		flow_repl = le32_to_cpu(flow_ctl.ulFlowReplace);
+		dev_dbg(dev, "%s - read ulControlHandshake=0x%08x, ulFlowReplace=0x%08x\n",
+				__func__, ctl_hs, flow_repl);
 
+		ctl_hs &= ~CP210X_SERIAL_DSR_HANDSHAKE;
+		ctl_hs &= ~CP210X_SERIAL_DCD_HANDSHAKE;
+		ctl_hs &= ~CP210X_SERIAL_DSR_SENSITIVITY;
+		ctl_hs &= ~CP210X_SERIAL_DTR_MASK;
+		ctl_hs |= CP210X_SERIAL_DTR_SHIFT(CP210X_SERIAL_DTR_ACTIVE);
 		if (cflag & CRTSCTS) {
-			flow_ctl[0] &= ~0x7B;
-			flow_ctl[0] |= 0x09;
-			flow_ctl[4] = 0x80;
-			/* FIXME - why clear reserved bits just read? */
-			flow_ctl[5] = 0;
-			flow_ctl[6] = 0;
-			flow_ctl[7] = 0;
+			ctl_hs |= CP210X_SERIAL_CTS_HANDSHAKE;
+
+			flow_repl &= ~CP210X_SERIAL_RTS_MASK;
+			flow_repl |= CP210X_SERIAL_RTS_SHIFT(
+					CP210X_SERIAL_RTS_FLOW_CTL);
 			dev_dbg(dev, "%s - flow control = CRTSCTS\n", __func__);
 		} else {
-			flow_ctl[0] &= ~0x7B;
-			flow_ctl[0] |= 0x01;
-			flow_ctl[1] = 0x40;
+			ctl_hs &= ~CP210X_SERIAL_CTS_HANDSHAKE;
+
+			flow_repl &= ~CP210X_SERIAL_RTS_MASK;
+			flow_repl |= CP210X_SERIAL_RTS_SHIFT(
+					CP210X_SERIAL_RTS_ACTIVE);
 			dev_dbg(dev, "%s - flow control = NONE\n", __func__);
 		}
 
-		dev_dbg(dev, "%s - write modem controls = %02x .. .. .. %02x .. .. %02x\n",
-			__func__, flow_ctl[0], flow_ctl[4], flow_ctl[7]);
-		cp210x_write_reg_block(port, CP210X_SET_FLOW, flow_ctl,
+		dev_dbg(dev, "%s - write ulControlHandshake=0x%08x, ulFlowReplace=0x%08x\n",
+				__func__, ctl_hs, flow_repl);
+		flow_ctl.ulControlHandshake = cpu_to_le32(ctl_hs);
+		flow_ctl.ulFlowReplace = cpu_to_le32(flow_repl);
+		cp210x_write_reg_block(port, CP210X_SET_FLOW, &flow_ctl,
 				sizeof(flow_ctl));
 	}
 
@@ -1053,9 +1078,7 @@ static int cp210x_tiocmget(struct tty_struct *tty)
 	u8 control;
 	int result;
 
-	result = cp210x_read_u8_reg(port, CP210X_GET_MDMSTS, &control);
-	if (result)
-		return result;
+	cp210x_read_u8_reg(port, CP210X_GET_MDMSTS, &control);
 
 	result = ((control & CONTROL_DTR) ? TIOCM_DTR : 0)
 		|((control & CONTROL_RTS) ? TIOCM_RTS : 0)
