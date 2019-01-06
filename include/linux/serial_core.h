@@ -124,6 +124,7 @@ struct uart_port {
 	void			(*set_termios)(struct uart_port *,
 				               struct ktermios *new,
 				               struct ktermios *old);
+	unsigned int		(*get_mctrl)(struct uart_port *);
 	void			(*set_mctrl)(struct uart_port *, unsigned int);
 	int			(*startup)(struct uart_port *port);
 	void			(*shutdown)(struct uart_port *port);
@@ -282,6 +283,8 @@ struct uart_state {
 	enum uart_pm_state	pm_state;
 	struct circ_buf		xmit;
 
+	atomic_t		refcount;
+	wait_queue_head_t	remove_wait;
 	struct uart_port	*uart_port;
 };
 
