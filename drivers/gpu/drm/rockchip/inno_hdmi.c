@@ -18,7 +18,6 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/hdmi.h>
-#include <linux/mfd/rk618.h>
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
@@ -36,7 +35,6 @@
 #include "rockchip_drm_drv.h"
 #include "rockchip_drm_vop.h"
 
-#include "rk618/rk618_output.h"
 #include "inno_hdmi.h"
 
 #define to_inno_hdmi(x)	container_of(x, struct inno_hdmi, x)
@@ -69,7 +67,6 @@ struct inno_hdmi_i2c {
 enum inno_hdmi_dev_type {
 	RK3036_HDMI,
 	RK3128_HDMI,
-	RK618_HDMI,
 };
 
 struct inno_hdmi_phy_config {
@@ -93,7 +90,6 @@ struct inno_hdmi {
 	void __iomem *regs;
 	struct regmap *grf;
 	struct regmap *regmap;
-	struct rk618 *parent;
 	struct clk *clock;
 
 	struct drm_connector	connector;
@@ -193,55 +189,12 @@ static const char coeff_csc[][24] = {
 
 static inline u8 hdmi_readb(struct inno_hdmi *hdmi, u16 offset)
 {
-	u32 val;
-
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		regmap_read(hdmi->regmap, (RK618_HDMI_BASE + ((offset) << 2)),
-			    &val);
-		return val;
-	}
-
 	return readl_relaxed(hdmi->regs + (offset) * 0x04);
 }
 
 static inline void hdmi_writeb(struct inno_hdmi *hdmi, u16 offset, u32 val)
 {
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		regmap_write(hdmi->regmap, (RK618_HDMI_BASE + ((offset) << 2)),
-			     val);
-		return;
-	}
-
 	writel_relaxed(val, hdmi->regs + (offset) * 0x04);
-}
-
-static void inno_hdmi_set_polarity(struct inno_hdmi *hdmi, int vic)
-{
-	u32 val, mask = HDMI_HSYNC_POL_INV | HDMI_VSYNC_POL_INV;
-
-	if (vic == 76 || vic == 75 || vic == 5 || vic == 20 ||
-	    vic == 39 || vic == 16 || vic == 4)
-		val = HDMI_HSYNC_POL_INV | HDMI_VSYNC_POL_INV;
-	else
-		val = 0;
-
-	regmap_update_bits(hdmi->parent->regmap, RK618_MISC_CON, mask, val);
-}
-
-static void inno_hdmi_pol_init(struct inno_hdmi *hdmi, int pol)
-{
-	u32 val;
-
-	if (pol)
-		val = 0x0;
-	else
-		val = 0x20;
-	regmap_update_bits(hdmi->parent->regmap, RK618_MISC_CON,
-			   INT_ACTIVE_LOW, val);
-
-	regmap_update_bits(hdmi->parent->regmap,
-			   RK618_MISC_CON, HDMI_CLK_SEL_MASK,
-			   HDMI_CLK_SEL_VIDEO_INF0_CLK);
 }
 
 static inline void hdmi_modb(struct inno_hdmi *hdmi, u16 offset,
@@ -265,9 +218,6 @@ static void inno_hdmi_i2c_init(struct inno_hdmi *hdmi)
 	/* Clear the EDID interrupt flag and mute the interrupt */
 	hdmi_writeb(hdmi, HDMI_INTERRUPT_MASK1, 0);
 	hdmi_writeb(hdmi, HDMI_INTERRUPT_STATUS1, m_INT_EDID_READY);
-	if (hdmi->plat_data->dev_type == RK618_HDMI)
-		hdmi_modb(hdmi, HDMI_INTERRUPT_MASK1, m_INT_HOTPLUG_RK618,
-			  m_INT_HOTPLUG_RK618);
 }
 
 static void inno_hdmi_sys_power(struct inno_hdmi *hdmi, bool enable)
@@ -295,16 +245,9 @@ static void inno_hdmi_set_pwr_mode(struct inno_hdmi *hdmi, int mode)
 			    phy_config->pre_emphasis);
 		hdmi_writeb(hdmi, HDMI_PHY_DRIVER, phy_config->vlev_ctr);
 
-		if (hdmi->plat_data->dev_type == RK618_HDMI) {
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x2d);
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x2c);
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x28);
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x20);
-		} else {
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x15);
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x14);
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x10);
-		}
+		hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x15);
+		hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x14);
+		hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x10);
 		hdmi_writeb(hdmi, HDMI_PHY_CHG_PWR, 0x0f);
 		hdmi_writeb(hdmi, HDMI_PHY_SYNC, 0x00);
 		hdmi_writeb(hdmi, HDMI_PHY_SYNC, 0x01);
@@ -317,10 +260,7 @@ static void inno_hdmi_set_pwr_mode(struct inno_hdmi *hdmi, int mode)
 		hdmi_writeb(hdmi, HDMI_PHY_DRIVER, 0x00);
 		hdmi_writeb(hdmi, HDMI_PHY_PRE_EMPHASIS, 0x00);
 		hdmi_writeb(hdmi, HDMI_PHY_CHG_PWR, 0x00);
-		if (hdmi->plat_data->dev_type == RK618_HDMI)
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x2f);
-		else
-			hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x15);
+		hdmi_writeb(hdmi, HDMI_PHY_SYS_CTL, 0x15);
 
 		break;
 
@@ -628,20 +568,12 @@ static void inno_hdmi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct inno_hdmi *hdmi = to_inno_hdmi(encoder);
 
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		inno_hdmi_set_polarity(hdmi, hdmi->hdmi_data.vic);
-		clk_prepare_enable(hdmi->clock);
-	}
-
 	inno_hdmi_set_pwr_mode(hdmi, NORMAL);
 }
 
 static void inno_hdmi_encoder_disable(struct drm_encoder *encoder)
 {
 	struct inno_hdmi *hdmi = to_inno_hdmi(encoder);
-
-	if (hdmi->plat_data->dev_type == RK618_HDMI)
-		clk_disable_unprepare(hdmi->clock);
 
 	inno_hdmi_set_pwr_mode(hdmi, LOWER_PWR);
 }
@@ -713,17 +645,6 @@ static enum drm_mode_status
 inno_hdmi_connector_mode_valid(struct drm_connector *connector,
 			       struct drm_display_mode *mode)
 {
-	struct inno_hdmi *hdmi = to_inno_hdmi(connector);
-
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		if (mode->clock == 148500 || mode->clock == 146250 ||
-		    mode->clock == 108000 || mode->clock == 106500 ||
-		    mode->clock == 85500 || mode->clock == 74250)
-			return MODE_OK;
-		else
-			return MODE_BAD;
-	}
-
 	return MODE_OK;
 }
 
@@ -937,7 +858,6 @@ static int inno_hdmi_register(struct drm_device *drm, struct inno_hdmi *hdmi)
 {
 	struct drm_encoder *encoder = &hdmi->encoder;
 	struct device *dev = hdmi->dev;
-	struct device_node *endpoint;
 
 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
 
@@ -963,40 +883,6 @@ static int inno_hdmi_register(struct drm_device *drm, struct inno_hdmi *hdmi)
 			   DRM_MODE_CONNECTOR_HDMIA);
 
 	drm_mode_connector_attach_encoder(&hdmi->connector, encoder);
-
-	if (hdmi->parent) {
-		endpoint = of_graph_get_endpoint_by_regs(dev->of_node, 1, 0);
-		if (!endpoint || !of_device_is_available(endpoint))
-			endpoint = of_graph_get_endpoint_by_regs(dev->of_node,
-								 1, 1);
-		if (endpoint && of_device_is_available(endpoint)) {
-			struct drm_bridge *bridge;
-			struct device_node *remote;
-			int ret;
-
-			remote = of_graph_get_remote_port_parent(endpoint);
-			of_node_put(endpoint);
-			if (!remote || !of_device_is_available(remote))
-				return -ENODEV;
-
-			of_node_put(remote);
-
-			bridge = of_drm_find_bridge(remote);
-			if (!bridge) {
-				DRM_INFO("Waiting for bridge driver\n");
-				return -EPROBE_DEFER;
-			}
-
-			bridge->encoder = encoder;
-			ret = drm_bridge_attach(drm, bridge);
-			if (ret) {
-				DRM_ERROR("failed to attach bridge\n");
-				return ret;
-			}
-
-			encoder->bridge = bridge;
-		}
-	}
 
 	inno_hdmi_audio_codec_init(hdmi, dev);
 
@@ -1026,9 +912,6 @@ static irqreturn_t inno_hdmi_hardirq(int irq, void *dev_id)
 	irqreturn_t ret = IRQ_NONE;
 	u8 interrupt;
 
-	if (hdmi->plat_data->dev_type == RK618_HDMI)
-		return IRQ_WAKE_THREAD;
-
 	if (hdmi->i2c)
 		ret = inno_hdmi_i2c_irq(hdmi);
 
@@ -1045,10 +928,6 @@ static irqreturn_t inno_hdmi_irq(int irq, void *dev_id)
 {
 	struct inno_hdmi *hdmi = dev_id;
 
-	if (hdmi->plat_data->dev_type == RK618_HDMI)
-		hdmi_modb(hdmi, HDMI_INTERRUPT_STATUS1, m_INT_HOTPLUG_RK618,
-			  m_INT_HOTPLUG_RK618);
-
 	drm_helper_hpd_irq_event(hdmi->connector.dev);
 
 	return IRQ_HANDLED;
@@ -1059,24 +938,10 @@ static int inno_hdmi_i2c_read(struct inno_hdmi *hdmi, struct i2c_msg *msgs)
 	int length = msgs->len;
 	u8 *buf = msgs->buf;
 	int ret;
-	int i;
-	u32 c;
 
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		for (i = 0; i < 10; i++) {
-			msleep(20);
-			c = hdmi_readb(hdmi, HDMI_INTERRUPT_STATUS1);
-
-			if (c & m_INT_EDID_READY)
-				break;
-		}
-		if ((c & m_INT_EDID_READY) == 0)
-			return -EAGAIN;
-	} else {
-		ret = wait_for_completion_timeout(&hdmi->i2c->cmp, HZ / 10);
-		if (!ret)
-			return -EAGAIN;
-	}
+	ret = wait_for_completion_timeout(&hdmi->i2c->cmp, HZ / 10);
+	if (!ret)
+		return -EAGAIN;
 
 	while (length--)
 		*buf++ = hdmi_readb(hdmi, HDMI_EDID_FIFO_ADDR);
@@ -1145,9 +1010,6 @@ static int inno_hdmi_i2c_xfer(struct i2c_adapter *adap,
 
 	/* Mute HDMI EDID interrupt */
 	hdmi_writeb(hdmi, HDMI_INTERRUPT_MASK1, 0);
-	if (hdmi->plat_data->dev_type == RK618_HDMI)
-		hdmi_modb(hdmi, HDMI_INTERRUPT_MASK1, m_INT_HOTPLUG_RK618,
-			  m_INT_HOTPLUG_RK618);
 
 	mutex_unlock(&i2c->lock);
 
@@ -1214,13 +1076,6 @@ static struct inno_hdmi_phy_config rk3128_hdmi_phy_config[] = {
 	{ ~0UL,	     0x00, 0x00 }
 };
 
-static struct inno_hdmi_phy_config rk618_hdmi_phy_config[] = {
-	/* pixelclk pre-emp vlev */
-	{ 74250000,  0x3f, 0xbb },
-	{ 165000000, 0x6f, 0xbb },
-	{ ~0UL,	     0x00, 0x00 }
-};
-
 static const struct inno_hdmi_plat_data rk3036_hdmi_drv_data = {
 	.dev_type   = RK3036_HDMI,
 	.phy_config = rk3036_hdmi_phy_config,
@@ -1231,20 +1086,12 @@ static const struct inno_hdmi_plat_data rk3128_hdmi_drv_data = {
 	.phy_config = rk3128_hdmi_phy_config,
 };
 
-static const struct inno_hdmi_plat_data rk618_hdmi_drv_data = {
-	.dev_type   = RK618_HDMI,
-	.phy_config = rk618_hdmi_phy_config,
-};
-
 static const struct of_device_id inno_hdmi_dt_ids[] = {
 	{ .compatible = "rockchip,rk3036-inno-hdmi",
 	  .data = &rk3036_hdmi_drv_data,
 	},
 	{ .compatible = "rockchip,rk3128-inno-hdmi",
 	  .data = &rk3128_hdmi_drv_data,
-	},
-	{ .compatible = "rockchip,rk618-inno-hdmi",
-	  .data = &rk618_hdmi_drv_data,
 	},
 	{},
 };
@@ -1257,28 +1104,6 @@ static const struct regmap_range inno_hdmi_volatile_reg_ranges[] = {
 static const struct regmap_access_table inno_hdmi_volatile_regs = {
 	.yes_ranges = inno_hdmi_volatile_reg_ranges,
 	.n_yes_ranges = ARRAY_SIZE(inno_hdmi_volatile_reg_ranges),
-};
-
-static bool inno_is_read_enable_reg(struct device *dev, unsigned int reg)
-{
-	if (reg >= RK618_HDMI_BASE &&
-	    reg <= (HDMI_CEC_LOGICADDR * RK618_HDMI_BASE))
-		return true;
-
-	return false;
-}
-
-static const struct regmap_config inno_hdmi_regmap_config = {
-	.name = "inno-hdmi",
-	.reg_bits = 16,
-	.val_bits = 32,
-	.reg_stride = 4,
-	.max_register = 0x07b4,
-	.cache_type = REGCACHE_RBTREE,
-	.reg_format_endian = REGMAP_ENDIAN_NATIVE,
-	.val_format_endian = REGMAP_ENDIAN_NATIVE,
-	.readable_reg = inno_is_read_enable_reg,
-	.volatile_table = &inno_hdmi_volatile_regs,
 };
 
 static int inno_hdmi_bind(struct device *dev, struct device *master,
@@ -1307,67 +1132,47 @@ static int inno_hdmi_bind(struct device *dev, struct device *master,
 	if (irq < 0)
 		return irq;
 
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		hdmi->parent = dev_get_drvdata(pdev->dev.parent);
-		hdmi->regmap = devm_regmap_init_i2c(hdmi->parent->client,
-						    &inno_hdmi_regmap_config);
-		if (IS_ERR(hdmi->regmap)) {
-			ret = PTR_ERR(hdmi->regmap);
-			dev_err(dev, "failed to allocate register map: %d\n",
-				ret);
-			return PTR_ERR(hdmi->regmap);
-		}
+	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!iores)
+		return -ENXIO;
 
-		hdmi->clock = devm_clk_get(hdmi->dev, "hdmi");
-		if (IS_ERR(hdmi->clock)) {
-			dev_err(hdmi->dev, "Unable to get HDMI clock\n");
-			return PTR_ERR(hdmi->clock);
-		}
+	hdmi->regs = devm_ioremap_resource(dev, iores);
+	if (IS_ERR(hdmi->regs))
+		return PTR_ERR(hdmi->regs);
 
-		inno_hdmi_pol_init(hdmi, 0);
-	} else {
-		iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-		if (!iores)
-			return -ENXIO;
+	hdmi->aclk = devm_clk_get(hdmi->dev, "aclk");
+	if (IS_ERR(hdmi->aclk)) {
+		dev_err(hdmi->dev, "Unable to get HDMI aclk clk\n");
+		return PTR_ERR(hdmi->aclk);
+	}
 
-		hdmi->regs = devm_ioremap_resource(dev, iores);
-		if (IS_ERR(hdmi->regs))
-			return PTR_ERR(hdmi->regs);
+	hdmi->pclk = devm_clk_get(hdmi->dev, "pclk");
+	if (IS_ERR(hdmi->pclk)) {
+		dev_err(hdmi->dev, "Unable to get HDMI pclk clk\n");
+		return PTR_ERR(hdmi->pclk);
+	}
 
-		hdmi->aclk = devm_clk_get(hdmi->dev, "aclk");
-		if (IS_ERR(hdmi->aclk)) {
-			dev_err(hdmi->dev, "Unable to get HDMI aclk clk\n");
-			return PTR_ERR(hdmi->aclk);
-		}
+	ret = clk_prepare_enable(hdmi->aclk);
+	if (ret) {
+		dev_err(hdmi->dev,
+		"Cannot enable HDMI aclk clock: %d\n", ret);
+		return ret;
+	}
 
-		hdmi->pclk = devm_clk_get(hdmi->dev, "pclk");
-		if (IS_ERR(hdmi->pclk)) {
-			dev_err(hdmi->dev, "Unable to get HDMI pclk clk\n");
-			return PTR_ERR(hdmi->pclk);
-		}
+	ret = clk_prepare_enable(hdmi->pclk);
+	if (ret) {
+		dev_err(hdmi->dev,
+			"Cannot enable HDMI pclk clock: %d\n", ret);
+		goto err_disable_aclk;
+	}
 
-		ret = clk_prepare_enable(hdmi->aclk);
-		if (ret) {
-			dev_err(hdmi->dev,
-				"Cannot enable HDMI aclk clock: %d\n", ret);
-			return ret;
-		}
-
-		ret = clk_prepare_enable(hdmi->pclk);
-		if (ret) {
-			dev_err(hdmi->dev,
-				"Cannot enable HDMI pclk clock: %d\n", ret);
-			goto err_disable_aclk;
-		}
-
-		hdmi->grf =
-			syscon_regmap_lookup_by_phandle(hdmi->dev->of_node,
-							"rockchip,grf");
-		if (IS_ERR(hdmi->grf)) {
-			dev_err(hdmi->dev, "Unable to get rockchip,grf\n");
-			ret = PTR_ERR(hdmi->grf);
-			goto err_disable_aclk;
-		}
+	hdmi->grf =
+		syscon_regmap_lookup_by_phandle(hdmi->dev->of_node,
+						"rockchip,grf");
+	if (IS_ERR(hdmi->grf)) {
+		dev_err(hdmi->dev, "Unable to get rockchip,grf\n");
+		ret = PTR_ERR(hdmi->grf);
+		goto err_disable_aclk;
 	}
 
 	inno_hdmi_reset(hdmi);
@@ -1385,10 +1190,7 @@ static int inno_hdmi_bind(struct device *dev, struct device *master,
 	 * PCLK_HDMI, so we need to init the TMDS rate to PCLK rate,
 	 * and reconfigure the DDC clock.
 	 */
-	if (hdmi->plat_data->dev_type == RK618_HDMI)
-		hdmi->tmds_rate = clk_get_rate(hdmi->parent->clkin);
-	else
-		hdmi->tmds_rate = clk_get_rate(hdmi->pclk);
+	hdmi->tmds_rate = clk_get_rate(hdmi->pclk);
 	inno_hdmi_i2c_init(hdmi);
 
 	ret = inno_hdmi_register(drm, hdmi);
@@ -1400,13 +1202,7 @@ static int inno_hdmi_bind(struct device *dev, struct device *master,
 	/* Unmute hotplug interrupt */
 	hdmi_modb(hdmi, HDMI_STATUS, m_MASK_INT_HOTPLUG, v_MASK_INT_HOTPLUG(1));
 
-	if (hdmi->plat_data->dev_type == RK618_HDMI) {
-		irqflags = IRQF_TRIGGER_FALLING;
-		hdmi_modb(hdmi, HDMI_INTERRUPT_STATUS1, m_INT_HOTPLUG_RK618,
-			  m_INT_HOTPLUG_RK618);
-	} else {
-		irqflags = IRQF_SHARED;
-	}
+	irqflags = IRQF_SHARED;
 
 	ret = devm_request_threaded_irq(dev, irq, inno_hdmi_hardirq,
 					inno_hdmi_irq, irqflags,
