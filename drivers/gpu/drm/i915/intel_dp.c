@@ -1500,10 +1500,10 @@ intel_dp_compute_config(struct intel_encoder *encoder,
 
 		/* Get bpp from vbt only for panels that dont have bpp in edid */
 		if (intel_connector->base.display_info.bpc == 0 &&
-			(dev_priv->vbt.edp_bpp && dev_priv->vbt.edp_bpp < bpp)) {
+			(dev_priv->vbt.edp.bpp && dev_priv->vbt.edp.bpp < bpp)) {
 			DRM_DEBUG_KMS("clamping bpp for eDP panel to BIOS-provided %i\n",
-				      dev_priv->vbt.edp_bpp);
-			bpp = dev_priv->vbt.edp_bpp;
+				      dev_priv->vbt.edp.bpp);
+			bpp = dev_priv->vbt.edp.bpp;
 		}
 
 		/*
@@ -2386,8 +2386,8 @@ static void intel_dp_get_config(struct intel_encoder *encoder,
 		intel_dotclock_calculate(pipe_config->port_clock,
 					 &pipe_config->dp_m_n);
 
-	if (is_edp(intel_dp) && dev_priv->vbt.edp_bpp &&
-	    pipe_config->pipe_bpp > dev_priv->vbt.edp_bpp) {
+	if (is_edp(intel_dp) && dev_priv->vbt.edp.bpp &&
+	    pipe_config->pipe_bpp > dev_priv->vbt.edp.bpp) {
 		/*
 		 * This is a big fat ugly hack.
 		 *
@@ -2402,8 +2402,8 @@ static void intel_dp_get_config(struct intel_encoder *encoder,
 		 * load.
 		 */
 		DRM_DEBUG_KMS("pipe has %d bpp for eDP panel, overriding BIOS-provided max %d bpp\n",
-			      pipe_config->pipe_bpp, dev_priv->vbt.edp_bpp);
-		dev_priv->vbt.edp_bpp = pipe_config->pipe_bpp;
+			      pipe_config->pipe_bpp, dev_priv->vbt.edp.bpp);
+		dev_priv->vbt.edp.bpp = pipe_config->pipe_bpp;
 	}
 }
 
@@ -3157,7 +3157,7 @@ intel_dp_voltage_max(struct intel_dp *intel_dp)
 	if (IS_BROXTON(dev))
 		return DP_TRAIN_VOLTAGE_SWING_LEVEL_3;
 	else if (INTEL_INFO(dev)->gen >= 9) {
-		if (dev_priv->edp_low_vswing && port == PORT_A)
+		if (dev_priv->vbt.edp.low_vswing && port == PORT_A)
 			return DP_TRAIN_VOLTAGE_SWING_LEVEL_3;
 		return DP_TRAIN_VOLTAGE_SWING_LEVEL_2;
 	} else if (IS_VALLEYVIEW(dev) || IS_CHERRYVIEW(dev))
@@ -3881,6 +3881,9 @@ static bool
 intel_dp_probe_mst(struct intel_dp *intel_dp)
 {
 	u8 buf[1];
+
+	if (!i915.enable_dp_mst)
+		return false;
 
 	if (!intel_dp->can_mst)
 		return false;
@@ -4990,14 +4993,6 @@ put_power:
 bool intel_dp_is_edp(struct drm_device *dev, enum port port)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	union child_device_config *p_child;
-	int i;
-	static const short port_mapping[] = {
-		[PORT_B] = DVO_PORT_DPB,
-		[PORT_C] = DVO_PORT_DPC,
-		[PORT_D] = DVO_PORT_DPD,
-		[PORT_E] = DVO_PORT_DPE,
-	};
 
 	/*
 	 * eDP not supported on g4x. so bail out early just
@@ -5009,18 +5004,7 @@ bool intel_dp_is_edp(struct drm_device *dev, enum port port)
 	if (port == PORT_A)
 		return true;
 
-	if (!dev_priv->vbt.child_dev_num)
-		return false;
-
-	for (i = 0; i < dev_priv->vbt.child_dev_num; i++) {
-		p_child = dev_priv->vbt.child_dev + i;
-
-		if (p_child->common.dvo_port == port_mapping[port] &&
-		    (p_child->common.device_type & DEVICE_TYPE_eDP_BITS) ==
-		    (DEVICE_TYPE_eDP & DEVICE_TYPE_eDP_BITS))
-			return true;
-	}
-	return false;
+	return intel_bios_is_port_edp(dev_priv, port);
 }
 
 void
@@ -5127,7 +5111,7 @@ intel_dp_init_panel_power_sequencer(struct drm_device *dev,
 	DRM_DEBUG_KMS("cur t1_t3 %d t8 %d t9 %d t10 %d t11_t12 %d\n",
 		      cur.t1_t3, cur.t8, cur.t9, cur.t10, cur.t11_t12);
 
-	vbt = dev_priv->vbt.edp_pps;
+	vbt = dev_priv->vbt.edp.pps;
 
 	/* Upper limits from eDP 1.3 spec. Note that we use the clunky units of
 	 * our hw here, which are all in 100usec. */

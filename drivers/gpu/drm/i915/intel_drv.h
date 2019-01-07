@@ -418,6 +418,7 @@ struct intel_crtc_state {
 #define PIPE_CONFIG_QUIRK_MODE_SYNC_FLAGS	(1<<0) /* unreliable sync mode.flags */
 	unsigned long quirks;
 
+	unsigned fb_bits; /* framebuffers to flip */
 	bool update_pipe; /* can a fast modeset be performed? */
 	bool disable_cxsr;
 	bool update_wm_pre, update_wm_post; /* watermarks are updated */
@@ -436,7 +437,8 @@ struct intel_crtc_state {
 	bool has_infoframe;
 
 	/* CPU Transcoder for the pipe. Currently this can only differ from the
-	 * pipe on Haswell (where we have a special eDP transcoder). */
+	 * pipe on Haswell and later (where we have a special eDP transcoder)
+	 * and Broxton (where we have special DSI transcoders). */
 	enum transcoder cpu_transcoder;
 
 	/*
@@ -576,6 +578,9 @@ struct intel_crtc_state {
 		 */
 		bool need_postvbl_update;
 	} wm;
+
+	/* Gamma mode programmed on the pipe */
+	uint32_t gamma_mode;
 };
 
 struct vlv_wm_state {
@@ -593,23 +598,6 @@ struct intel_mmio_flip {
 	struct drm_i915_gem_request *req;
 	struct intel_crtc *crtc;
 	unsigned int rotation;
-};
-
-/*
- * Tracking of operations that need to be performed at the beginning/end of an
- * atomic commit, outside the atomic section where interrupts are disabled.
- * These are generally operations that grab mutexes or might otherwise sleep
- * and thus can't be run with interrupts disabled.
- */
-struct intel_crtc_atomic_commit {
-	/* Sleepable operations to perform before commit */
-
-	/* Sleepable operations to perform after commit */
-	unsigned fb_bits;
-	bool post_enable_primary;
-
-	/* Sleepable operations to perform before and after commit */
-	bool update_fbc;
 };
 
 struct intel_crtc {
@@ -671,8 +659,6 @@ struct intel_crtc {
 		int min_vbl, max_vbl;
 		int scanline_start;
 	} debug;
-
-	struct intel_crtc_atomic_commit atomic;
 
 	/* scalers available on this crtc */
 	int num_scalers;
@@ -1107,7 +1093,7 @@ u32 intel_fb_stride_alignment(const struct drm_i915_private *dev_priv,
 			      uint64_t fb_modifier, uint32_t pixel_format);
 
 /* intel_audio.c */
-void intel_init_audio(struct drm_device *dev);
+void intel_init_audio_hooks(struct drm_i915_private *dev_priv);
 void intel_audio_codec_enable(struct intel_encoder *encoder);
 void intel_audio_codec_disable(struct intel_encoder *encoder);
 void i915_audio_component_init(struct drm_i915_private *dev_priv);
@@ -1115,6 +1101,7 @@ void i915_audio_component_cleanup(struct drm_i915_private *dev_priv);
 
 /* intel_display.c */
 extern const struct drm_plane_funcs intel_plane_funcs;
+void intel_init_display_hooks(struct drm_i915_private *dev_priv);
 unsigned int intel_rotation_info_size(const struct intel_rotation_info *rot_info);
 bool intel_has_pending_fb_unpin(struct drm_device *dev);
 void intel_mark_busy(struct drm_device *dev);
@@ -1213,6 +1200,9 @@ void assert_pll(struct drm_i915_private *dev_priv,
 		enum pipe pipe, bool state);
 #define assert_pll_enabled(d, p) assert_pll(d, p, true)
 #define assert_pll_disabled(d, p) assert_pll(d, p, false)
+void assert_dsi_pll(struct drm_i915_private *dev_priv, bool state);
+#define assert_dsi_pll_enabled(d) assert_dsi_pll(d, true)
+#define assert_dsi_pll_disabled(d) assert_dsi_pll(d, false)
 void assert_fdi_rx_pll(struct drm_i915_private *dev_priv,
 		       enum pipe pipe, bool state);
 #define assert_fdi_rx_pll_enabled(d, p) assert_fdi_rx_pll(d, p, true)
@@ -1586,6 +1576,7 @@ void intel_suspend_hw(struct drm_device *dev);
 int ilk_wm_max_level(const struct drm_device *dev);
 void intel_update_watermarks(struct drm_crtc *crtc);
 void intel_init_pm(struct drm_device *dev);
+void intel_init_clock_gating_hooks(struct drm_i915_private *dev_priv);
 void intel_pm_setup(struct drm_device *dev);
 void intel_gpu_ips_init(struct drm_i915_private *dev_priv);
 void intel_gpu_ips_teardown(void);
@@ -1674,5 +1665,11 @@ struct drm_plane_state *intel_plane_duplicate_state(struct drm_plane *plane);
 void intel_plane_destroy_state(struct drm_plane *plane,
 			       struct drm_plane_state *state);
 extern const struct drm_plane_helper_funcs intel_plane_helper_funcs;
+
+/* intel_color.c */
+void intel_color_init(struct drm_crtc *crtc);
+int intel_color_check(struct drm_crtc *crtc, struct drm_crtc_state *state);
+void intel_color_set_csc(struct drm_crtc *crtc);
+void intel_color_load_luts(struct drm_crtc *crtc);
 
 #endif /* __INTEL_DRV_H__ */

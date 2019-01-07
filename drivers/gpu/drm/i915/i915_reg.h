@@ -164,6 +164,8 @@ static inline bool i915_mmio_reg_valid(i915_reg_t reg)
 #define  GEN6_GRDOM_RENDER		(1 << 1)
 #define  GEN6_GRDOM_MEDIA		(1 << 2)
 #define  GEN6_GRDOM_BLT			(1 << 3)
+#define  GEN6_GRDOM_VECS		(1 << 4)
+#define  GEN8_GRDOM_MEDIA2		(1 << 7)
 
 #define RING_PP_DIR_BASE(ring)		_MMIO((ring)->mmio_base+0x228)
 #define RING_PP_DIR_BASE_READ(ring)	_MMIO((ring)->mmio_base+0x518)
@@ -585,6 +587,10 @@ static inline bool i915_mmio_reg_valid(i915_reg_t reg)
 #define GEN7_GPGPU_DISPATCHDIMX         _MMIO(0x2500)
 #define GEN7_GPGPU_DISPATCHDIMY         _MMIO(0x2504)
 #define GEN7_GPGPU_DISPATCHDIMZ         _MMIO(0x2508)
+
+/* There are the 16 64-bit CS General Purpose Registers */
+#define HSW_CS_GPR(n)                   _MMIO(0x2600 + (n) * 8)
+#define HSW_CS_GPR_UDW(n)               _MMIO(0x2600 + (n) * 8 + 4)
 
 #define OACONTROL _MMIO(0x2360)
 
@@ -1796,6 +1802,7 @@ enum skl_disp_power_wells {
 
 #define VLV_DISPLAY_BASE 0x180000
 #define VLV_MIPI_BASE VLV_DISPLAY_BASE
+#define BXT_MIPI_BASE 0x60000
 
 #define VLV_GU_CTL0	_MMIO(VLV_DISPLAY_BASE + 0x2030)
 #define VLV_GU_CTL1	_MMIO(VLV_DISPLAY_BASE + 0x2034)
@@ -7110,6 +7117,7 @@ enum skl_disp_power_wells {
 #define   GEN9_CCS_TLB_PREFETCH_ENABLE	(1<<3)
 
 #define GEN8_ROW_CHICKEN		_MMIO(0xe4f0)
+#define   FLOW_CONTROL_ENABLE		(1<<15)
 #define   PARTIAL_INSTRUCTION_SHOOTDOWN_DISABLE	(1<<8)
 #define   STALL_DOP_GATING_DISABLE		(1<<5)
 
@@ -7665,6 +7673,59 @@ enum skl_disp_power_wells {
 #define PIPE_CSC_POSTOFF_ME(pipe)	_MMIO_PIPE(pipe, _PIPE_A_CSC_POSTOFF_ME, _PIPE_B_CSC_POSTOFF_ME)
 #define PIPE_CSC_POSTOFF_LO(pipe)	_MMIO_PIPE(pipe, _PIPE_A_CSC_POSTOFF_LO, _PIPE_B_CSC_POSTOFF_LO)
 
+/* pipe degamma/gamma LUTs on IVB+ */
+#define _PAL_PREC_INDEX_A	0x4A400
+#define _PAL_PREC_INDEX_B	0x4AC00
+#define _PAL_PREC_INDEX_C	0x4B400
+#define   PAL_PREC_10_12_BIT		(0 << 31)
+#define   PAL_PREC_SPLIT_MODE		(1 << 31)
+#define   PAL_PREC_AUTO_INCREMENT	(1 << 15)
+#define _PAL_PREC_DATA_A	0x4A404
+#define _PAL_PREC_DATA_B	0x4AC04
+#define _PAL_PREC_DATA_C	0x4B404
+#define _PAL_PREC_GC_MAX_A	0x4A410
+#define _PAL_PREC_GC_MAX_B	0x4AC10
+#define _PAL_PREC_GC_MAX_C	0x4B410
+#define _PAL_PREC_EXT_GC_MAX_A	0x4A420
+#define _PAL_PREC_EXT_GC_MAX_B	0x4AC20
+#define _PAL_PREC_EXT_GC_MAX_C	0x4B420
+
+#define PREC_PAL_INDEX(pipe)		_MMIO_PIPE(pipe, _PAL_PREC_INDEX_A, _PAL_PREC_INDEX_B)
+#define PREC_PAL_DATA(pipe)		_MMIO_PIPE(pipe, _PAL_PREC_DATA_A, _PAL_PREC_DATA_B)
+#define PREC_PAL_GC_MAX(pipe, i)	_MMIO(_PIPE(pipe, _PAL_PREC_GC_MAX_A, _PAL_PREC_GC_MAX_B) + (i) * 4)
+#define PREC_PAL_EXT_GC_MAX(pipe, i)	_MMIO(_PIPE(pipe, _PAL_PREC_EXT_GC_MAX_A, _PAL_PREC_EXT_GC_MAX_B) + (i) * 4)
+
+/* pipe CSC & degamma/gamma LUTs on CHV */
+#define _CGM_PIPE_A_CSC_COEFF01	(VLV_DISPLAY_BASE + 0x67900)
+#define _CGM_PIPE_A_CSC_COEFF23	(VLV_DISPLAY_BASE + 0x67904)
+#define _CGM_PIPE_A_CSC_COEFF45	(VLV_DISPLAY_BASE + 0x67908)
+#define _CGM_PIPE_A_CSC_COEFF67	(VLV_DISPLAY_BASE + 0x6790C)
+#define _CGM_PIPE_A_CSC_COEFF8	(VLV_DISPLAY_BASE + 0x67910)
+#define _CGM_PIPE_A_DEGAMMA	(VLV_DISPLAY_BASE + 0x66000)
+#define _CGM_PIPE_A_GAMMA	(VLV_DISPLAY_BASE + 0x67000)
+#define _CGM_PIPE_A_MODE	(VLV_DISPLAY_BASE + 0x67A00)
+#define   CGM_PIPE_MODE_GAMMA	(1 << 2)
+#define   CGM_PIPE_MODE_CSC	(1 << 1)
+#define   CGM_PIPE_MODE_DEGAMMA	(1 << 0)
+
+#define _CGM_PIPE_B_CSC_COEFF01	(VLV_DISPLAY_BASE + 0x69900)
+#define _CGM_PIPE_B_CSC_COEFF23	(VLV_DISPLAY_BASE + 0x69904)
+#define _CGM_PIPE_B_CSC_COEFF45	(VLV_DISPLAY_BASE + 0x69908)
+#define _CGM_PIPE_B_CSC_COEFF67	(VLV_DISPLAY_BASE + 0x6990C)
+#define _CGM_PIPE_B_CSC_COEFF8	(VLV_DISPLAY_BASE + 0x69910)
+#define _CGM_PIPE_B_DEGAMMA	(VLV_DISPLAY_BASE + 0x68000)
+#define _CGM_PIPE_B_GAMMA	(VLV_DISPLAY_BASE + 0x69000)
+#define _CGM_PIPE_B_MODE	(VLV_DISPLAY_BASE + 0x69A00)
+
+#define CGM_PIPE_CSC_COEFF01(pipe)	_MMIO_PIPE(pipe, _CGM_PIPE_A_CSC_COEFF01, _CGM_PIPE_B_CSC_COEFF01)
+#define CGM_PIPE_CSC_COEFF23(pipe)	_MMIO_PIPE(pipe, _CGM_PIPE_A_CSC_COEFF23, _CGM_PIPE_B_CSC_COEFF23)
+#define CGM_PIPE_CSC_COEFF45(pipe)	_MMIO_PIPE(pipe, _CGM_PIPE_A_CSC_COEFF45, _CGM_PIPE_B_CSC_COEFF45)
+#define CGM_PIPE_CSC_COEFF67(pipe)	_MMIO_PIPE(pipe, _CGM_PIPE_A_CSC_COEFF67, _CGM_PIPE_B_CSC_COEFF67)
+#define CGM_PIPE_CSC_COEFF8(pipe)	_MMIO_PIPE(pipe, _CGM_PIPE_A_CSC_COEFF8, _CGM_PIPE_B_CSC_COEFF8)
+#define CGM_PIPE_DEGAMMA(pipe, i, w)	_MMIO(_PIPE(pipe, _CGM_PIPE_A_DEGAMMA, _CGM_PIPE_B_DEGAMMA) + (i) * 8 + (w) * 4)
+#define CGM_PIPE_GAMMA(pipe, i, w)	_MMIO(_PIPE(pipe, _CGM_PIPE_A_GAMMA, _CGM_PIPE_B_GAMMA) + (i) * 8 + (w) * 4)
+#define CGM_PIPE_MODE(pipe)		_MMIO_PIPE(pipe, _CGM_PIPE_A_MODE, _CGM_PIPE_B_MODE)
+
 /* MIPI DSI registers */
 
 #define _MIPI_PORT(port, a, c)	_PORT3(port, a, 0, c)	/* ports A and C only */
@@ -7759,9 +7820,11 @@ enum skl_disp_power_wells {
 #define  BXT_DSIC_16X_BY2		(1 << 10)
 #define  BXT_DSIC_16X_BY3		(2 << 10)
 #define  BXT_DSIC_16X_BY4		(3 << 10)
+#define  BXT_DSIC_16X_MASK		(3 << 10)
 #define  BXT_DSIA_16X_BY2		(1 << 8)
 #define  BXT_DSIA_16X_BY3		(2 << 8)
 #define  BXT_DSIA_16X_BY4		(3 << 8)
+#define  BXT_DSIA_16X_MASK		(3 << 8)
 #define  BXT_DSI_FREQ_SEL_SHIFT		8
 #define  BXT_DSI_FREQ_SEL_MASK		(0xF << BXT_DSI_FREQ_SEL_SHIFT)
 
@@ -7896,8 +7959,8 @@ enum skl_disp_power_wells {
 #define  VID_MODE_FORMAT_MASK				(0xf << 7)
 #define  VID_MODE_NOT_SUPPORTED				(0 << 7)
 #define  VID_MODE_FORMAT_RGB565				(1 << 7)
-#define  VID_MODE_FORMAT_RGB666				(2 << 7)
-#define  VID_MODE_FORMAT_RGB666_LOOSE			(3 << 7)
+#define  VID_MODE_FORMAT_RGB666_PACKED			(2 << 7)
+#define  VID_MODE_FORMAT_RGB666				(3 << 7)
 #define  VID_MODE_FORMAT_RGB888				(4 << 7)
 #define  CMD_MODE_CHANNEL_NUMBER_SHIFT			5
 #define  CMD_MODE_CHANNEL_NUMBER_MASK			(3 << 5)
@@ -8153,6 +8216,7 @@ enum skl_disp_power_wells {
 #define  READ_REQUEST_PRIORITY_HIGH			(3 << 3)
 #define  RGB_FLIP_TO_BGR				(1 << 2)
 
+#define  BXT_PIPE_SELECT_SHIFT				7
 #define  BXT_PIPE_SELECT_MASK				(7 << 7)
 #define  BXT_PIPE_SELECT(pipe)				((pipe) << 7)
 

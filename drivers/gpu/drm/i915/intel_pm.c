@@ -4658,9 +4658,9 @@ static bool bxt_check_bios_rc6_setup(const struct drm_device *dev)
 	 * for this check.
 	 */
 	rc6_ctx_base = I915_READ(RC6_CTX_BASE) & RC6_CTX_BASE_MASK;
-	if (!((rc6_ctx_base >= dev_priv->gtt.stolen_reserved_base) &&
-	      (rc6_ctx_base + PAGE_SIZE <= dev_priv->gtt.stolen_reserved_base +
-					dev_priv->gtt.stolen_reserved_size))) {
+	if (!((rc6_ctx_base >= dev_priv->ggtt.stolen_reserved_base) &&
+	      (rc6_ctx_base + PAGE_SIZE <= dev_priv->ggtt.stolen_reserved_base +
+					dev_priv->ggtt.stolen_reserved_size))) {
 		DRM_DEBUG_KMS("RC6 Base address not as expected.\n");
 		enable_rc6 = false;
 	}
@@ -4829,9 +4829,8 @@ static void gen9_enable_rps(struct drm_device *dev)
 static void gen9_enable_rc6(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct intel_engine_cs *ring;
+	struct intel_engine_cs *engine;
 	uint32_t rc6_mask = 0;
-	int unused;
 
 	/* 1a: Software RC state - RC0 */
 	I915_WRITE(GEN6_RC_STATE, 0);
@@ -4852,8 +4851,8 @@ static void gen9_enable_rc6(struct drm_device *dev)
 		I915_WRITE(GEN6_RC6_WAKE_RATE_LIMIT, 54 << 16);
 	I915_WRITE(GEN6_RC_EVALUATION_INTERVAL, 125000); /* 12500 * 1280ns */
 	I915_WRITE(GEN6_RC_IDLE_HYSTERSIS, 25); /* 25 * 1280ns */
-	for_each_ring(ring, dev_priv, unused)
-		I915_WRITE(RING_MAX_IDLE(ring->mmio_base), 10);
+	for_each_engine(engine, dev_priv)
+		I915_WRITE(RING_MAX_IDLE(engine->mmio_base), 10);
 
 	if (HAS_GUC_UCODE(dev))
 		I915_WRITE(GUC_MAX_IDLE_COUNT, 0xA);
@@ -4899,9 +4898,8 @@ static void gen9_enable_rc6(struct drm_device *dev)
 static void gen8_enable_rps(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct intel_engine_cs *ring;
+	struct intel_engine_cs *engine;
 	uint32_t rc6_mask = 0;
-	int unused;
 
 	/* 1a: Software RC state - RC0 */
 	I915_WRITE(GEN6_RC_STATE, 0);
@@ -4920,8 +4918,8 @@ static void gen8_enable_rps(struct drm_device *dev)
 	I915_WRITE(GEN6_RC6_WAKE_RATE_LIMIT, 40 << 16);
 	I915_WRITE(GEN6_RC_EVALUATION_INTERVAL, 125000); /* 12500 * 1280ns */
 	I915_WRITE(GEN6_RC_IDLE_HYSTERSIS, 25); /* 25 * 1280ns */
-	for_each_ring(ring, dev_priv, unused)
-		I915_WRITE(RING_MAX_IDLE(ring->mmio_base), 10);
+	for_each_engine(engine, dev_priv)
+		I915_WRITE(RING_MAX_IDLE(engine->mmio_base), 10);
 	I915_WRITE(GEN6_RC_SLEEP, 0);
 	if (IS_BROADWELL(dev))
 		I915_WRITE(GEN6_RC6_THRESHOLD, 625); /* 800us/1.28 for TO */
@@ -4981,11 +4979,11 @@ static void gen8_enable_rps(struct drm_device *dev)
 static void gen6_enable_rps(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct intel_engine_cs *ring;
+	struct intel_engine_cs *engine;
 	u32 rc6vids, pcu_mbox = 0, rc6_mask = 0;
 	u32 gtfifodbg;
 	int rc6_mode;
-	int i, ret;
+	int ret;
 
 	WARN_ON(!mutex_is_locked(&dev_priv->rps.hw_lock));
 
@@ -5017,8 +5015,8 @@ static void gen6_enable_rps(struct drm_device *dev)
 	I915_WRITE(GEN6_RC_EVALUATION_INTERVAL, 125000);
 	I915_WRITE(GEN6_RC_IDLE_HYSTERSIS, 25);
 
-	for_each_ring(ring, dev_priv, i)
-		I915_WRITE(RING_MAX_IDLE(ring->mmio_base), 10);
+	for_each_engine(engine, dev_priv)
+		I915_WRITE(RING_MAX_IDLE(engine->mmio_base), 10);
 
 	I915_WRITE(GEN6_RC_SLEEP, 0);
 	I915_WRITE(GEN6_RC1e_THRESHOLD, 1000);
@@ -5305,7 +5303,7 @@ static void cherryview_setup_pctx(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	unsigned long pctx_paddr, paddr;
-	struct i915_gtt *gtt = &dev_priv->gtt;
+	struct i915_ggtt *ggtt = &dev_priv->ggtt;
 	u32 pcbr;
 	int pctx_size = 32*1024;
 
@@ -5313,7 +5311,7 @@ static void cherryview_setup_pctx(struct drm_device *dev)
 	if ((pcbr >> VLV_PCBR_ADDR_SHIFT) == 0) {
 		DRM_DEBUG_DRIVER("BIOS didn't set up PCBR, fixing up\n");
 		paddr = (dev_priv->mm.stolen_base +
-			 (gtt->stolen_size - pctx_size));
+			 (ggtt->stolen_size - pctx_size));
 
 		pctx_paddr = (paddr & (~4095));
 		I915_WRITE(VLV_PCBR, pctx_paddr);
@@ -5509,9 +5507,8 @@ static void valleyview_cleanup_gt_powersave(struct drm_device *dev)
 static void cherryview_enable_rps(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct intel_engine_cs *ring;
+	struct intel_engine_cs *engine;
 	u32 gtfifodbg, val, rc6_mode = 0, pcbr;
-	int i;
 
 	WARN_ON(!mutex_is_locked(&dev_priv->rps.hw_lock));
 
@@ -5536,8 +5533,8 @@ static void cherryview_enable_rps(struct drm_device *dev)
 	I915_WRITE(GEN6_RC_EVALUATION_INTERVAL, 125000); /* 12500 * 1280ns */
 	I915_WRITE(GEN6_RC_IDLE_HYSTERSIS, 25); /* 25 * 1280ns */
 
-	for_each_ring(ring, dev_priv, i)
-		I915_WRITE(RING_MAX_IDLE(ring->mmio_base), 10);
+	for_each_engine(engine, dev_priv)
+		I915_WRITE(RING_MAX_IDLE(engine->mmio_base), 10);
 	I915_WRITE(GEN6_RC_SLEEP, 0);
 
 	/* TO threshold set to 500 us ( 0x186 * 1.28 us) */
@@ -5607,9 +5604,8 @@ static void cherryview_enable_rps(struct drm_device *dev)
 static void valleyview_enable_rps(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
-	struct intel_engine_cs *ring;
+	struct intel_engine_cs *engine;
 	u32 gtfifodbg, val, rc6_mode = 0;
-	int i;
 
 	WARN_ON(!mutex_is_locked(&dev_priv->rps.hw_lock));
 
@@ -5647,8 +5643,8 @@ static void valleyview_enable_rps(struct drm_device *dev)
 	I915_WRITE(GEN6_RC_EVALUATION_INTERVAL, 125000);
 	I915_WRITE(GEN6_RC_IDLE_HYSTERSIS, 25);
 
-	for_each_ring(ring, dev_priv, i)
-		I915_WRITE(RING_MAX_IDLE(ring->mmio_base), 10);
+	for_each_engine(engine, dev_priv)
+		I915_WRITE(RING_MAX_IDLE(engine->mmio_base), 10);
 
 	I915_WRITE(GEN6_RC6_THRESHOLD, 0x557);
 
@@ -6024,17 +6020,16 @@ EXPORT_SYMBOL_GPL(i915_gpu_lower);
 bool i915_gpu_busy(void)
 {
 	struct drm_i915_private *dev_priv;
-	struct intel_engine_cs *ring;
+	struct intel_engine_cs *engine;
 	bool ret = false;
-	int i;
 
 	spin_lock_irq(&mchdev_lock);
 	if (!i915_mch_dev)
 		goto out_unlock;
 	dev_priv = i915_mch_dev;
 
-	for_each_ring(ring, dev_priv, i)
-		ret |= !list_empty(&ring->request_list);
+	for_each_engine(engine, dev_priv)
+		ret |= !list_empty(&engine->request_list);
 
 out_unlock:
 	spin_unlock_irq(&mchdev_lock);
@@ -7117,14 +7112,67 @@ void intel_init_clock_gating(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	if (dev_priv->display.init_clock_gating)
-		dev_priv->display.init_clock_gating(dev);
+	dev_priv->display.init_clock_gating(dev);
 }
 
 void intel_suspend_hw(struct drm_device *dev)
 {
 	if (HAS_PCH_LPT(dev))
 		lpt_suspend_hw(dev);
+}
+
+static void nop_init_clock_gating(struct drm_device *dev)
+{
+	DRM_DEBUG_KMS("No clock gating settings or workarounds applied.\n");
+}
+
+/**
+ * intel_init_clock_gating_hooks - setup the clock gating hooks
+ * @dev_priv: device private
+ *
+ * Setup the hooks that configure which clocks of a given platform can be
+ * gated and also apply various GT and display specific workarounds for these
+ * platforms. Note that some GT specific workarounds are applied separately
+ * when GPU contexts or batchbuffers start their execution.
+ */
+void intel_init_clock_gating_hooks(struct drm_i915_private *dev_priv)
+{
+	if (IS_SKYLAKE(dev_priv))
+		dev_priv->display.init_clock_gating = nop_init_clock_gating;
+	else if (IS_KABYLAKE(dev_priv))
+		dev_priv->display.init_clock_gating = nop_init_clock_gating;
+	else if (IS_BROXTON(dev_priv))
+		dev_priv->display.init_clock_gating = bxt_init_clock_gating;
+	else if (IS_BROADWELL(dev_priv))
+		dev_priv->display.init_clock_gating = broadwell_init_clock_gating;
+	else if (IS_CHERRYVIEW(dev_priv))
+		dev_priv->display.init_clock_gating = cherryview_init_clock_gating;
+	else if (IS_HASWELL(dev_priv))
+		dev_priv->display.init_clock_gating = haswell_init_clock_gating;
+	else if (IS_IVYBRIDGE(dev_priv))
+		dev_priv->display.init_clock_gating = ivybridge_init_clock_gating;
+	else if (IS_VALLEYVIEW(dev_priv))
+		dev_priv->display.init_clock_gating = valleyview_init_clock_gating;
+	else if (IS_GEN6(dev_priv))
+		dev_priv->display.init_clock_gating = gen6_init_clock_gating;
+	else if (IS_GEN5(dev_priv))
+		dev_priv->display.init_clock_gating = ironlake_init_clock_gating;
+	else if (IS_G4X(dev_priv))
+		dev_priv->display.init_clock_gating = g4x_init_clock_gating;
+	else if (IS_CRESTLINE(dev_priv))
+		dev_priv->display.init_clock_gating = crestline_init_clock_gating;
+	else if (IS_BROADWATER(dev_priv))
+		dev_priv->display.init_clock_gating = broadwater_init_clock_gating;
+	else if (IS_GEN3(dev_priv))
+		dev_priv->display.init_clock_gating = gen3_init_clock_gating;
+	else if (IS_I85X(dev_priv) || IS_I865G(dev_priv))
+		dev_priv->display.init_clock_gating = i85x_init_clock_gating;
+	else if (IS_GEN2(dev_priv))
+		dev_priv->display.init_clock_gating = i830_init_clock_gating;
+	else {
+		MISSING_CASE(INTEL_DEVID(dev_priv));
+		dev_priv->display.init_clock_gating = nop_init_clock_gating;
+	}
 }
 
 /* Set up chip specific power management-related functions */
@@ -7143,10 +7191,6 @@ void intel_init_pm(struct drm_device *dev)
 	/* For FIFO watermark updates */
 	if (INTEL_INFO(dev)->gen >= 9) {
 		skl_setup_wm_latency(dev);
-
-		if (IS_BROXTON(dev))
-			dev_priv->display.init_clock_gating =
-				bxt_init_clock_gating;
 		dev_priv->display.update_wm = skl_update_wm;
 	} else if (HAS_PCH_SPLIT(dev)) {
 		ilk_setup_wm_latency(dev);
@@ -7166,29 +7210,12 @@ void intel_init_pm(struct drm_device *dev)
 			DRM_DEBUG_KMS("Failed to read display plane latency. "
 				      "Disable CxSR\n");
 		}
-
-		if (IS_GEN5(dev))
-			dev_priv->display.init_clock_gating = ironlake_init_clock_gating;
-		else if (IS_GEN6(dev))
-			dev_priv->display.init_clock_gating = gen6_init_clock_gating;
-		else if (IS_IVYBRIDGE(dev))
-			dev_priv->display.init_clock_gating = ivybridge_init_clock_gating;
-		else if (IS_HASWELL(dev))
-			dev_priv->display.init_clock_gating = haswell_init_clock_gating;
-		else if (INTEL_INFO(dev)->gen == 8)
-			dev_priv->display.init_clock_gating = broadwell_init_clock_gating;
 	} else if (IS_CHERRYVIEW(dev)) {
 		vlv_setup_wm_latency(dev);
-
 		dev_priv->display.update_wm = vlv_update_wm;
-		dev_priv->display.init_clock_gating =
-			cherryview_init_clock_gating;
 	} else if (IS_VALLEYVIEW(dev)) {
 		vlv_setup_wm_latency(dev);
-
 		dev_priv->display.update_wm = vlv_update_wm;
-		dev_priv->display.init_clock_gating =
-			valleyview_init_clock_gating;
 	} else if (IS_PINEVIEW(dev)) {
 		if (!intel_get_cxsr_latency(IS_PINEVIEW_G(dev),
 					    dev_priv->is_ddr3,
@@ -7204,20 +7231,13 @@ void intel_init_pm(struct drm_device *dev)
 			dev_priv->display.update_wm = NULL;
 		} else
 			dev_priv->display.update_wm = pineview_update_wm;
-		dev_priv->display.init_clock_gating = gen3_init_clock_gating;
 	} else if (IS_G4X(dev)) {
 		dev_priv->display.update_wm = g4x_update_wm;
-		dev_priv->display.init_clock_gating = g4x_init_clock_gating;
 	} else if (IS_GEN4(dev)) {
 		dev_priv->display.update_wm = i965_update_wm;
-		if (IS_CRESTLINE(dev))
-			dev_priv->display.init_clock_gating = crestline_init_clock_gating;
-		else if (IS_BROADWATER(dev))
-			dev_priv->display.init_clock_gating = broadwater_init_clock_gating;
 	} else if (IS_GEN3(dev)) {
 		dev_priv->display.update_wm = i9xx_update_wm;
 		dev_priv->display.get_fifo_size = i9xx_get_fifo_size;
-		dev_priv->display.init_clock_gating = gen3_init_clock_gating;
 	} else if (IS_GEN2(dev)) {
 		if (INTEL_INFO(dev)->num_pipes == 1) {
 			dev_priv->display.update_wm = i845_update_wm;
@@ -7226,11 +7246,6 @@ void intel_init_pm(struct drm_device *dev)
 			dev_priv->display.update_wm = i9xx_update_wm;
 			dev_priv->display.get_fifo_size = i830_get_fifo_size;
 		}
-
-		if (IS_I85X(dev) || IS_I865G(dev))
-			dev_priv->display.init_clock_gating = i85x_init_clock_gating;
-		else
-			dev_priv->display.init_clock_gating = i830_init_clock_gating;
 	} else {
 		DRM_ERROR("unexpected fall-through in intel_init_pm\n");
 	}
@@ -7385,7 +7400,7 @@ static void __intel_rps_boost_work(struct work_struct *work)
 	struct drm_i915_gem_request *req = boost->req;
 
 	if (!i915_gem_request_completed(req, true))
-		gen6_rps_boost(to_i915(req->ring->dev), NULL,
+		gen6_rps_boost(to_i915(req->engine->dev), NULL,
 			       req->emitted_jiffies);
 
 	i915_gem_request_unreference__unlocked(req);

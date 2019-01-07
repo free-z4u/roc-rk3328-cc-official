@@ -360,7 +360,7 @@ skl_get_buf_trans_dp(struct drm_i915_private *dev_priv, int *n_entries)
 static const struct ddi_buf_trans *
 skl_get_buf_trans_edp(struct drm_i915_private *dev_priv, int *n_entries)
 {
-	if (dev_priv->edp_low_vswing) {
+	if (dev_priv->vbt.edp.low_vswing) {
 		if (IS_SKL_ULX(dev_priv) || IS_KBL_ULX(dev_priv)) {
 			*n_entries = ARRAY_SIZE(skl_y_ddi_translations_edp);
 			return skl_y_ddi_translations_edp;
@@ -1069,6 +1069,8 @@ void intel_ddi_set_pipe_settings(struct drm_crtc *crtc)
 	uint32_t temp;
 
 	if (type == INTEL_OUTPUT_DISPLAYPORT || type == INTEL_OUTPUT_EDP || type == INTEL_OUTPUT_DP_MST) {
+		WARN_ON(transcoder_is_dsi(cpu_transcoder));
+
 		temp = TRANS_MSA_SYNC_CLK;
 		switch (intel_crtc->config->pipe_bpp) {
 		case 18:
@@ -1437,7 +1439,7 @@ static void bxt_ddi_vswing_sequence(struct drm_i915_private *dev_priv,
 	u32 n_entries, i;
 	uint32_t val;
 
-	if (type == INTEL_OUTPUT_EDP && dev_priv->edp_low_vswing) {
+	if (type == INTEL_OUTPUT_EDP && dev_priv->vbt.edp.low_vswing) {
 		n_entries = ARRAY_SIZE(bxt_ddi_translations_edp);
 		ddi_translations = bxt_ddi_translations_edp;
 	} else if (type == INTEL_OUTPUT_DISPLAYPORT
@@ -1933,6 +1935,10 @@ void intel_ddi_get_config(struct intel_encoder *encoder,
 	struct intel_hdmi *intel_hdmi;
 	u32 temp, flags = 0;
 
+	/* XXX: DSI transcoder paranoia */
+	if (WARN_ON(transcoder_is_dsi(cpu_transcoder)))
+		return;
+
 	temp = I915_READ(TRANS_DDI_FUNC_CTL(cpu_transcoder));
 	if (temp & TRANS_DDI_PHSYNC)
 		flags |= DRM_MODE_FLAG_PHSYNC;
@@ -1990,8 +1996,8 @@ void intel_ddi_get_config(struct intel_encoder *encoder,
 			pipe_config->has_audio = true;
 	}
 
-	if (encoder->type == INTEL_OUTPUT_EDP && dev_priv->vbt.edp_bpp &&
-	    pipe_config->pipe_bpp > dev_priv->vbt.edp_bpp) {
+	if (encoder->type == INTEL_OUTPUT_EDP && dev_priv->vbt.edp.bpp &&
+	    pipe_config->pipe_bpp > dev_priv->vbt.edp.bpp) {
 		/*
 		 * This is a big fat ugly hack.
 		 *
@@ -2006,8 +2012,8 @@ void intel_ddi_get_config(struct intel_encoder *encoder,
 		 * load.
 		 */
 		DRM_DEBUG_KMS("pipe has %d bpp for eDP panel, overriding BIOS-provided max %d bpp\n",
-			      pipe_config->pipe_bpp, dev_priv->vbt.edp_bpp);
-		dev_priv->vbt.edp_bpp = pipe_config->pipe_bpp;
+			      pipe_config->pipe_bpp, dev_priv->vbt.edp.bpp);
+		dev_priv->vbt.edp.bpp = pipe_config->pipe_bpp;
 	}
 
 	intel_ddi_clock_get(encoder, pipe_config);

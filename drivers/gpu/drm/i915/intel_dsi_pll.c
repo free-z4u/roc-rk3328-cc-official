@@ -30,27 +30,6 @@
 #include "i915_drv.h"
 #include "intel_dsi.h"
 
-int dsi_pixel_format_bpp(int pixel_format)
-{
-	int bpp;
-
-	switch (pixel_format) {
-	default:
-	case VID_MODE_FORMAT_RGB888:
-	case VID_MODE_FORMAT_RGB666_LOOSE:
-		bpp = 24;
-		break;
-	case VID_MODE_FORMAT_RGB666:
-		bpp = 18;
-		break;
-	case VID_MODE_FORMAT_RGB565:
-		bpp = 16;
-		break;
-	}
-
-	return bpp;
-}
-
 struct dsi_mnp {
 	u32 dsi_pll_ctrl;
 	u32 dsi_pll_div;
@@ -64,10 +43,11 @@ static const u32 lfsr_converts[] = {
 };
 
 /* Get DSI clock from pixel clock */
-static u32 dsi_clk_from_pclk(u32 pclk, int pixel_format, int lane_count)
+static u32 dsi_clk_from_pclk(u32 pclk, enum mipi_dsi_pixel_format fmt,
+			     int lane_count)
 {
 	u32 dsi_clk_khz;
-	u32 bpp = dsi_pixel_format_bpp(pixel_format);
+	u32 bpp = mipi_dsi_pixel_format_to_bpp(fmt);
 
 	/* DSI data rate = pixel clock * bits per pixel / lane count
 	   pixel clock is converted from KHz to Hz */
@@ -212,6 +192,36 @@ static void vlv_disable_dsi_pll(struct intel_encoder *encoder)
 	mutex_unlock(&dev_priv->sb_lock);
 }
 
+static bool bxt_dsi_pll_is_enabled(struct drm_i915_private *dev_priv)
+{
+	bool enabled;
+	u32 val;
+	u32 mask;
+
+	mask = BXT_DSI_PLL_DO_ENABLE | BXT_DSI_PLL_LOCKED;
+	val = I915_READ(BXT_DSI_PLL_ENABLE);
+	enabled = (val & mask) == mask;
+
+	if (!enabled)
+		return false;
+
+	/*
+	 * Both dividers must be programmed with valid values even if only one
+	 * of the PLL is used, see BSpec/Broxton Clocks. Check this here for
+	 * paranoia, since BIOS is known to misconfigure PLLs in this way at
+	 * times, and since accessing DSI registers with invalid dividers
+	 * causes a system hang.
+	 */
+	val = I915_READ(BXT_DSI_PLL_CTL);
+	if (!(val & BXT_DSIA_16X_MASK) || !(val & BXT_DSIC_16X_MASK)) {
+		DRM_DEBUG_DRIVER("PLL is enabled with invalid divider settings (%08x)\n",
+				 val);
+		enabled = false;
+	}
+
+	return enabled;
+}
+
 static void bxt_disable_dsi_pll(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = encoder->base.dev->dev_private;
@@ -232,9 +242,9 @@ static void bxt_disable_dsi_pll(struct intel_encoder *encoder)
 		DRM_ERROR("Timeout waiting for PLL lock deassertion\n");
 }
 
-static void assert_bpp_mismatch(int pixel_format, int pipe_bpp)
+static void assert_bpp_mismatch(enum mipi_dsi_pixel_format fmt, int pipe_bpp)
 {
-	int bpp = dsi_pixel_format_bpp(pixel_format);
+	int bpp = mipi_dsi_pixel_format_to_bpp(fmt);
 
 	WARN(bpp != pipe_bpp,
 	     "bpp match assertion failure (expected %d, current %d)\n",
@@ -504,6 +514,16 @@ static void bxt_enable_dsi_pll(struct intel_encoder *encoder)
 	}
 
 	DRM_DEBUG_KMS("DSI PLL locked\n");
+}
+
+bool intel_dsi_pll_is_enabled(struct drm_i915_private *dev_priv)
+{
+	if (IS_BROXTON(dev_priv))
+		return bxt_dsi_pll_is_enabled(dev_priv);
+
+	MISSING_CASE(INTEL_DEVID(dev_priv));
+
+	return false;
 }
 
 void intel_enable_dsi_pll(struct intel_encoder *encoder)
