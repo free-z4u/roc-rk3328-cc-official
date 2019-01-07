@@ -39,6 +39,7 @@ enum iio_chan_type {
 	IIO_RESISTANCE,
 	IIO_QUATERNION,
 	IIO_PH,
+	IIO_UVINDEX,
 };
 
 enum iio_modifier {
@@ -78,6 +79,7 @@ enum iio_modifier {
 	IIO_MOD_Q,
 	IIO_MOD_CO2,
 	IIO_MOD_VOC,
+	IIO_MOD_LIGHT_UV,
 	IIO_MOD_R,
 };
 
