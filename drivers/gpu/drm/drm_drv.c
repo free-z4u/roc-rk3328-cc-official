@@ -133,19 +133,11 @@ static void drm_master_destroy(struct kref *kref)
 {
 	struct drm_master *master = container_of(kref, struct drm_master, refcount);
 	struct drm_device *dev = master->minor->dev;
-	struct drm_map_list *r_list, *list_temp;
 
-	mutex_lock(&dev->struct_mutex);
 	if (dev->driver->master_destroy)
 		dev->driver->master_destroy(dev, master);
 
-	list_for_each_entry_safe(r_list, list_temp, &dev->maplist, head) {
-		if (r_list->master == master) {
-			drm_legacy_rmmap_locked(dev, r_list->map);
-			r_list = NULL;
-		}
-	}
-	mutex_unlock(&dev->struct_mutex);
+	drm_legacy_master_rmmaps(dev, master);
 
 	idr_destroy(&master->magic_map);
 	kfree(master->unique);
@@ -632,6 +624,7 @@ struct drm_device *drm_dev_alloc(struct drm_driver *driver,
 	spin_lock_init(&dev->buf_lock);
 	spin_lock_init(&dev->event_lock);
 	mutex_init(&dev->struct_mutex);
+	mutex_init(&dev->filelist_mutex);
 	mutex_init(&dev->ctxlist_mutex);
 	mutex_init(&dev->master_mutex);
 
@@ -759,7 +752,11 @@ EXPORT_SYMBOL(drm_dev_unref);
  *
  * Register the DRM device @dev with the system, advertise device to user-space
  * and start normal device operation. @dev must be allocated via drm_dev_alloc()
- * previously.
+ * previously. Right after drm_dev_register() the driver should call
+ * drm_connector_register_all() to register all connectors in sysfs. This is
+ * a separate call for backward compatibility with drivers still using
+ * the deprecated ->load() callback, where connectors are registered from within
+ * the ->load() callback.
  *
  * Never call this twice on any device!
  *
