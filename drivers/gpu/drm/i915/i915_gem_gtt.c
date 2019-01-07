@@ -2804,7 +2804,11 @@ static int i915_gem_setup_global_gtt(struct drm_device *dev,
 	return 0;
 }
 
-void i915_gem_init_global_gtt(struct drm_device *dev)
+/**
+ * i915_gem_init_ggtt - Initialize GEM for Global GTT
+ * @dev: DRM device
+ */
+void i915_gem_init_ggtt(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	u64 gtt_size, mappable_size;
@@ -2815,7 +2819,11 @@ void i915_gem_init_global_gtt(struct drm_device *dev)
 	i915_gem_setup_global_gtt(dev, 0, mappable_size, gtt_size);
 }
 
-void i915_global_gtt_cleanup(struct drm_device *dev)
+/**
+ * i915_ggtt_cleanup_hw - Clean up GGTT hardware initialization
+ * @dev: DRM device
+ */
+void i915_ggtt_cleanup_hw(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct i915_address_space *vm = &dev_priv->ggtt.base;
@@ -3153,7 +3161,11 @@ static void i915_gmch_remove(struct i915_address_space *vm)
 	intel_gmch_remove();
 }
 
-int i915_gem_gtt_init(struct drm_device *dev)
+/**
+ * i915_ggtt_init_hw - Initialize GGTT hardware
+ * @dev: DRM device
+ */
+int i915_ggtt_init_hw(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct i915_ggtt *ggtt = &dev_priv->ggtt;
@@ -3341,15 +3353,7 @@ i915_gem_obj_lookup_or_create_ggtt_vma(struct drm_i915_gem_object *obj,
 				       const struct i915_ggtt_view *view)
 {
 	struct i915_address_space *ggtt = i915_obj_to_ggtt(obj);
-	struct i915_vma *vma;
-
-	if (WARN_ON(!view))
-		return ERR_PTR(-EINVAL);
-
-	vma = i915_gem_obj_to_ggtt_view(obj, view);
-
-	if (IS_ERR(vma))
-		return vma;
+	struct i915_vma *vma = i915_gem_obj_to_ggtt_view(obj, view);
 
 	if (!vma)
 		vma = __i915_gem_vma_create(obj, ggtt, view);
