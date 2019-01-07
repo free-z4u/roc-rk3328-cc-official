@@ -2664,6 +2664,8 @@ extern unsigned int drm_connector_index(struct drm_connector *connector);
 
 /* helpers to {un}register all connectors from sysfs for device */
 extern int drm_connector_register_all(struct drm_device *dev);
+
+/* helper to unregister all connectors from sysfs for device */
 extern void drm_connector_unregister_all(struct drm_device *dev);
 
 extern int drm_bridge_add(struct drm_bridge *bridge);
