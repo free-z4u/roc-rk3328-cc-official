@@ -815,10 +815,11 @@ static int analogix_dp_config_video(struct analogix_dp_device *dp)
 	/* Configure video slave mode */
 	analogix_dp_enable_video_master(dp, 0);
 
-	/* Enable video input */
+	/* Enable video */
 	analogix_dp_start_video(dp);
 
 	timeout_loop = 0;
+
 	for (;;) {
 		timeout_loop++;
 		if (analogix_dp_is_video_stream_on(dp) == 0) {
