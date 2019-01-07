@@ -204,7 +204,7 @@ static int __gen6_gt_wait_for_fifo(struct drm_i915_private *dev_priv)
 
 	/* On VLV, FIFO will be shared by both SW and HW.
 	 * So, we need to read the FREE_ENTRIES everytime */
-	if (IS_VALLEYVIEW(dev_priv->dev))
+	if (IS_VALLEYVIEW(dev_priv))
 		dev_priv->uncore.fifo_count = fifo_free_entries(dev_priv);
 
 	if (dev_priv->uncore.fifo_count < GT_FIFO_NUM_RESERVED_ENTRIES) {
@@ -1161,7 +1161,7 @@ static void intel_uncore_fw_domains_init(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	if (INTEL_INFO(dev_priv->dev)->gen <= 5)
+	if (INTEL_INFO(dev_priv)->gen <= 5)
 		return;
 
 	if (IS_GEN9(dev)) {
@@ -1675,6 +1675,25 @@ int intel_gpu_reset(struct drm_device *dev, unsigned engine_mask)
 bool intel_has_gpu_reset(struct drm_device *dev)
 {
 	return intel_get_gpu_reset(dev) != NULL;
+}
+
+int intel_guc_reset(struct drm_i915_private *dev_priv)
+{
+	int ret;
+	unsigned long irqflags;
+
+	if (!i915.enable_guc_submission)
+		return -EINVAL;
+
+	intel_uncore_forcewake_get(dev_priv, FORCEWAKE_ALL);
+	spin_lock_irqsave(&dev_priv->uncore.lock, irqflags);
+
+	ret = gen6_hw_domain_reset(dev_priv, GEN9_GRDOM_GUC);
+
+	spin_unlock_irqrestore(&dev_priv->uncore.lock, irqflags);
+	intel_uncore_forcewake_put(dev_priv, FORCEWAKE_ALL);
+
+	return ret;
 }
 
 bool intel_uncore_unclaimed_mmio(struct drm_i915_private *dev_priv)
