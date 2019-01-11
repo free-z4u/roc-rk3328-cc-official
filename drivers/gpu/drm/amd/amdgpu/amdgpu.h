@@ -302,6 +302,8 @@ struct amdgpu_ring_funcs {
 	void (*insert_nop)(struct amdgpu_ring *ring, uint32_t count);
 	/* pad the indirect buffer to the necessary number of dw */
 	void (*pad_ib)(struct amdgpu_ring *ring, struct amdgpu_ib *ib);
+	unsigned (*init_cond_exec)(struct amdgpu_ring *ring);
+	void (*patch_cond_exec)(struct amdgpu_ring *ring, unsigned offset);
 };
 
 /*
@@ -609,8 +611,9 @@ struct amdgpu_gart {
 	unsigned			num_gpu_pages;
 	unsigned			num_cpu_pages;
 	unsigned			table_size;
+#ifdef CONFIG_DRM_AMDGPU_GART_DEBUGFS
 	struct page			**pages;
-	dma_addr_t			*pages_addr;
+#endif
 	bool				ready;
 	const struct amdgpu_gart_funcs *gart_funcs;
 };
@@ -748,10 +751,13 @@ int amdgpu_job_alloc(struct amdgpu_device *adev, unsigned num_ibs,
 		     struct amdgpu_job **job);
 int amdgpu_job_alloc_with_ib(struct amdgpu_device *adev, unsigned size,
 			     struct amdgpu_job **job);
+
 void amdgpu_job_free(struct amdgpu_job *job);
+void amdgpu_job_free_func(struct kref *refcount);
 int amdgpu_job_submit(struct amdgpu_job *job, struct amdgpu_ring *ring,
 		      struct amd_sched_entity *entity, void *owner,
 		      struct fence **f);
+void amdgpu_job_timeout_func(struct work_struct *work);
 
 struct amdgpu_ring {
 	struct amdgpu_device		*adev;
@@ -788,6 +794,9 @@ struct amdgpu_ring {
 	struct amdgpu_ctx	*current_ctx;
 	enum amdgpu_ring_type	type;
 	char			name[16];
+	unsigned		cond_exe_offs;
+	u64				cond_exe_gpu_addr;
+	volatile u32	*cond_exe_cpu_addr;
 };
 
 /*
@@ -830,13 +839,6 @@ struct amdgpu_vm_pt {
 	uint64_t			addr;
 };
 
-struct amdgpu_vm_id {
-	struct amdgpu_vm_manager_id	*mgr_id;
-	uint64_t			pd_gpu_addr;
-	/* last flushed PD/PT update */
-	struct fence			*flushed_updates;
-};
-
 struct amdgpu_vm {
 	/* tree of virtual addresses mapped */
 	struct rb_root		va;
@@ -862,7 +864,7 @@ struct amdgpu_vm {
 	struct amdgpu_vm_pt	*page_tables;
 
 	/* for id and flush management per ring */
-	struct amdgpu_vm_id	ids[AMDGPU_MAX_RINGS];
+	struct amdgpu_vm_id	*ids[AMDGPU_MAX_RINGS];
 
 	/* protecting freed */
 	spinlock_t		freed_lock;
@@ -871,10 +873,14 @@ struct amdgpu_vm {
 	struct amd_sched_entity	entity;
 };
 
-struct amdgpu_vm_manager_id {
+struct amdgpu_vm_id {
 	struct list_head	list;
 	struct fence		*active;
 	atomic_long_t		owner;
+
+	uint64_t		pd_gpu_addr;
+	/* last flushed PD/PT update */
+	struct fence		*flushed_updates;
 
 	uint32_t		gds_base;
 	uint32_t		gds_size;
@@ -889,7 +895,7 @@ struct amdgpu_vm_manager {
 	struct mutex				lock;
 	unsigned				num_ids;
 	struct list_head			ids_lru;
-	struct amdgpu_vm_manager_id		ids[AMDGPU_NUM_VM];
+	struct amdgpu_vm_id			ids[AMDGPU_NUM_VM];
 
 	uint32_t				max_pfn;
 	/* vram base address for page table entry  */
@@ -1904,7 +1910,6 @@ struct amdgpu_device {
 	int				usec_timeout;
 	const struct amdgpu_asic_funcs	*asic_funcs;
 	bool				shutdown;
-	bool				suspend;
 	bool				need_dma32;
 	bool				accel_working;
 	struct work_struct 		reset_work;
@@ -1926,7 +1931,6 @@ struct amdgpu_device {
 	/* BIOS */
 	uint8_t				*bios;
 	bool				is_atom_bios;
-	uint16_t			bios_header_start;
 	struct amdgpu_bo		*stollen_vga_memory;
 	uint32_t			bios_scratch[AMDGPU_BIOS_NUM_SCRATCH];
 
@@ -2183,6 +2187,8 @@ amdgpu_get_sdma_instance(struct amdgpu_ring *ring)
 #define amdgpu_ring_emit_hdp_flush(r) (r)->funcs->emit_hdp_flush((r))
 #define amdgpu_ring_emit_hdp_invalidate(r) (r)->funcs->emit_hdp_invalidate((r))
 #define amdgpu_ring_pad_ib(r, ib) ((r)->funcs->pad_ib((r), (ib)))
+#define amdgpu_ring_init_cond_exec(r) (r)->funcs->init_cond_exec((r))
+#define amdgpu_ring_patch_cond_exec(r,o) (r)->funcs->patch_cond_exec((r),(o))
 #define amdgpu_ih_get_wptr(adev) (adev)->irq.ih_funcs->get_wptr((adev))
 #define amdgpu_ih_decode_iv(adev, iv) (adev)->irq.ih_funcs->decode_iv((adev), (iv))
 #define amdgpu_ih_set_rptr(adev) (adev)->irq.ih_funcs->set_rptr((adev))
@@ -2398,5 +2404,4 @@ amdgpu_cs_find_mapping(struct amdgpu_cs_parser *parser,
 		       uint64_t addr, struct amdgpu_bo **bo);
 
 #include "amdgpu_object.h"
-
 #endif

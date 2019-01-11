@@ -105,7 +105,8 @@ void radeon_driver_postclose_kms(struct drm_device *dev,
 				 struct drm_file *file_priv);
 void radeon_driver_preclose_kms(struct drm_device *dev,
 				struct drm_file *file_priv);
-int radeon_suspend_kms(struct drm_device *dev, bool suspend, bool fbcon);
+int radeon_suspend_kms(struct drm_device *dev, bool suspend,
+		       bool fbcon, bool freeze);
 int radeon_resume_kms(struct drm_device *dev, bool resume, bool fbcon);
 u32 radeon_get_vblank_counter_kms(struct drm_device *dev, unsigned int pipe);
 int radeon_enable_vblank_kms(struct drm_device *dev, unsigned int pipe);
@@ -196,6 +197,8 @@ int radeon_bapm = -1;
 int radeon_backlight = -1;
 int radeon_auxch = -1;
 int radeon_mst = 0;
+int radeon_uvd = 1;
+int radeon_vce = 1;
 
 MODULE_PARM_DESC(no_wb, "Disable AGP writeback for scratch registers");
 module_param_named(no_wb, radeon_no_wb, int, 0444);
@@ -287,6 +290,12 @@ module_param_named(auxch, radeon_auxch, int, 0444);
 MODULE_PARM_DESC(mst, "DisplayPort MST experimental support (1 = enable, 0 = disable)");
 module_param_named(mst, radeon_mst, int, 0444);
 
+MODULE_PARM_DESC(uvd, "uvd enable/disable uvd support (1 = enable, 0 = disable)");
+module_param_named(uvd, radeon_uvd, int, 0444);
+
+MODULE_PARM_DESC(vce, "vce enable/disable vce support (1 = enable, 0 = disable)");
+module_param_named(vce, radeon_vce, int, 0444);
+
 static struct pci_device_id pciidlist[] = {
 	radeon_PCI_IDS
 };
@@ -358,7 +367,7 @@ static int radeon_pmops_suspend(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	return radeon_suspend_kms(drm_dev, true, true);
+	return radeon_suspend_kms(drm_dev, true, true, false);
 }
 
 static int radeon_pmops_resume(struct device *dev)
@@ -372,7 +381,7 @@ static int radeon_pmops_freeze(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct drm_device *drm_dev = pci_get_drvdata(pdev);
-	return radeon_suspend_kms(drm_dev, false, true);
+	return radeon_suspend_kms(drm_dev, false, true, true);
 }
 
 static int radeon_pmops_thaw(struct device *dev)
@@ -397,7 +406,7 @@ static int radeon_pmops_runtime_suspend(struct device *dev)
 	drm_kms_helper_poll_disable(drm_dev);
 	vga_switcheroo_set_dynamic_switch(pdev, VGA_SWITCHEROO_OFF);
 
-	ret = radeon_suspend_kms(drm_dev, false, false);
+	ret = radeon_suspend_kms(drm_dev, false, false, false);
 	pci_save_state(pdev);
 	pci_disable_device(pdev);
 	pci_ignore_hotplug(pdev);
