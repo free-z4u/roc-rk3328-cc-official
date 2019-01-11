@@ -162,18 +162,11 @@ void drm_atomic_state_default_clear(struct drm_atomic_state *state)
 		if (!connector || !connector->funcs)
 			continue;
 
-		/*
-		 * FIXME: Nonblocking commits can race with connector unplugging and
-		 * there's currently nothing that prevents cleanup up state for
-		 * deleted connectors. As long as the callback doesn't look at
-		 * the connector we'll be fine though, so make sure that's the
-		 * case by setting all connector pointers to NULL.
-		 */
-		state->connector_states[i]->connector = NULL;
-		connector->funcs->atomic_destroy_state(NULL,
+		connector->funcs->atomic_destroy_state(connector,
 						       state->connector_states[i]);
 		state->connectors[i] = NULL;
 		state->connector_states[i] = NULL;
+		drm_connector_unreference(connector);
 	}
 
 	for (i = 0; i < config->num_crtc; i++) {
@@ -961,6 +954,7 @@ drm_atomic_get_connector_state(struct drm_atomic_state *state,
 	if (!connector_state)
 		return ERR_PTR(-ENOMEM);
 
+	drm_connector_reference(connector);
 	state->connector_states[index] = connector_state;
 	state->connectors[index] = connector;
 	connector_state->state = state;
@@ -1259,6 +1253,8 @@ drm_atomic_set_crtc_for_connector(struct drm_connector_state *conn_state,
 {
 	struct drm_crtc_state *crtc_state;
 
+	if (crtc)
+		drm_connector_reference(conn_state->connector);
 	if (conn_state->crtc && conn_state->crtc != crtc) {
 		crtc_state = drm_atomic_get_existing_crtc_state(conn_state->state,
 								conn_state->crtc);
@@ -1276,6 +1272,8 @@ drm_atomic_set_crtc_for_connector(struct drm_connector_state *conn_state,
 			1 << drm_connector_index(conn_state->connector);
 	}
 
+	if (conn_state->crtc)
+		drm_connector_unreference(conn_state->connector);
 	conn_state->crtc = crtc;
 
 	if (crtc)
@@ -1718,12 +1716,19 @@ retry:
 		}
 
 		obj = drm_mode_object_find(dev, obj_id, DRM_MODE_OBJECT_ANY);
-		if (!obj || !obj->properties) {
+		if (!obj) {
+			ret = -ENOENT;
+			goto out;
+		}
+
+		if (!obj->properties) {
+			drm_mode_object_unreference(obj);
 			ret = -ENOENT;
 			goto out;
 		}
 
 		if (get_user(count_props, count_props_ptr + copied_objs)) {
+			drm_mode_object_unreference(obj);
 			ret = -EFAULT;
 			goto out;
 		}
@@ -1736,12 +1741,14 @@ retry:
 			struct drm_property *prop;
 
 			if (get_user(prop_id, props_ptr + copied_props)) {
+				drm_mode_object_unreference(obj);
 				ret = -EFAULT;
 				goto out;
 			}
 
 			prop = drm_property_find(dev, prop_id);
 			if (!prop) {
+				drm_mode_object_unreference(obj);
 				ret = -ENOENT;
 				goto out;
 			}
@@ -1749,13 +1756,16 @@ retry:
 			if (copy_from_user(&prop_value,
 					   prop_values_ptr + copied_props,
 					   sizeof(prop_value))) {
+				drm_mode_object_unreference(obj);
 				ret = -EFAULT;
 				goto out;
 			}
 
 			ret = atomic_set_prop(state, obj, prop, prop_value);
-			if (ret)
+			if (ret) {
+				drm_mode_object_unreference(obj);
 				goto out;
+			}
 
 			copied_props++;
 		}
@@ -1766,6 +1776,7 @@ retry:
 			plane_mask |= (1 << drm_plane_index(plane));
 			plane->old_fb = plane->fb;
 		}
+		drm_mode_object_unreference(obj);
 	}
 
 	if (arg->flags & DRM_MODE_PAGE_FLIP_EVENT) {

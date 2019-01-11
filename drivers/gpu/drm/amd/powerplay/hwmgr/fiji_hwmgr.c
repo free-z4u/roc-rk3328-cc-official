@@ -95,23 +95,23 @@ enum DPM_EVENT_SRC {
 /* [2.5%,~2.5%] Clock stretched is multiple of 2.5% vs
  * not and [Fmin, Fmax, LDO_REFSEL, USE_FOR_LOW_FREQ]
  */
-uint16_t fiji_clock_stretcher_lookup_table[2][4] = { {600, 1050, 3, 0},
-                                                {600, 1050, 6, 1} };
+static const uint16_t fiji_clock_stretcher_lookup_table[2][4] =
+{ {600, 1050, 3, 0}, {600, 1050, 6, 1} };
 
 /* [FF, SS] type, [] 4 voltage ranges, and
  * [Floor Freq, Boundary Freq, VID min , VID max]
  */
-uint32_t fiji_clock_stretcher_ddt_table[2][4][4] =
+static const uint32_t fiji_clock_stretcher_ddt_table[2][4][4] =
 { { {265, 529, 120, 128}, {325, 650, 96, 119}, {430, 860, 32, 95}, {0, 0, 0, 31} },
   { {275, 550, 104, 112}, {319, 638, 96, 103}, {360, 720, 64, 95}, {384, 768, 32, 63} } };
 
 /* [Use_For_Low_freq] value, [0%, 5%, 10%, 7.14%, 14.28%, 20%]
  * (coming from PWR_CKS_CNTL.stretch_amount reg spec)
  */
-uint8_t fiji_clock_stretch_amount_conversion[2][6] = { {0, 1, 3, 2, 4, 5},
-                                                  {0, 2, 4, 5, 6, 5} };
+static const uint8_t fiji_clock_stretch_amount_conversion[2][6] =
+{ {0, 1, 3, 2, 4, 5}, {0, 2, 4, 5, 6, 5} };
 
-const unsigned long PhwFiji_Magic = (unsigned long)(PHM_VIslands_Magic);
+static const unsigned long PhwFiji_Magic = (unsigned long)(PHM_VIslands_Magic);
 
 struct fiji_power_state *cast_phw_fiji_power_state(
 				  struct pp_hw_power_state *hw_ps)
@@ -579,6 +579,18 @@ static int fiji_patch_boot_state(struct pp_hwmgr *hwmgr,
 	return 0;
 }
 
+static int fiji_hwmgr_backend_fini(struct pp_hwmgr *hwmgr)
+{
+	struct fiji_hwmgr *data = (struct fiji_hwmgr *)(hwmgr->backend);
+
+	if (data->soft_pp_table) {
+		kfree(data->soft_pp_table);
+		data->soft_pp_table = NULL;
+	}
+
+	return phm_hwmgr_backend_fini(hwmgr);
+}
+
 static int fiji_hwmgr_backend_init(struct pp_hwmgr *hwmgr)
 {
 	struct fiji_hwmgr *data = (struct fiji_hwmgr *)(hwmgr->backend);
@@ -734,7 +746,7 @@ static int fiji_hwmgr_backend_init(struct pp_hwmgr *hwmgr)
 			data->pcie_lane_cap = (uint32_t)sys_info.value;
 	} else {
 		/* Ignore return value in here, we are cleaning up a mess. */
-		tonga_hwmgr_backend_fini(hwmgr);
+		fiji_hwmgr_backend_fini(hwmgr);
 	}
 
 	return 0;
@@ -3377,7 +3389,7 @@ static void fiji_set_dpm_event_sources(struct pp_hwmgr *hwmgr,
 				DPM_EVENT_SRC, src);
 		PHM_WRITE_INDIRECT_FIELD(hwmgr->device, CGS_IND_REG__SMC, GENERAL_PWRMGT,
 				THERMAL_PROTECTION_DIS,
-				phm_cap_enabled(hwmgr->platform_descriptor.platformCaps,
+				!phm_cap_enabled(hwmgr->platform_descriptor.platformCaps,
 						PHM_PlatformCaps_ThermalController));
 	} else
 		PHM_WRITE_INDIRECT_FIELD(hwmgr->device, CGS_IND_REG__SMC, GENERAL_PWRMGT,
@@ -5096,24 +5108,40 @@ static int fiji_get_pp_table(struct pp_hwmgr *hwmgr, char **table)
 {
 	struct fiji_hwmgr *data = (struct fiji_hwmgr *)(hwmgr->backend);
 
-	*table = (char *)&data->smc_state_table;
+	if (!data->soft_pp_table) {
+		data->soft_pp_table = kzalloc(hwmgr->soft_pp_table_size, GFP_KERNEL);
+		if (!data->soft_pp_table)
+			return -ENOMEM;
+		memcpy(data->soft_pp_table, hwmgr->soft_pp_table,
+				hwmgr->soft_pp_table_size);
+	}
 
-	return sizeof(struct SMU73_Discrete_DpmTable);
+	*table = (char *)&data->soft_pp_table;
+
+	return hwmgr->soft_pp_table_size;
 }
 
 static int fiji_set_pp_table(struct pp_hwmgr *hwmgr, const char *buf, size_t size)
 {
 	struct fiji_hwmgr *data = (struct fiji_hwmgr *)(hwmgr->backend);
 
-	void *table = (void *)&data->smc_state_table;
+	if (!data->soft_pp_table) {
+		data->soft_pp_table = kzalloc(hwmgr->soft_pp_table_size, GFP_KERNEL);
+		if (!data->soft_pp_table)
+			return -ENOMEM;
+	}
 
-	memcpy(table, buf, size);
+	memcpy(data->soft_pp_table, buf, size);
+
+	hwmgr->soft_pp_table = data->soft_pp_table;
+
+	/* TODO: re-init powerplay to implement modified pptable */
 
 	return 0;
 }
 
 static int fiji_force_clock_level(struct pp_hwmgr *hwmgr,
-		enum pp_clock_type type, int level)
+		enum pp_clock_type type, uint32_t mask)
 {
 	struct fiji_hwmgr *data = (struct fiji_hwmgr *)(hwmgr->backend);
 
@@ -5125,20 +5153,30 @@ static int fiji_force_clock_level(struct pp_hwmgr *hwmgr,
 		if (!data->sclk_dpm_key_disabled)
 			smum_send_msg_to_smc_with_parameter(hwmgr->smumgr,
 					PPSMC_MSG_SCLKDPM_SetEnabledMask,
-					(1 << level));
+					data->dpm_level_enable_mask.sclk_dpm_enable_mask & mask);
 		break;
+
 	case PP_MCLK:
 		if (!data->mclk_dpm_key_disabled)
 			smum_send_msg_to_smc_with_parameter(hwmgr->smumgr,
 					PPSMC_MSG_MCLKDPM_SetEnabledMask,
-					(1 << level));
+					data->dpm_level_enable_mask.mclk_dpm_enable_mask & mask);
 		break;
+
 	case PP_PCIE:
+	{
+		uint32_t tmp = mask & data->dpm_level_enable_mask.pcie_dpm_enable_mask;
+		uint32_t level = 0;
+
+		while (tmp >>= 1)
+			level++;
+
 		if (!data->pcie_dpm_key_disabled)
 			smum_send_msg_to_smc_with_parameter(hwmgr->smumgr,
 					PPSMC_MSG_PCIeDPM_ForceLevel,
-					(1 << level));
+					level);
 		break;
+	}
 	default:
 		break;
 	}
@@ -5274,7 +5312,7 @@ bool fiji_check_smc_update_required_for_display_configuration(struct pp_hwmgr *h
 
 static const struct pp_hwmgr_func fiji_hwmgr_funcs = {
 	.backend_init = &fiji_hwmgr_backend_init,
-	.backend_fini = &tonga_hwmgr_backend_fini,
+	.backend_fini = &fiji_hwmgr_backend_fini,
 	.asic_setup = &fiji_setup_asic_task,
 	.dynamic_state_management_enable = &fiji_enable_dpm_tasks,
 	.force_dpm_level = &fiji_dpm_force_dpm_level,
