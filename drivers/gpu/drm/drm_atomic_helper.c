@@ -2927,7 +2927,7 @@ EXPORT_SYMBOL(drm_atomic_helper_best_encoder);
 void drm_atomic_helper_crtc_reset(struct drm_crtc *crtc)
 {
 	if (crtc->state)
-		__drm_atomic_helper_crtc_destroy_state(crtc, crtc->state);
+		__drm_atomic_helper_crtc_destroy_state(crtc->state);
 
 	kfree(crtc->state);
 	crtc->state = kzalloc(sizeof(*crtc->state), GFP_KERNEL);
@@ -2992,15 +2992,13 @@ EXPORT_SYMBOL(drm_atomic_helper_crtc_duplicate_state);
 
 /**
  * __drm_atomic_helper_crtc_destroy_state - release CRTC state
- * @crtc: CRTC object
  * @state: CRTC state object to release
  *
  * Releases all resources stored in the CRTC state without actually freeing
  * the memory of the CRTC state. This is useful for drivers that subclass the
  * CRTC state.
  */
-void __drm_atomic_helper_crtc_destroy_state(struct drm_crtc *crtc,
-					    struct drm_crtc_state *state)
+void __drm_atomic_helper_crtc_destroy_state(struct drm_crtc_state *state)
 {
 	drm_property_unreference_blob(state->mode_blob);
 	drm_property_unreference_blob(state->degamma_lut);
@@ -3020,7 +3018,7 @@ EXPORT_SYMBOL(__drm_atomic_helper_crtc_destroy_state);
 void drm_atomic_helper_crtc_destroy_state(struct drm_crtc *crtc,
 					  struct drm_crtc_state *state)
 {
-	__drm_atomic_helper_crtc_destroy_state(crtc, state);
+	__drm_atomic_helper_crtc_destroy_state(state);
 	kfree(state);
 }
 EXPORT_SYMBOL(drm_atomic_helper_crtc_destroy_state);
@@ -3035,7 +3033,7 @@ EXPORT_SYMBOL(drm_atomic_helper_crtc_destroy_state);
 void drm_atomic_helper_plane_reset(struct drm_plane *plane)
 {
 	if (plane->state)
-		__drm_atomic_helper_plane_destroy_state(plane, plane->state);
+		__drm_atomic_helper_plane_destroy_state(plane->state);
 
 	kfree(plane->state);
 	plane->state = kzalloc(sizeof(*plane->state), GFP_KERNEL);
@@ -3090,15 +3088,13 @@ EXPORT_SYMBOL(drm_atomic_helper_plane_duplicate_state);
 
 /**
  * __drm_atomic_helper_plane_destroy_state - release plane state
- * @plane: plane object
  * @state: plane state object to release
  *
  * Releases all resources stored in the plane state without actually freeing
  * the memory of the plane state. This is useful for drivers that subclass the
  * plane state.
  */
-void __drm_atomic_helper_plane_destroy_state(struct drm_plane *plane,
-					     struct drm_plane_state *state)
+void __drm_atomic_helper_plane_destroy_state(struct drm_plane_state *state)
 {
 	if (state->fb)
 		drm_framebuffer_unreference(state->fb);
@@ -3116,7 +3112,7 @@ EXPORT_SYMBOL(__drm_atomic_helper_plane_destroy_state);
 void drm_atomic_helper_plane_destroy_state(struct drm_plane *plane,
 					   struct drm_plane_state *state)
 {
-	__drm_atomic_helper_plane_destroy_state(plane, state);
+	__drm_atomic_helper_plane_destroy_state(state);
 	kfree(state);
 }
 EXPORT_SYMBOL(drm_atomic_helper_plane_destroy_state);
@@ -3157,8 +3153,7 @@ void drm_atomic_helper_connector_reset(struct drm_connector *connector)
 		kzalloc(sizeof(*conn_state), GFP_KERNEL);
 
 	if (connector->state)
-		__drm_atomic_helper_connector_destroy_state(connector,
-							    connector->state);
+		__drm_atomic_helper_connector_destroy_state(connector->state);
 
 	kfree(connector->state);
 	__drm_atomic_helper_connector_reset(connector, conn_state);
@@ -3296,7 +3291,6 @@ EXPORT_SYMBOL(drm_atomic_helper_duplicate_state);
 
 /**
  * __drm_atomic_helper_connector_destroy_state - release connector state
- * @connector: connector object
  * @state: connector state object to release
  *
  * Releases all resources stored in the connector state without actually
@@ -3304,8 +3298,7 @@ EXPORT_SYMBOL(drm_atomic_helper_duplicate_state);
  * subclass the connector state.
  */
 void
-__drm_atomic_helper_connector_destroy_state(struct drm_connector *connector,
-					    struct drm_connector_state *state)
+__drm_atomic_helper_connector_destroy_state(struct drm_connector_state *state)
 {
 	/*
 	 * This is currently a placeholder so that drivers that subclass the
@@ -3330,7 +3323,7 @@ EXPORT_SYMBOL(__drm_atomic_helper_connector_destroy_state);
 void drm_atomic_helper_connector_destroy_state(struct drm_connector *connector,
 					  struct drm_connector_state *state)
 {
-	__drm_atomic_helper_connector_destroy_state(connector, state);
+	__drm_atomic_helper_connector_destroy_state(state);
 	kfree(state);
 }
 EXPORT_SYMBOL(drm_atomic_helper_connector_destroy_state);

@@ -170,8 +170,7 @@ rockchip_user_fb_create(struct drm_device *dev, struct drm_file *file_priv,
 		unsigned int bpp =
 			drm_format_plane_bpp(mode_cmd->pixel_format, i);
 
-		obj = drm_gem_object_lookup(dev, file_priv,
-					    mode_cmd->handles[i]);
+		obj = drm_gem_object_lookup(file_priv, mode_cmd->handles[i]);
 		if (!obj) {
 			dev_err(dev->dev, "Failed to lookup GEM object\n");
 			ret = -ENXIO;

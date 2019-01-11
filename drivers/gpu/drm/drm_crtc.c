@@ -1061,8 +1061,6 @@ int drm_connector_register(struct drm_connector *connector)
 {
 	int ret;
 
-	drm_mode_object_register(connector->dev, &connector->base);
-
 	ret = drm_sysfs_connector_add(connector);
 	if (ret)
 		return ret;
@@ -1077,6 +1075,8 @@ int drm_connector_register(struct drm_connector *connector)
 		if (ret)
 			goto err_debugfs;
 	}
+
+	drm_mode_object_register(connector->dev, &connector->base);
 
 	return 0;
 

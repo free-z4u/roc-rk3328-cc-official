@@ -709,7 +709,7 @@ int rockchip_gem_dumb_map_offset(struct drm_file *file_priv,
 	struct drm_gem_object *obj;
 	int ret;
 
-	obj = drm_gem_object_lookup(dev, file_priv, handle);
+	obj = drm_gem_object_lookup(file_priv, handle);
 	if (!obj) {
 		DRM_ERROR("failed to lookup gem object.\n");
 		return -EINVAL;
@@ -771,7 +771,7 @@ int rockchip_gem_get_phys_ioctl(struct drm_device *dev, void *data,
 	struct drm_gem_object *obj;
 	int ret = 0;
 
-	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
+	obj = drm_gem_object_lookup(file_priv, args->handle);
 	if (!obj) {
 		DRM_ERROR("failed to lookup gem object.\n");
 		return -EINVAL;
@@ -911,7 +911,7 @@ int rockchip_gem_cpu_acquire_ioctl(struct drm_device *dev, void *data,
 
 	mutex_lock(&dev->struct_mutex);
 
-	obj = drm_gem_object_lookup(dev, file, args->handle);
+	obj = drm_gem_object_lookup(file, args->handle);
 	if (!obj) {
 		DRM_ERROR("failed to lookup gem object.\n");
 		ret = -EINVAL;
@@ -973,7 +973,7 @@ int rockchip_gem_cpu_release_ioctl(struct drm_device *dev, void *data,
 
 	mutex_lock(&dev->struct_mutex);
 
-	obj = drm_gem_object_lookup(dev, file, args->handle);
+	obj = drm_gem_object_lookup(file, args->handle);
 	if (!obj) {
 		DRM_ERROR("failed to lookup gem object.\n");
 		ret = -EINVAL;

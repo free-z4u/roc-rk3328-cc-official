@@ -1730,7 +1730,7 @@ static void vop_atomic_plane_destroy_state(struct drm_plane *plane,
 {
 	struct vop_plane_state *vop_state = to_vop_plane_state(state);
 
-	__drm_atomic_helper_plane_destroy_state(plane, state);
+	__drm_atomic_helper_plane_destroy_state(state);
 
 	kfree(vop_state);
 }
@@ -3263,7 +3263,7 @@ static void vop_crtc_reset(struct drm_crtc *crtc)
 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc->state);
 
 	if (crtc->state) {
-		__drm_atomic_helper_crtc_destroy_state(crtc, crtc->state);
+		__drm_atomic_helper_crtc_destroy_state(crtc->state);
 		kfree(s);
 	}
 
@@ -3297,7 +3297,7 @@ static void vop_crtc_destroy_state(struct drm_crtc *crtc,
 {
 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(state);
 
-	__drm_atomic_helper_crtc_destroy_state(crtc, &s->base);
+	__drm_atomic_helper_crtc_destroy_state(&s->base);
 	kfree(s);
 }
 
