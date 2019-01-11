@@ -316,7 +316,7 @@ void rockchip_drm_atomic_work(struct work_struct *work)
 
 int rockchip_drm_atomic_commit(struct drm_device *dev,
 			       struct drm_atomic_state *state,
-			       bool async)
+			       bool nonblock)
 {
 	struct rockchip_drm_private *private = dev->dev_private;
 	struct rockchip_atomic_commit *commit;
@@ -350,7 +350,7 @@ int rockchip_drm_atomic_commit(struct drm_device *dev,
 	commit->state = state;
 	commit->bandwidth = bandwidth;
 
-	if (async) {
+	if (nonblock) {
 		mutex_lock(&private->commit_lock);
 
 		flush_work(&private->commit_work);
