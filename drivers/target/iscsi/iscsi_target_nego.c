@@ -269,6 +269,7 @@ int iscsi_target_check_login_request(
 
 	return 0;
 }
+EXPORT_SYMBOL(iscsi_target_check_login_request);
 
 static int iscsi_target_check_first_request(
 	struct iscsi_conn *conn,
@@ -1306,8 +1307,8 @@ int iscsi_target_start_negotiation(
 {
 	int ret;
 
-       if (conn->sock) {
-               struct sock *sk = conn->sock->sk;
+	if (conn->sock) {
+		struct sock *sk = conn->sock->sk;
 
 		write_lock_bh(&sk->sk_callback_lock);
 		set_bit(LOGIN_FLAGS_READY, &conn->login_flags);
