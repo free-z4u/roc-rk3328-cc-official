@@ -2008,7 +2008,7 @@ int btrfs_set_extent_delalloc(struct inode *inode, u64 start, u64 end,
 {
 	WARN_ON((end & (PAGE_SIZE - 1)) == 0);
 	return set_extent_delalloc(&BTRFS_I(inode)->io_tree, start, end,
-				   cached_state, GFP_NOFS);
+				   cached_state);
 }
 
 /* see btrfs_writepage_start_hook for details on why this is required */
@@ -3157,8 +3157,7 @@ static int btrfs_readpage_end_io_hook(struct btrfs_io_bio *io_bio,
 
 	if (root->root_key.objectid == BTRFS_DATA_RELOC_TREE_OBJECTID &&
 	    test_range_bit(io_tree, start, end, EXTENT_NODATASUM, 1, NULL)) {
-		clear_extent_bits(io_tree, start, end, EXTENT_NODATASUM,
-				  GFP_NOFS);
+		clear_extent_bits(io_tree, start, end, EXTENT_NODATASUM);
 		return 0;
 	}
 
@@ -3760,7 +3759,7 @@ cache_index:
 	 * and doesn't have an inode ref with the name "bar" anymore.
 	 *
 	 * Setting last_unlink_trans to last_trans is a pessimistic approach,
-	 * but it guarantees correctness at the expense of ocassional full
+	 * but it guarantees correctness at the expense of occasional full
 	 * transaction commits on fsync if our inode is a directory, or if our
 	 * inode is not a directory, logging its parent unnecessarily.
 	 */
@@ -5027,7 +5026,7 @@ static int btrfs_setsize(struct inode *inode, struct iattr *attr)
 		 * be instantly completed which will give us extents that need
 		 * to be truncated.  If we fail to get an orphan inode down we
 		 * could have left over extents that were never meant to live,
-		 * so we need to garuntee from this point on that everything
+		 * so we need to guarantee from this point on that everything
 		 * will be consistent.
 		 */
 		ret = btrfs_orphan_add(trans, inode);
@@ -5297,7 +5296,7 @@ void btrfs_evict_inode(struct inode *inode)
 		}
 
 		/*
-		 * We can't just steal from the global reserve, we need tomake
+		 * We can't just steal from the global reserve, we need to make
 		 * sure there is room to do it, if not we need to commit and try
 		 * again.
 		 */
@@ -7489,7 +7488,7 @@ static int lock_extent_direct(struct inode *inode, u64 lockstart, u64 lockend,
 				 cached_state);
 		/*
 		 * We're concerned with the entire range that we're going to be
-		 * doing DIO to, so we need to make sure theres no ordered
+		 * doing DIO to, so we need to make sure there's no ordered
 		 * extents in this range.
 		 */
 		ordered = btrfs_lookup_ordered_range(inode, lockstart,
@@ -7658,7 +7657,7 @@ static int btrfs_get_blocks_direct(struct inode *inode, sector_t iblock,
 	if (current->journal_info) {
 		/*
 		 * Need to pull our outstanding extents and set journal_info to NULL so
-		 * that anything that needs to check if there's a transction doesn't get
+		 * that anything that needs to check if there's a transaction doesn't get
 		 * confused.
 		 */
 		dio_data = current->journal_info;
@@ -7691,7 +7690,7 @@ static int btrfs_get_blocks_direct(struct inode *inode, sector_t iblock,
 	 * decompress it, so there will be buffering required no matter what we
 	 * do, so go ahead and fallback to buffered.
 	 *
-	 * We return -ENOTBLK because thats what makes DIO go ahead and go back
+	 * We return -ENOTBLK because that's what makes DIO go ahead and go back
 	 * to buffered IO.  Don't blame me, this is the price we pay for using
 	 * the generic code.
 	 */
@@ -9109,7 +9108,7 @@ static int btrfs_truncate(struct inode *inode)
 		return ret;
 
 	/*
-	 * Yes ladies and gentelment, this is indeed ugly.  The fact is we have
+	 * Yes ladies and gentlemen, this is indeed ugly.  The fact is we have
 	 * 3 things going on here
 	 *
 	 * 1) We need to reserve space for our orphan item and the space to
@@ -9123,15 +9122,15 @@ static int btrfs_truncate(struct inode *inode)
 	 * space reserved in case it uses space during the truncate (thank you
 	 * very much snapshotting).
 	 *
-	 * And we need these to all be seperate.  The fact is we can use alot of
+	 * And we need these to all be separate.  The fact is we can use a lot of
 	 * space doing the truncate, and we have no earthly idea how much space
-	 * we will use, so we need the truncate reservation to be seperate so it
+	 * we will use, so we need the truncate reservation to be separate so it
 	 * doesn't end up using space reserved for updating the inode or
 	 * removing the orphan item.  We also need to be able to stop the
 	 * transaction and start a new one, which means we need to be able to
 	 * update the inode several times, and we have no idea of knowing how
 	 * many times that will be, so we can't just reserve 1 item for the
-	 * entirety of the opration, so that has to be done seperately as well.
+	 * entirety of the operation, so that has to be done separately as well.
 	 * Then there is the orphan item, which does indeed need to be held on
 	 * to for the whole operation, and we need nobody to touch this reserved
 	 * space except the orphan code.
