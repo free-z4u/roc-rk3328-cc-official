@@ -108,7 +108,7 @@ TRACE_EVENT(kvm_ioapic_set_irq,
 		__entry->coalesced	= coalesced;
 	),
 
-	TP_printk("pin %u dst %x vec=%u (%s|%s|%s%s)%s",
+	TP_printk("pin %u dst %x vec %u (%s|%s|%s%s)%s",
 		  __entry->pin, (u8)(__entry->e >> 56), (u8)__entry->e,
 		  __print_symbolic((__entry->e >> 8 & 0x7), kvm_deliver_mode),
 		  (__entry->e & (1<<11)) ? "logical" : "physical",
@@ -129,7 +129,7 @@ TRACE_EVENT(kvm_ioapic_delayed_eoi_inj,
 		__entry->e		= e;
 	),
 
-	TP_printk("dst %x vec=%u (%s|%s|%s%s)",
+	TP_printk("dst %x vec %u (%s|%s|%s%s)",
 		  (u8)(__entry->e >> 56), (u8)__entry->e,
 		  __print_symbolic((__entry->e >> 8 & 0x7), kvm_deliver_mode),
 		  (__entry->e & (1<<11)) ? "logical" : "physical",
@@ -151,7 +151,7 @@ TRACE_EVENT(kvm_msi_set_irq,
 		__entry->data		= data;
 	),
 
-	TP_printk("dst %u vec %x (%s|%s|%s%s)",
+	TP_printk("dst %u vec %u (%s|%s|%s%s)",
 		  (u8)(__entry->address >> 12), (u8)__entry->data,
 		  __print_symbolic((__entry->data >> 8 & 0x7), kvm_deliver_mode),
 		  (__entry->address & (1<<2)) ? "logical" : "physical",
@@ -207,7 +207,7 @@ TRACE_EVENT(kvm_ack_irq,
 	{ KVM_TRACE_MMIO_WRITE, "write" }
 
 TRACE_EVENT(kvm_mmio,
-	TP_PROTO(int type, int len, u64 gpa, void *val),
+	TP_PROTO(int type, int len, u64 gpa, u64 val),
 	TP_ARGS(type, len, gpa, val),
 
 	TP_STRUCT__entry(
@@ -221,10 +221,7 @@ TRACE_EVENT(kvm_mmio,
 		__entry->type		= type;
 		__entry->len		= len;
 		__entry->gpa		= gpa;
-		__entry->val		= 0;
-		if (val)
-			memcpy(&__entry->val, val,
-			       min_t(u32, sizeof(__entry->val), len));
+		__entry->val		= val;
 	),
 
 	TP_printk("mmio %s len %u gpa 0x%llx val 0x%llx",
