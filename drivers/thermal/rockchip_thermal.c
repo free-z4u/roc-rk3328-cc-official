@@ -604,7 +604,8 @@ static void rk_tsadcv3_initialize(struct regmap *grf, void __iomem *regs,
 		writel_relaxed(TSADCV2_USER_INTER_PD_SOC, regs +
 			       TSADCV2_USER_CON);
 
-		writel_relaxed(TSADCV2_AUTO_PERIOD_TIME, regs + TSADCV2_AUTO_PERIOD);
+		writel_relaxed(TSADCV2_AUTO_PERIOD_TIME,
+			       regs + TSADCV2_AUTO_PERIOD);
 		writel_relaxed(TSADCV2_HIGHT_INT_DEBOUNCE_COUNT,
 			       regs + TSADCV2_HIGHT_INT_DEBOUNCE);
 		writel_relaxed(TSADCV2_AUTO_PERIOD_HT_TIME,
@@ -622,7 +623,8 @@ static void rk_tsadcv3_initialize(struct regmap *grf, void __iomem *regs,
 		regmap_write(grf, GRF_TSADC_TESTBIT_H, GRF_TSADC_TESTBIT_H_ON);
 		udelay(200); /* The spec note says at least 90 us */
 
-		writel_relaxed(TSADCV3_AUTO_PERIOD_TIME, regs + TSADCV2_AUTO_PERIOD);
+		writel_relaxed(TSADCV3_AUTO_PERIOD_TIME,
+			       regs + TSADCV2_AUTO_PERIOD);
 		writel_relaxed(TSADCV2_HIGHT_INT_DEBOUNCE_COUNT,
 			       regs + TSADCV2_HIGHT_INT_DEBOUNCE);
 		writel_relaxed(TSADCV3_AUTO_PERIOD_HT_TIME,
