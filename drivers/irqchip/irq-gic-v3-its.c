@@ -1487,6 +1487,14 @@ static const struct gic_quirk its_quirks[] = {
 		.init	= its_enable_quirk_cavium_22375,
 	},
 #endif
+#ifdef CONFIG_CAVIUM_ERRATUM_23144
+	{
+		.desc	= "ITS: Cavium erratum 23144",
+		.iidr	= 0xa100034c,	/* ThunderX pass 1.x */
+		.mask	= 0xffff0fff,
+		.init	= its_enable_quirk_cavium_23144,
+	},
+#endif
 	{
 	}
 };
