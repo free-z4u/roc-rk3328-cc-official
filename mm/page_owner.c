@@ -88,6 +88,8 @@ void __set_page_owner(struct page *page, unsigned int order, gfp_t gfp_mask)
 void __set_page_owner_migrate_reason(struct page *page, int reason)
 {
 	struct page_ext *page_ext = lookup_page_ext(page);
+	if (unlikely(!page_ext))
+		return;
 
 	page_ext->last_migrate_reason = reason;
 }
@@ -110,6 +112,9 @@ void __copy_page_owner(struct page *oldpage, struct page *newpage)
 	struct page_ext *old_ext = lookup_page_ext(oldpage);
 	struct page_ext *new_ext = lookup_page_ext(newpage);
 	int i;
+
+	if (unlikely(!old_ext || !new_ext))
+		return;
 
 	new_ext->order = old_ext->order;
 	new_ext->gfp_mask = old_ext->gfp_mask;
@@ -204,6 +209,11 @@ void __dump_page_owner(struct page *page)
 	};
 	gfp_t gfp_mask = page_ext->gfp_mask;
 	int mt = gfpflags_to_migratetype(gfp_mask);
+
+	if (unlikely(!page_ext)) {
+		pr_alert("There is not page extension available.\n");
+		return;
+	}
 
 	if (!test_bit(PAGE_EXT_OWNER, &page_ext->flags)) {
 		pr_alert("page_owner info is not active (free page?)\n");
