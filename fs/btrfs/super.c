@@ -1809,6 +1809,8 @@ static int btrfs_remount(struct super_block *sb, int *flags, char *data)
 			}
 		}
 		sb->s_flags &= ~MS_RDONLY;
+
+		fs_info->open = 1;
 	}
 out:
 	wake_up_process(fs_info->transaction_kthread);
