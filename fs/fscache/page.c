@@ -892,6 +892,8 @@ void fscache_invalidate_writes(struct fscache_cookie *cookie)
 			put_page(results[i]);
 	}
 
+	wake_up_bit(&cookie->flags, 0);
+
 	_leave("");
 }
 
