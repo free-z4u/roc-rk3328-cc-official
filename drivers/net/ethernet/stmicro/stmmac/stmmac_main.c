@@ -3488,6 +3488,8 @@ int stmmac_resume(struct device *dev)
 
 	spin_lock_irqsave(&priv->lock, flags);
 
+	spin_lock_irqsave(&priv->lock, flags);
+
 	priv->cur_rx = 0;
 	priv->dirty_rx = 0;
 	priv->dirty_tx = 0;
