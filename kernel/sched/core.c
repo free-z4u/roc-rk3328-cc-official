@@ -1554,7 +1554,9 @@ static int select_fallback_rq(int cpu, struct task_struct *p)
 	for (;;) {
 		/* Any allowed, online CPU? */
 		for_each_cpu(dest_cpu, tsk_cpus_allowed(p)) {
-			if (!cpu_active(dest_cpu))
+			if (!(p->flags & PF_KTHREAD) && !cpu_active(dest_cpu))
+				continue;
+			if (!cpu_online(dest_cpu))
 				continue;
 			goto out;
 		}
@@ -2592,10 +2594,8 @@ void wake_up_new_task(struct task_struct *p)
 	 */
 	__set_task_cpu(p, select_task_rq(p, task_cpu(p), SD_BALANCE_FORK, 0, 1));
 #endif
-	/* Post initialize new task's util average when its cfs_rq is set */
-	post_init_entity_util_avg(&p->se);
-
 	rq = __task_rq_lock(p, &rf);
+	post_init_entity_util_avg(&p->se);
 	update_rq_clock(rq);
 	post_init_entity_util_avg(&p->se);
 
