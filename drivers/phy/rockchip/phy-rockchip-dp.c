@@ -108,7 +108,7 @@ static int rockchip_dp_phy_probe(struct platform_device *pdev)
 	}
 
 	dp = devm_kzalloc(dev, sizeof(*dp), GFP_KERNEL);
-	if (IS_ERR(dp))
+	if (!dp)
 		return -ENOMEM;
 
 	dp->dev = dev;
