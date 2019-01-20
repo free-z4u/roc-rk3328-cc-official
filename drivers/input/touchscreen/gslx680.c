@@ -24,7 +24,6 @@
 #include <linux/workqueue.h>
 #include <linux/proc_fs.h>
 #include <linux/input/mt.h>
-//#include "rockchip_gslX680_rk3168.h"
 #include "tp_suspend.h"
 #include "gslx680.h"
 #include <linux/of_gpio.h>
@@ -235,16 +234,6 @@ static int gslX680_init(struct gsl_ts *ts)
 
 	ts->irq = of_get_named_gpio_flags(np, "touch-gpio", 0, NULL);
 	ts->rst = of_get_named_gpio_flags(np, "reset-gpio", 0, NULL);
-
-	//msleep(20);
-#if 0	//#if defined (CONFIG_BOARD_ZM71C)||defined (CONFIG_BOARD_ZM72CP) ||
-	defined(CONFIG_BOARD_ZM726C) || defined(CONFIG_BOARD_ZM726CE)
-	    if (gpio_request(ts->rst, NULL) != 0) {
-		gpio_free(ts->rst);
-		printk("gslX680_init gpio_request error\n");
-		return -EIO;
-	}
-#endif
 
 	/* pinctrl */
 	ts->pinctrl = devm_pinctrl_get(&ts->client->dev);
@@ -1446,91 +1435,6 @@ static int gslX680_ts_init(struct i2c_client *client, struct gsl_ts *ts)
 	return rc;
 }
 
-#if 0
-static int gsl_ts_suspend(struct i2c_client *dev, pm_message_t mesg)
-{
-#if 0
-	struct gsl_ts *ts = dev_get_drvdata(dev);
-
-	printk("I'am in gsl_ts_suspend() start\n");
-
-#ifdef GSL_MONITOR
-	printk("gsl_ts_suspend () : cancel gsl_monitor_work\n");
-	cancel_delayed_work_sync(&ts->gsl_monitor_work);
-#endif
-
-#ifdef HAVE_CLICK_TIMER
-	//cancel_work_sync(&ts->click_work);
-#endif
-	disable_irq_nosync(ts->irq);
-
-	gslX680_shutdown_low(ts);
-
-#ifdef SLEEP_CLEAR_POINT
-	mdelay(10);
-#ifdef REPORT_DATA_ANDROID_4_0
-	for (i = 1; i <= MAX_CONTACTS; i++) {
-		input_mt_slot(ts->input, i);
-		input_report_abs(ts->input, ABS_MT_TRACKING_ID, -1);
-		input_mt_report_slot_state(ts->input, MT_TOOL_FINGER, false);
-	}
-#else
-	input_mt_sync(ts->input);
-#endif
-	input_sync(ts->input);
-	mdelay(10);
-	report_data(ts, 1, 1, 10, 1);
-	input_sync(ts->input);
-#endif
-
-#endif
-	return 0;
-}
-#endif
-
-#if 0
-static int gsl_ts_resume(struct i2c_client *dev)
-{
-#if 0
-	struct gsl_ts *ts = dev_get_drvdata(dev);
-
-	printk("I'am in gsl_ts_resume() start\n");
-
-	gslX680_shutdown_high(ts);
-	msleep(20);
-	reset_chip(ts->client);
-	startup_chip(ts->client);
-	check_mem_data(ts->client, ts);
-
-#ifdef SLEEP_CLEAR_POINT
-#ifdef REPORT_DATA_ANDROID_4_0
-	for (i = 1; i <= MAX_CONTACTS; i++) {
-		input_mt_slot(ts->input, i);
-		input_report_abs(ts->input, ABS_MT_TRACKING_ID, -1);
-		input_mt_report_slot_state(ts->input, MT_TOOL_FINGER, false);
-	}
-#else
-	input_mt_sync(ts->input);
-#endif
-	input_sync(ts->input);
-#endif
-#ifdef GSL_MONITOR
-	printk("gsl_ts_resume () : queue gsl_monitor_work\n");
-	queue_delayed_work(gsl_monitor_workqueue, &ts->gsl_monitor_work, 300);
-#endif
-
-#ifdef HAVE_CLICK_TIMER
-	//queue_work(gsl_timer_workqueue,&ts->click_work);
-#endif
-
-	disable_irq_nosync(ts->irq);
-	enable_irq(ts->irq);
-#endif
-
-	return 0;
-}
-#endif 
-
 static int gsl_ts_early_suspend(struct tp_device *tp_d)
 {
 	struct gsl_ts *ts = container_of(tp_d, struct gsl_ts, tp);
@@ -1747,21 +1651,8 @@ static int gsl_ts_probe(struct i2c_client *client,
 #endif
 
 #ifdef TPD_PROC_DEBUG
-#if 0
-	gsl_config_proc = create_proc_entry(GSL_CONFIG_PROC_FILE, 0666, NULL);
-	printk("[tp-gsl] [%s] gsl_config_proc = %x \n", __func__,
-	       gsl_config_proc);
-	if (gsl_config_proc == NULL) {
-		print_info("create_proc_entry %s failed\n",
-			   GSL_CONFIG_PROC_FILE);
-	} else {
-		gsl_config_proc->read_proc = gsl_config_read_proc;
-		gsl_config_proc->write_proc = gsl_config_write_proc;
-	}
-#else
 	i2c_client = client;
 	proc_create(GSL_CONFIG_PROC_FILE, 0666, NULL, &gsl_seq_fops);
-#endif
 	gsl_proc_flag = 0;
 #endif
 	//disable_irq_nosync(->irq);
@@ -1818,10 +1709,6 @@ static struct i2c_driver gsl_ts_driver = {
 		   .owner = THIS_MODULE,
 		   .of_match_table = of_match_ptr(gsl_ts_ids),
 		   },
-#if 0 //ndef CONFIG_HAS_EARLYSUSPEND
-	.suspend = gsl_ts_suspend,
-	.resume = gsl_ts_resume,
-#endif
 	.probe = gsl_ts_probe,
 	.remove = gsl_ts_remove,
 	.id_table = gsl_ts_id,
