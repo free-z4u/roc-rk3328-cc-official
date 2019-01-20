@@ -15,10 +15,6 @@
 
 enum analogix_dp_devtype {
 	EXYNOS_DP,
-	ROCKCHIP_DP,
-};
-
-enum analogix_dp_sub_devtype {
 	RK3288_DP,
 	RK3368_EDP,
 	RK3399_EDP,
@@ -26,7 +22,6 @@ enum analogix_dp_sub_devtype {
 
 struct analogix_dp_plat_data {
 	enum analogix_dp_devtype dev_type;
-	enum analogix_dp_sub_devtype subdev_type;
 	struct drm_panel *panel;
 	struct drm_encoder *encoder;
 	struct drm_connector *connector;

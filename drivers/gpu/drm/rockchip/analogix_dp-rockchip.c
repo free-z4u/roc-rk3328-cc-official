@@ -384,8 +384,7 @@ static int rockchip_dp_bind(struct device *dev, struct device *master,
 
 	dp->plat_data.encoder = &dp->encoder;
 
-	dp->plat_data.dev_type = ROCKCHIP_DP;
-	dp->plat_data.subdev_type = dp_data->chip_type;
+	dp->plat_data.dev_type = dp_data->chip_type;
 	dp->plat_data.power_on = rockchip_dp_poweron;
 	dp->plat_data.power_off = rockchip_dp_powerdown;
 	dp->plat_data.get_modes = rockchip_dp_get_modes;

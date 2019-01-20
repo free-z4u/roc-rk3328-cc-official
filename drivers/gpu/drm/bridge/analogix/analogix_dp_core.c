@@ -1249,14 +1249,18 @@ static int analogix_dp_dt_parse_pdata(struct analogix_dp_device *dp)
 	struct video_info *video_info = &dp->video_info;
 
 	switch (dp->plat_data->dev_type) {
-	case ROCKCHIP_DP:
-		if (dp->plat_data->subdev_type == RK3399_EDP) {
-			video_info->max_link_rate = DP_LINK_BW_5_4;
-			video_info->max_lane_count = 4;
-		} else {
-			video_info->max_link_rate = DP_LINK_BW_2_7;
-			video_info->max_lane_count = 4;
-		}
+	case RK3288_DP:
+	case RK3368_EDP:
+		/*
+		 * Like Rk3288 DisplayPort TRM indicate that "Main link
+		 * containing 4 physical lanes of 2.7/1.62 Gbps/lane".
+		 */
+		video_info->max_link_rate = DP_LINK_BW_2_7;
+		video_info->max_lane_count = 0x04;
+		break;
+	case RK3399_EDP:
+		video_info->max_link_rate = DP_LINK_BW_5_4;
+		video_info->max_lane_count = 0x04;
 		break;
 	case EXYNOS_DP:
 		/*
