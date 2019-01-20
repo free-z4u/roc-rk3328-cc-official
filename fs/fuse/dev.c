@@ -1543,7 +1543,6 @@ static int fuse_notify_inval_entry(struct fuse_conn *fc, unsigned int size,
 		goto err;
 	fuse_copy_finish(cs);
 	buf[outarg.namelen] = 0;
-	name.hash = full_name_hash(name.name, name.len);
 
 	down_read(&fc->killsb);
 	err = -ENOENT;
@@ -1594,7 +1593,6 @@ static int fuse_notify_delete(struct fuse_conn *fc, unsigned int size,
 		goto err;
 	fuse_copy_finish(cs);
 	buf[outarg.namelen] = 0;
-	name.hash = full_name_hash(name.name, name.len);
 
 	down_read(&fc->killsb);
 	err = -ENOENT;
