@@ -144,6 +144,7 @@ alternative_else_nop_endif
 #else
 	str	x20, [tsk, #TI_ADDR_LIMIT]
 #endif
+	ALTERNATIVE(nop, SET_PSTATE_UAO(0), ARM64_HAS_UAO, CONFIG_ARM64_UAO)
 	.endif /* \el == 0 */
 	mrs	x22, elr_el1
 	mrs	x23, spsr_el1
@@ -209,6 +210,8 @@ alternative_else_nop_endif
 #else
 	str	x20, [tsk, #TI_ADDR_LIMIT]
 #endif
+
+	/* No need to restore UAO, it will be restored from SPSR_EL1 */
 	.endif
 
 	ldp	x21, x22, [sp, #S_PC]		// load ELR, SPSR
@@ -546,7 +549,6 @@ el1_irq:
 	bl	trace_hardirqs_off
 #endif
 
-	get_thread_info tsk
 	irq_handler
 
 #ifdef CONFIG_PREEMPT
