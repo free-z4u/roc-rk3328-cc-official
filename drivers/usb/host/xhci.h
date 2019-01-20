@@ -1655,7 +1655,6 @@ struct xhci_hcd {
 #define XHCI_NO_64BIT_SUPPORT	(1 << 23)
 #define XHCI_MISSING_CAS	(1 << 24)
 #define XHCI_DIS_AUTOSUSPEND	(1 << 30)
-#define XHCI_WARM_RESET_ON_RESUME	(1 << 31)
 
 	unsigned int		num_active_eps;
 	unsigned int		limit_active_eps;
