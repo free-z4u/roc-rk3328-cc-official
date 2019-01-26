@@ -40,6 +40,7 @@ enum iio_chan_type {
 	IIO_QUATERNION,
 	IIO_PH,
 	IIO_UVINDEX,
+	IIO_ELECTRICALCONDUCTIVITY,
 };
 
 enum iio_modifier {
