@@ -176,16 +176,17 @@ static int hdmi_codec_startup(struct snd_pcm_substream *substream,
 	}
 
 	if (hcp->hcd.ops->get_eld) {
-		mutex_lock(&hcp->eld_lock);
 		ret = hcp->hcd.ops->get_eld(dai->dev->parent, hcp->hcd.data,
 					    hcp->eld, sizeof(hcp->eld));
 
-		if (!ret)
+		if (!ret) {
 			ret = snd_pcm_hw_constraint_eld(substream->runtime,
 							hcp->eld);
-		mutex_unlock(&hcp->eld_lock);
+			if (ret)
+				return ret;
+		}
 	}
-	return ret;
+	return 0;
 }
 
 static void hdmi_codec_shutdown(struct snd_pcm_substream *substream,
