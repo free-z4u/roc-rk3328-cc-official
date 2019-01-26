@@ -1297,9 +1297,6 @@ static int dwc3_suspend(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
-	if (pm_runtime_suspended(dwc->dev))
-		return 0;
-
 	ret = dwc3_suspend_common(dwc);
 	if (ret)
 		return ret;
@@ -1313,9 +1310,6 @@ static int dwc3_resume(struct device *dev)
 {
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
-
-	if (pm_runtime_suspended(dwc->dev))
-		return 0;
 
 	pinctrl_pm_select_default_state(dev);
 
