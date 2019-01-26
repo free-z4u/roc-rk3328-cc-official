@@ -64,3 +64,11 @@ obj-$(CONFIG_USB_CAM_GPIO)	+= usb_cam_gpio.o
 obj-$(CONFIG_PANEL)             += panel.o
 
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
+lkdtm-$(CONFIG_LKDTM)		+= lkdtm_rodata_objcopy.o
+
+OBJCOPYFLAGS :=
+OBJCOPYFLAGS_lkdtm_rodata_objcopy.o := \
+			--set-section-flags .text=alloc,readonly \
+			--rename-section .text=.rodata
+$(obj)/lkdtm_rodata_objcopy.o: $(obj)/lkdtm_rodata.o
+	$(call if_changed,objcopy)
