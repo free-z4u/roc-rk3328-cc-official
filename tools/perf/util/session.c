@@ -83,7 +83,7 @@ static bool perf_session__has_comm_exec(struct perf_session *session)
 {
 	struct perf_evsel *evsel;
 
-	evlist__for_each(session->evlist, evsel) {
+	evlist__for_each_entry(session->evlist, evsel) {
 		if (evsel->attr.comm_exec)
 			return true;
 	}
@@ -139,14 +139,8 @@ struct perf_session *perf_session__new(struct perf_data_file *file,
 			if (perf_session__open(session) < 0)
 				goto out_close;
 
-			/*
-			 * set session attributes that are present in perf.data
-			 * but not in pipe-mode.
-			 */
-			if (!file->is_pipe) {
-				perf_session__set_id_hdr_size(session);
-				perf_session__set_comm_exec(session);
-			}
+			perf_session__set_id_hdr_size(session);
+			perf_session__set_comm_exec(session);
 		}
 	} else  {
 		session->machines.host.env = &perf_env;
@@ -161,11 +155,7 @@ struct perf_session *perf_session__new(struct perf_data_file *file,
 			pr_warning("Cannot read kernel map\n");
 	}
 
-	/*
-	 * In pipe-mode, evlist is empty until PERF_RECORD_HEADER_ATTR is
-	 * processed, so perf_evlist__sample_id_all is not meaningful here.
-	 */
-	if ((!file || !file->is_pipe) && tool && tool->ordering_requires_timestamps &&
+	if (tool && tool->ordering_requires_timestamps &&
 	    tool->ordered_events && !perf_evlist__sample_id_all(session->evlist)) {
 		dump_printf("WARNING: No sample_id_all support, falling back to unordered processing\n");
 		tool->ordered_events = false;
@@ -188,6 +178,8 @@ static void perf_session__delete_threads(struct perf_session *session)
 
 void perf_session__delete(struct perf_session *session)
 {
+	if (session == NULL)
+		return;
 	auxtrace__free(session);
 	auxtrace_index__free(&session->auxtrace_index);
 	perf_session__destroy_kernel_maps(session);
@@ -603,6 +595,7 @@ do { 						\
 	if (bswap_safe(f, 0))			\
 		attr->f = bswap_##sz(attr->f);	\
 } while(0)
+#define bswap_field_16(f) bswap_field(f, 16)
 #define bswap_field_32(f) bswap_field(f, 32)
 #define bswap_field_64(f) bswap_field(f, 64)
 
@@ -618,6 +611,7 @@ do { 						\
 	bswap_field_64(sample_regs_user);
 	bswap_field_32(sample_stack_user);
 	bswap_field_32(aux_watermark);
+	bswap_field_16(sample_max_stack);
 
 	/*
 	 * After read_format are bitfields. Check read_format because
@@ -1505,10 +1499,27 @@ int perf_session__register_idle_thread(struct perf_session *session)
 	return err;
 }
 
+static void
+perf_session__warn_order(const struct perf_session *session)
+{
+	const struct ordered_events *oe = &session->ordered_events;
+	struct perf_evsel *evsel;
+	bool should_warn = true;
+
+	evlist__for_each_entry(session->evlist, evsel) {
+		if (evsel->attr.write_backward)
+			should_warn = false;
+	}
+
+	if (!should_warn)
+		return;
+	if (oe->nr_unordered_events != 0)
+		ui__warning("%u out of order events recorded.\n", oe->nr_unordered_events);
+}
+
 static void perf_session__warn_about_errors(const struct perf_session *session)
 {
 	const struct events_stats *stats = &session->evlist->stats;
-	const struct ordered_events *oe = &session->ordered_events;
 
 	if (session->tool->lost == perf_event__process_lost &&
 	    stats->nr_events[PERF_RECORD_LOST] != 0) {
@@ -1565,8 +1576,7 @@ static void perf_session__warn_about_errors(const struct perf_session *session)
 			    stats->nr_unprocessable_samples);
 	}
 
-	if (oe->nr_unordered_events != 0)
-		ui__warning("%u out of order events recorded.\n", oe->nr_unordered_events);
+	perf_session__warn_order(session);
 
 	events_stats__auxtrace_error_warn(stats);
 
@@ -1618,7 +1628,6 @@ static int __perf_session__process_pipe_events(struct perf_session *session)
 	buf = malloc(cur_size);
 	if (!buf)
 		return -errno;
-	ordered_events__set_copy_on_queue(oe, true);
 more:
 	event = buf;
 	err = readn(fd, event, sizeof(struct perf_event_header));
@@ -1879,7 +1888,7 @@ bool perf_session__has_traces(struct perf_session *session, const char *msg)
 {
 	struct perf_evsel *evsel;
 
-	evlist__for_each(session->evlist, evsel) {
+	evlist__for_each_entry(session->evlist, evsel) {
 		if (evsel->attr.type == PERF_TYPE_TRACEPOINT)
 			return true;
 	}
@@ -1961,7 +1970,7 @@ struct perf_evsel *perf_session__find_first_evtype(struct perf_session *session,
 {
 	struct perf_evsel *pos;
 
-	evlist__for_each(session->evlist, pos) {
+	evlist__for_each_entry(session->evlist, pos) {
 		if (pos->attr.type == type)
 			return pos;
 	}
@@ -2116,7 +2125,7 @@ int perf_event__synthesize_id_index(struct perf_tool *tool,
 	max_nr = (UINT16_MAX - sizeof(struct id_index_event)) /
 		 sizeof(struct id_index_entry);
 
-	evlist__for_each(evlist, evsel)
+	evlist__for_each_entry(evlist, evsel)
 		nr += evsel->ids;
 
 	n = nr > max_nr ? max_nr : nr;
@@ -2129,7 +2138,7 @@ int perf_event__synthesize_id_index(struct perf_tool *tool,
 	ev->id_index.header.size = sz;
 	ev->id_index.nr = n;
 
-	evlist__for_each(evlist, evsel) {
+	evlist__for_each_entry(evlist, evsel) {
 		u32 j;
 
 		for (j = 0; j < evsel->ids; j++) {

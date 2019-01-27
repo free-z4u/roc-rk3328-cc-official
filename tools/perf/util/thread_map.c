@@ -93,7 +93,7 @@ struct thread_map *thread_map__new_by_uid(uid_t uid)
 {
 	DIR *proc;
 	int max_threads = 32, items, i;
-	char path[NAME_MAX + 1 + 6];
+	char path[256];
 	struct dirent *dirent, **namelist = NULL;
 	struct thread_map *threads = thread_map__alloc(max_threads);
 
@@ -202,7 +202,7 @@ static struct thread_map *thread_map__new_by_pid_str(const char *pid_str)
 	if (!slist)
 		return NULL;
 
-	strlist__for_each(pos, slist) {
+	strlist__for_each_entry(pos, slist) {
 		pid = strtol(pos->s, &end_ptr, 10);
 
 		if (pid == INT_MIN || pid == INT_MAX ||
@@ -278,7 +278,7 @@ struct thread_map *thread_map__new_by_tid_str(const char *tid_str)
 	if (!slist)
 		return NULL;
 
-	strlist__for_each(pos, slist) {
+	strlist__for_each_entry(pos, slist) {
 		tid = strtol(pos->s, &end_ptr, 10);
 
 		if (tid == INT_MIN || tid == INT_MAX ||
