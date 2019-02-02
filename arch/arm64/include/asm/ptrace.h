@@ -74,6 +74,7 @@
 #define COMPAT_PT_DATA_ADDR		0x10004
 #define COMPAT_PT_TEXT_END_ADDR		0x10008
 #ifndef __ASSEMBLY__
+#include <linux/bug.h>
 
 /* sizeof(struct user) for AArch32 */
 #define COMPAT_USER_SZ	296
@@ -171,6 +172,8 @@ extern unsigned long regs_get_kernel_stack_nth(struct pt_regs *regs,
 static inline u64 regs_get_register(struct pt_regs *regs, unsigned int offset)
 {
 	u64 val = 0;
+
+	WARN_ON(offset & 7);
 
 	offset >>= 3;
 	switch (offset) {
