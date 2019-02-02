@@ -202,7 +202,10 @@ static void cec_queue_msg_fh(struct cec_fh *fh, const struct cec_msg *msg)
 {
 	static const struct cec_event ev_lost_msgs = {
 		.event = CEC_EVENT_LOST_MSGS,
-		.lost_msgs.lost_msgs = 1,
+		.flags = 0,
+		{
+			.lost_msgs = { 1 },
+		},
 	};
 	struct cec_msg_entry *entry;
 
@@ -497,11 +500,8 @@ int cec_thread_func(void *_adap)
 		if (data->msg.len == 1 && adap->is_configured)
 			attempts = 2;
 		else
-#ifdef CONFIG_ANDROID
-			attempts = 1;
-#else
 			attempts = 4;
-#endif
+
 		/* Set the suggested signal free time */
 		if (data->attempts) {
 			/* should be >= 3 data bit periods for a retry */
@@ -545,7 +545,7 @@ void cec_transmit_done_ts(struct cec_adapter *adap, u8 status,
 	unsigned int attempts_made = arb_lost_cnt + nack_cnt +
 				     low_drive_cnt + error_cnt;
 
-	dprintk(2, "%s: status %02x\n", __func__, status);
+	dprintk(2, "%s: status 0x%02x\n", __func__, status);
 	if (attempts_made < 1)
 		attempts_made = 1;
 
@@ -1472,7 +1472,7 @@ static void cec_claim_log_addrs(struct cec_adapter *adap, bool block)
  */
 void __cec_s_phys_addr(struct cec_adapter *adap, u16 phys_addr, bool block)
 {
-	if (phys_addr == adap->phys_addr)
+	if (phys_addr == adap->phys_addr || adap->devnode.unregistered)
 		return;
 	if (phys_addr != CEC_PHYS_ADDR_INVALID && adap->devnode.unregistered)
 		return;
@@ -2010,6 +2010,29 @@ void cec_monitor_all_cnt_dec(struct cec_adapter *adap)
 	adap->monitor_all_cnt--;
 	if (adap->monitor_all_cnt == 0)
 		WARN_ON(call_op(adap, adap_monitor_all_enable, 0));
+}
+
+/*
+ * Helper functions to keep track of the 'monitor pin' use count.
+ *
+ * These functions are called with adap->lock held.
+ */
+int cec_monitor_pin_cnt_inc(struct cec_adapter *adap)
+{
+	int ret = 0;
+
+	if (adap->monitor_pin_cnt == 0)
+		ret = call_op(adap, adap_monitor_pin_enable, 1);
+	if (ret == 0)
+		adap->monitor_pin_cnt++;
+	return ret;
+}
+
+void cec_monitor_pin_cnt_dec(struct cec_adapter *adap)
+{
+	adap->monitor_pin_cnt--;
+	if (adap->monitor_pin_cnt == 0)
+		WARN_ON(call_op(adap, adap_monitor_pin_enable, 0));
 }
 
 #ifdef CONFIG_DEBUG_FS

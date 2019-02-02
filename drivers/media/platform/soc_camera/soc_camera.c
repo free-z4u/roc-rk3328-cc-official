@@ -1128,44 +1128,6 @@ static int soc_camera_querymenu(struct file *file, void *priv,
 	return 0;
 }
 
-static int soc_camera_g_ctrl(struct file *file, void *priv,
-			     struct v4l2_control *ctrl)
-{
-	struct soc_camera_device *icd = file->private_data;
-	struct soc_camera_host *ici = to_soc_camera_host(icd->parent);
-	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
-	int ret;
-
-	WARN_ON(priv != file->private_data);
-
-	if (ici->ops->get_ctrl) {
-		ret = ici->ops->get_ctrl(icd, ctrl);
-		if (ret != -ENOIOCTLCMD)
-			return ret;
-	}
-
-	return v4l2_subdev_call(sd, core, g_ctrl, ctrl);
-}
-
-static int soc_camera_s_ctrl(struct file *file, void *priv,
-			     struct v4l2_control *ctrl)
-{
-	struct soc_camera_device *icd = file->private_data;
-	struct soc_camera_host *ici = to_soc_camera_host(icd->parent);
-	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
-	int ret;
-
-	WARN_ON(priv != file->private_data);
-
-	if (ici->ops->set_ctrl) {
-		ret = ici->ops->set_ctrl(icd, ctrl);
-		if (ret != -ENOIOCTLCMD)
-			return ret;
-	}
-
-	return v4l2_subdev_call(sd, core, s_ctrl, ctrl);
-}
-
 /* ddl@rock-chips.com : Add ioctrl -VIDIOC_XXX_ext_ctrl for soc-camera */
 static int soc_camera_try_ext_ctrl(struct file *file, void *priv,
 				   struct v4l2_ext_controls *ctrl)
@@ -1198,48 +1160,7 @@ static int soc_camera_try_ext_ctrl(struct file *file, void *priv,
 	return 0;
 }
 
-  /* ddl@rock-chips.com : Add ioctrl -VIDIOC_XXX_ext_ctrl for soc-camera */
-static int soc_camera_g_ext_ctrl(struct file *file, void *priv,
-				 struct v4l2_ext_controls *ctrl)
-{
-	struct soc_camera_device *icd = file->private_data;
-	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
-
-	WARN_ON(priv != file->private_data);
-
-	/*current kernel version don't define
-	 *this member for struct v4l2_ext_control.
-	 */
-
-	/*
-	 *if (ctrl->ctrl_class != V4L2_CTRL_CLASS_CAMERA)
-	 *	return -EINVAL;
-	 */
-
-	return v4l2_subdev_call(sd, core, g_ext_ctrls, ctrl);
-}
-
- /* ddl@rock-chips.com : Add ioctrl -VIDIOC_XXX_ext_ctrl for soc-camera */
-static int soc_camera_s_ext_ctrl(struct file *file, void *priv,
-				 struct v4l2_ext_controls *ctrl)
-{
-	struct soc_camera_device *icd = file->private_data;
-	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
-
-	WARN_ON(priv != file->private_data);
-
-	/*current kernel version don't define
-	 *this member for struct v4l2_ext_control.
-	 */
-
-	/*
-	 *if (ctrl->ctrl_class != V4L2_CTRL_CLASS_CAMERA)
-	 *	return -EINVAL;
-	 */
-
-	return v4l2_subdev_call(sd, core, s_ext_ctrls, ctrl);
-}
-
+/* ddl@rock-chips.com : Add ioctrl -VIDIOC_XXX_ext_ctrl for soc-camera */
 static int soc_camera_cropcap(struct file *file, void *fh,
 			      struct v4l2_cropcap *a)
 {
@@ -2355,12 +2276,6 @@ static const struct v4l2_ioctl_ops soc_camera_ioctl_ops = {
 	.vidioc_queryctrl	 = soc_camera_queryctrl,
 	/* ddl@rock-chips.com:   Add ioctrl - vidioc_querymenu for soc-camera */
 	.vidioc_querymenu	 = soc_camera_querymenu,
-	.vidioc_g_ctrl		 = soc_camera_g_ctrl,
-	.vidioc_s_ctrl		 = soc_camera_s_ctrl,
-	/* ddl@rock-chips.com:   Add ioctrl - vidioc_g_ext_ctrls for soc-camera */
-	.vidioc_g_ext_ctrls	 = soc_camera_g_ext_ctrl,
-	/* ddl@rock-chips.com:   Add ioctrl - vidioc_s_ext_ctrls for soc-camera */
-	.vidioc_s_ext_ctrls	 = soc_camera_s_ext_ctrl,
 	/* ddl@rock-chips.com:   Add ioctrl - vidioc_try_ext_ctrls for soc-camera */
 	.vidioc_try_ext_ctrls	 = soc_camera_try_ext_ctrl,
 	/* ddl@rock-chips.com:   Add ioctrl - VIDIOC_ENUM_FRAMEINTERVALS for soc-camera */
