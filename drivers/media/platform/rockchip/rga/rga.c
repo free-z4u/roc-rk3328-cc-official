@@ -895,8 +895,6 @@ static int rga_probe(struct platform_device *pdev)
 		goto err_put_clk;
 	}
 
-	rga->alloc_ctx = vb2_dma_sg_init_ctx(&pdev->dev);
-
 	ret = v4l2_device_register(&pdev->dev, &rga->v4l2_dev);
 	if (ret)
 		goto err_put_clk;
@@ -985,7 +983,6 @@ static int rga_remove(struct platform_device *pdev)
 	v4l2_m2m_release(rga->m2m_dev);
 	video_unregister_device(rga->vfd);
 	v4l2_device_unregister(&rga->v4l2_dev);
-	vb2_dma_sg_cleanup_ctx(rga->alloc_ctx);
 
 	pm_runtime_disable(rga->dev);
 

@@ -26,10 +26,9 @@
 static int
 rga_queue_setup(struct vb2_queue *vq,
 		unsigned int *nbuffers, unsigned int *nplanes,
-		unsigned int sizes[], void *alloc_devs[])
+		unsigned int sizes[], struct device *alloc_devs[])
 {
 	struct rga_ctx *ctx = vb2_get_drv_priv(vq);
-	struct rockchip_rga *rga = ctx->rga;
 	struct rga_frame *f = rga_get_frame(ctx, vq->type);
 
 	if (IS_ERR(f))
@@ -40,7 +39,6 @@ rga_queue_setup(struct vb2_queue *vq,
 
 	if (*nbuffers == 0)
 		*nbuffers = 1;
-	alloc_devs[0] = rga->alloc_ctx;
 
 	return 0;
 }
