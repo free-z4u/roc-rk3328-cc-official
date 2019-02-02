@@ -180,8 +180,10 @@ struct media_pad {
  *			view. The media_entity_pipeline_start() function
  *			validates all links by calling this operation. Optional.
  *
- * .. note:: Those these callbacks are called with struct media_device.@graph_mutex
- * mutex held.
+ * .. note::
+ *
+ *    Those these callbacks are called with struct media_device.@graph_mutex
+ *    mutex held.
  */
 struct media_entity_operations {
 	int (*link_setup)(struct media_entity *entity,
@@ -966,12 +968,12 @@ void __media_remove_intf_links(struct media_interface *intf);
  *
  * @intf:	pointer to &media_interface
  *
- * ..note::
+ * .. note::
  *
- *   - This is called automatically when an entity is unregistered via
- *     media_device_register_entity() and by media_devnode_remove().
+ *   #) This is called automatically when an entity is unregistered via
+ *      media_device_register_entity() and by media_devnode_remove().
  *
- *   - Prefer to use this one, instead of __media_remove_intf_links().
+ *   #) Prefer to use this one, instead of __media_remove_intf_links().
  */
 void media_remove_intf_links(struct media_interface *intf);
 
