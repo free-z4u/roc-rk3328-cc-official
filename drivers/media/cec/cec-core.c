@@ -133,24 +133,17 @@ static int __must_check cec_devnode_register(struct cec_devnode *devnode,
 
 	/* Part 2: Initialize and register the character device */
 	cdev_init(&devnode->cdev, &cec_devnode_fops);
-	devnode->cdev.kobj.parent = &devnode->dev.kobj;
 	devnode->cdev.owner = owner;
 
-	ret = cdev_add(&devnode->cdev, devnode->dev.devt, 1);
-	if (ret < 0) {
-		pr_err("%s: cdev_add failed\n", __func__);
+	ret = cdev_device_add(&devnode->cdev, &devnode->dev);
+	if (ret) {
+		pr_err("%s: cdev_device_add failed\n", __func__);
 		goto clr_bit;
 	}
-
-	ret = device_add(&devnode->dev);
-	if (ret)
-		goto cdev_del;
 
 	devnode->registered = true;
 	return 0;
 
-cdev_del:
-	cdev_del(&devnode->cdev);
 clr_bit:
 	mutex_lock(&cec_devnode_lock);
 	clear_bit(devnode->minor, cec_devnode_nums);
@@ -186,8 +179,7 @@ static void cec_devnode_unregister(struct cec_devnode *devnode)
 	devnode->unregistered = true;
 	mutex_unlock(&devnode->lock);
 
-	device_del(&devnode->dev);
-	cdev_del(&devnode->cdev);
+	cdev_device_del(&devnode->cdev, &devnode->dev);
 	put_device(&devnode->dev);
 }
 
@@ -272,22 +264,23 @@ struct cec_adapter *cec_allocate_adapter(const struct cec_adap_ops *ops,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	snprintf(adap->input_name, sizeof(adap->input_name),
+	snprintf(adap->device_name, sizeof(adap->device_name),
 		 "RC for %s", name);
 	snprintf(adap->input_phys, sizeof(adap->input_phys),
 		 "%s/input0", name);
 
-	adap->rc->input_name = adap->input_name;
+	adap->rc->device_name = adap->device_name;
 	adap->rc->input_phys = adap->input_phys;
 	adap->rc->input_id.bustype = BUS_CEC;
 	adap->rc->input_id.vendor = 0;
 	adap->rc->input_id.product = 0;
 	adap->rc->input_id.version = 1;
 	adap->rc->driver_name = CEC_NAME;
-	adap->rc->allowed_protocols = RC_BIT_CEC;
+	adap->rc->allowed_protocols = RC_PROTO_BIT_CEC;
 	adap->rc->priv = adap;
 	adap->rc->map_name = RC_MAP_CEC;
 	adap->rc->timeout = MS_TO_NS(100);
+	adap->rc_last_scancode = -1;
 #endif
 	return adap;
 }
@@ -319,6 +312,17 @@ int cec_register_adapter(struct cec_adapter *adap,
 			adap->rc = NULL;
 			return res;
 		}
+		/*
+		 * The REP_DELAY for CEC is really the time between the initial
+		 * 'User Control Pressed' message and the second. The first
+		 * keypress is always seen as non-repeating, the second
+		 * (provided it has the same UI Command) will start the 'Press
+		 * and Hold' (aka repeat) behavior. By setting REP_DELAY to the
+		 * same value as REP_PERIOD the expected CEC behavior is
+		 * reproduced.
+		 */
+		adap->rc->input_dev->rep[REP_DELAY] =
+			adap->rc->input_dev->rep[REP_PERIOD];
 	}
 #endif
 

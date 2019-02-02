@@ -148,7 +148,8 @@ config POWER_RESET_XGENE
 
 config POWER_RESET_KEYSTONE
 	bool "Keystone reset driver"
-	depends on ARCH_KEYSTONE
+	depends on ARCH_KEYSTONE || COMPILE_TEST
+	depends on HAS_IOMEM
 	select MFD_SYSCON
 	help
 	  Reboot support for the KEYSTONE SoCs.
@@ -185,13 +186,11 @@ config POWER_RESET_ZX
 
 config REBOOT_MODE
 	tristate
-	help
-	  This driver will help to pass the system reboot mode
-	  to bootloader
 
 config SYSCON_REBOOT_MODE
-	bool "Generic SYSCON regmap reboot mode driver"
+	tristate "Generic SYSCON regmap reboot mode driver"
 	depends on OF
+	depends on MFD_SYSCON
 	select REBOOT_MODE
 	help
 	  Say y here will enable reboot mode driver. This will

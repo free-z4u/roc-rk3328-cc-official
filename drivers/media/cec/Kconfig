@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-2.0
 config MEDIA_CEC_RC
 	bool "HDMI CEC RC integration"
 	depends on CEC_CORE && RC_CORE
