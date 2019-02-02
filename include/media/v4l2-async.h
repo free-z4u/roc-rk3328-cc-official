@@ -82,7 +82,8 @@ struct v4l2_async_subdev {
 /**
  * struct v4l2_async_notifier_operations - Asynchronous V4L2 notifier operations
  * @bound:	a subdevice driver has successfully probed one of the subdevices
- * @complete:	all subdevices have been probed successfully
+ * @complete:	All subdevices have been probed successfully. The complete
+ *		callback is only executed for the root notifier.
  * @unbind:	a subdevice is leaving
  */
 struct v4l2_async_notifier_operations {
@@ -201,5 +202,4 @@ int __must_check v4l2_async_register_subdev_sensor_common(
  * @sd: pointer to &struct v4l2_subdev
  */
 void v4l2_async_unregister_subdev(struct v4l2_subdev *sd);
-
 #endif
