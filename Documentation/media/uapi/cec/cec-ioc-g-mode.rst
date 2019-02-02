@@ -4,9 +4,9 @@
 .. _CEC_G_MODE:
 .. _CEC_S_MODE:
 
-****************************
-ioctl CEC_G_MODE, CEC_S_MODE
-****************************
+********************************
+ioctls CEC_G_MODE and CEC_S_MODE
+********************************
 
 CEC_G_MODE, CEC_S_MODE - Get or set exclusive use of the CEC adapter
 
@@ -30,12 +30,10 @@ Arguments
 Description
 ===========
 
-Note: this documents the proposed CEC API. This API is not yet finalized
-and is currently only available as a staging kernel module.
+.. note:: This documents the proposed CEC API. This API is not yet finalized
+   and is currently only available as a staging kernel module.
 
-By default any filehandle can use
-:ref:`CEC_TRANSMIT` and
-:ref:`CEC_RECEIVE`, but in order to prevent
+By default any filehandle can use :ref:`CEC_TRANSMIT`, but in order to prevent
 applications from stepping on each others toes it must be possible to
 obtain exclusive access to the CEC adapter. This ioctl sets the
 filehandle to initiator and/or follower mode which can be exclusive
@@ -54,7 +52,7 @@ If the message is not a reply, then the CEC framework will process it
 first. If there is no follower, then the message is just discarded and a
 feature abort is sent back to the initiator if the framework couldn't
 process it. If there is a follower, then the message is passed on to the
-follower who will use :ref:`CEC_RECEIVE` to dequeue
+follower who will use :ref:`ioctl CEC_RECEIVE <CEC_RECEIVE>` to dequeue
 the new message. The framework expects the follower to make the right
 decisions.
 
@@ -66,15 +64,15 @@ There are some messages that the core will always process, regardless of
 the passthrough mode. See :ref:`cec-core-processing` for details.
 
 If there is no initiator, then any CEC filehandle can use
-:ref:`CEC_TRANSMIT`. If there is an exclusive
+:ref:`ioctl CEC_TRANSMIT <CEC_TRANSMIT>`. If there is an exclusive
 initiator then only that initiator can call
 :ref:`CEC_TRANSMIT`. The follower can of course
-always call :ref:`CEC_TRANSMIT`.
+always call :ref:`ioctl CEC_TRANSMIT <CEC_TRANSMIT>`.
 
 Available initiator modes are:
 
 
-.. _cec-mode-initiator:
+.. _cec-mode-initiator_e:
 
 .. flat-table:: Initiator Modes
     :header-rows:  0
@@ -82,42 +80,42 @@ Available initiator modes are:
     :widths:       3 1 16
 
 
-    -  .. _`CEC_MODE_NO_INITIATOR`:
+    -  .. _`CEC-MODE-NO-INITIATOR`:
 
        -  ``CEC_MODE_NO_INITIATOR``
 
        -  0x0
 
        -  This is not an initiator, i.e. it cannot transmit CEC messages or
-          make any other changes to the CEC adapter.
+	  make any other changes to the CEC adapter.
 
-    -  .. _`CEC_MODE_INITIATOR`:
+    -  .. _`CEC-MODE-INITIATOR`:
 
        -  ``CEC_MODE_INITIATOR``
 
        -  0x1
 
        -  This is an initiator (the default when the device is opened) and
-          it can transmit CEC messages and make changes to the CEC adapter,
-          unless there is an exclusive initiator.
+	  it can transmit CEC messages and make changes to the CEC adapter,
+	  unless there is an exclusive initiator.
 
-    -  .. _`CEC_MODE_EXCL_INITIATOR`:
+    -  .. _`CEC-MODE-EXCL-INITIATOR`:
 
        -  ``CEC_MODE_EXCL_INITIATOR``
 
        -  0x2
 
        -  This is an exclusive initiator and this file descriptor is the
-          only one that can transmit CEC messages and make changes to the
-          CEC adapter. If someone else is already the exclusive initiator
-          then an attempt to become one will return the EBUSY error code
-          error.
+	  only one that can transmit CEC messages and make changes to the
+	  CEC adapter. If someone else is already the exclusive initiator
+	  then an attempt to become one will return the EBUSY error code
+	  error.
 
 
 Available follower modes are:
 
 
-.. _cec-mode-follower:
+.. _cec-mode-follower_e:
 
 .. flat-table:: Follower Modes
     :header-rows:  0
@@ -125,7 +123,7 @@ Available follower modes are:
     :widths:       3 1 16
 
 
-    -  .. _`CEC_MODE_NO_FOLLOWER`:
+    -  .. _`CEC-MODE-NO-FOLLOWER`:
 
        -  ``CEC_MODE_NO_FOLLOWER``
 
@@ -133,77 +131,77 @@ Available follower modes are:
 
        -  This is not a follower (the default when the device is opened).
 
-    -  .. _`CEC_MODE_FOLLOWER`:
+    -  .. _`CEC-MODE-FOLLOWER`:
 
        -  ``CEC_MODE_FOLLOWER``
 
        -  0x10
 
        -  This is a follower and it will receive CEC messages unless there
-          is an exclusive follower. You cannot become a follower if
-          :ref:`CEC_CAP_TRANSMIT <CEC_CAP_TRANSMIT>` is not set or if :ref:`CEC_MODE_NO_INITIATOR <CEC_MODE_NO_INITIATOR>`
-          was specified, EINVAL error code is returned in that case.
+	  is an exclusive follower. You cannot become a follower if
+	  :ref:`CEC_CAP_TRANSMIT <CEC-CAP-TRANSMIT>` is not set or if :ref:`CEC_MODE_NO_INITIATOR <CEC-MODE-NO-INITIATOR>`
+	  was specified, EINVAL error code is returned in that case.
 
-    -  .. _`CEC_MODE_EXCL_FOLLOWER`:
+    -  .. _`CEC-MODE-EXCL-FOLLOWER`:
 
        -  ``CEC_MODE_EXCL_FOLLOWER``
 
        -  0x20
 
        -  This is an exclusive follower and only this file descriptor will
-          receive CEC messages for processing. If someone else is already
-          the exclusive follower then an attempt to become one will return
-          the EBUSY error code error. You cannot become a follower if
-          :ref:`CEC_CAP_TRANSMIT <CEC_CAP_TRANSMIT>` is not set or if :ref:`CEC_MODE_NO_INITIATOR <CEC_MODE_NO_INITIATOR>`
-          was specified, EINVAL error code is returned in that case.
+	  receive CEC messages for processing. If someone else is already
+	  the exclusive follower then an attempt to become one will return
+	  the EBUSY error code error. You cannot become a follower if
+	  :ref:`CEC_CAP_TRANSMIT <CEC-CAP-TRANSMIT>` is not set or if :ref:`CEC_MODE_NO_INITIATOR <CEC-MODE-NO-INITIATOR>`
+	  was specified, EINVAL error code is returned in that case.
 
-    -  .. _`CEC_MODE_EXCL_FOLLOWER_PASSTHRU`:
+    -  .. _`CEC-MODE-EXCL-FOLLOWER-PASSTHRU`:
 
        -  ``CEC_MODE_EXCL_FOLLOWER_PASSTHRU``
 
        -  0x30
 
        -  This is an exclusive follower and only this file descriptor will
-          receive CEC messages for processing. In addition it will put the
-          CEC device into passthrough mode, allowing the exclusive follower
-          to handle most core messages instead of relying on the CEC
-          framework for that. If someone else is already the exclusive
-          follower then an attempt to become one will return the EBUSY error
-          code error. You cannot become a follower if :ref:`CEC_CAP_TRANSMIT <CEC_CAP_TRANSMIT>`
-          is not set or if :ref:`CEC_MODE_NO_INITIATOR <CEC_MODE_NO_INITIATOR>` was specified, EINVAL
-          error code is returned in that case.
+	  receive CEC messages for processing. In addition it will put the
+	  CEC device into passthrough mode, allowing the exclusive follower
+	  to handle most core messages instead of relying on the CEC
+	  framework for that. If someone else is already the exclusive
+	  follower then an attempt to become one will return the EBUSY error
+	  code error. You cannot become a follower if :ref:`CEC_CAP_TRANSMIT <CEC-CAP-TRANSMIT>`
+	  is not set or if :ref:`CEC_MODE_NO_INITIATOR <CEC-MODE-NO-INITIATOR>` was specified, EINVAL
+	  error code is returned in that case.
 
-    -  .. _`CEC_MODE_MONITOR`:
+    -  .. _`CEC-MODE-MONITOR`:
 
        -  ``CEC_MODE_MONITOR``
 
        -  0xe0
 
        -  Put the file descriptor into monitor mode. Can only be used in
-          combination with :ref:`CEC_MODE_NO_INITIATOR <CEC_MODE_NO_INITIATOR>`, otherwise EINVAL error
-          code will be returned. In monitor mode all messages this CEC
-          device transmits and all messages it receives (both broadcast
-          messages and directed messages for one its logical addresses) will
-          be reported. This is very useful for debugging. This is only
-          allowed if the process has the ``CAP_NET_ADMIN`` capability. If
-          that is not set, then EPERM error code is returned.
+	  combination with :ref:`CEC_MODE_NO_INITIATOR <CEC-MODE-NO-INITIATOR>`, otherwise EINVAL error
+	  code will be returned. In monitor mode all messages this CEC
+	  device transmits and all messages it receives (both broadcast
+	  messages and directed messages for one its logical addresses) will
+	  be reported. This is very useful for debugging. This is only
+	  allowed if the process has the ``CAP_NET_ADMIN`` capability. If
+	  that is not set, then EPERM error code is returned.
 
-    -  .. _`CEC_MODE_MONITOR_ALL`:
+    -  .. _`CEC-MODE-MONITOR-ALL`:
 
        -  ``CEC_MODE_MONITOR_ALL``
 
        -  0xf0
 
        -  Put the file descriptor into 'monitor all' mode. Can only be used
-          in combination with :ref:`CEC_MODE_NO_INITIATOR <CEC_MODE_NO_INITIATOR>`, otherwise EINVAL
-          error code will be returned. In 'monitor all' mode all messages
-          this CEC device transmits and all messages it receives, including
-          directed messages for other CEC devices will be reported. This is
-          very useful for debugging, but not all devices support this. This
-          mode requires that the :ref:`CEC_CAP_MONITOR_ALL <CEC_CAP_MONITOR_ALL>` capability is set,
-          otherwise EINVAL error code is returned. This is only allowed if
-          the process has the ``CAP_NET_ADMIN`` capability. If that is not
-          set, then EPERM error code is returned.
+	  in combination with :ref:`CEC_MODE_NO_INITIATOR <CEC-MODE-NO-INITIATOR>`, otherwise EINVAL
+	  error code will be returned. In 'monitor all' mode all messages
+	  this CEC device transmits and all messages it receives, including
+	  directed messages for other CEC devices will be reported. This is
+	  very useful for debugging, but not all devices support this. This
+	  mode requires that the :ref:`CEC_CAP_MONITOR_ALL <CEC-CAP-MONITOR-ALL>` capability is set,
+	  otherwise EINVAL error code is returned. This is only allowed if
+	  the process has the ``CAP_NET_ADMIN`` capability. If that is not
+	  set, then EPERM error code is returned.
 
 
 Core message processing details:
@@ -217,79 +215,75 @@ Core message processing details:
     :widths: 1 8
 
 
-    -  .. _`CEC_MSG_GET_CEC_VERSION`:
+    -  .. _`CEC-MSG-GET-CEC-VERSION`:
 
        -  ``CEC_MSG_GET_CEC_VERSION``
 
        -  When in passthrough mode this message has to be handled by
-          userspace, otherwise the core will return the CEC version that was
-          set with
-          :ref:`CEC_ADAP_S_LOG_ADDRS`.
+	  userspace, otherwise the core will return the CEC version that was
+	  set with :ref:`ioctl CEC_ADAP_S_LOG_ADDRS <CEC_ADAP_S_LOG_ADDRS>`.
 
-    -  .. _`CEC_MSG_GIVE_DEVICE_VENDOR_ID`:
+    -  .. _`CEC-MSG-GIVE-DEVICE-VENDOR-ID`:
 
        -  ``CEC_MSG_GIVE_DEVICE_VENDOR_ID``
 
        -  When in passthrough mode this message has to be handled by
-          userspace, otherwise the core will return the vendor ID that was
-          set with
-          :ref:`CEC_ADAP_S_LOG_ADDRS`.
+	  userspace, otherwise the core will return the vendor ID that was
+	  set with :ref:`ioctl CEC_ADAP_S_LOG_ADDRS <CEC_ADAP_S_LOG_ADDRS>`.
 
-    -  .. _`CEC_MSG_ABORT`:
+    -  .. _`CEC-MSG-ABORT`:
 
        -  ``CEC_MSG_ABORT``
 
        -  When in passthrough mode this message has to be handled by
-          userspace, otherwise the core will return a feature refused
-          message as per the specification.
+	  userspace, otherwise the core will return a feature refused
+	  message as per the specification.
 
-    -  .. _`CEC_MSG_GIVE_PHYSICAL_ADDR`:
+    -  .. _`CEC-MSG-GIVE-PHYSICAL-ADDR`:
 
        -  ``CEC_MSG_GIVE_PHYSICAL_ADDR``
 
        -  When in passthrough mode this message has to be handled by
-          userspace, otherwise the core will report the current physical
-          address.
+	  userspace, otherwise the core will report the current physical
+	  address.
 
-    -  .. _`CEC_MSG_GIVE_OSD_NAME`:
+    -  .. _`CEC-MSG-GIVE-OSD-NAME`:
 
        -  ``CEC_MSG_GIVE_OSD_NAME``
 
        -  When in passthrough mode this message has to be handled by
-          userspace, otherwise the core will report the current OSD name as
-          was set with
-          :ref:`CEC_ADAP_S_LOG_ADDRS`.
+	  userspace, otherwise the core will report the current OSD name as
+	  was set with :ref:`ioctl CEC_ADAP_S_LOG_ADDRS <CEC_ADAP_S_LOG_ADDRS>`.
 
-    -  .. _`CEC_MSG_GIVE_FEATURES`:
+    -  .. _`CEC-MSG-GIVE-FEATURES`:
 
        -  ``CEC_MSG_GIVE_FEATURES``
 
        -  When in passthrough mode this message has to be handled by
-          userspace, otherwise the core will report the current features as
-          was set with
-          :ref:`CEC_ADAP_S_LOG_ADDRS` or
-          the message is ignore if the CEC version was older than 2.0.
+	  userspace, otherwise the core will report the current features as
+	  was set with :ref:`ioctl CEC_ADAP_S_LOG_ADDRS <CEC_ADAP_S_LOG_ADDRS>`
+	  or the message is ignored if the CEC version was older than 2.0.
 
-    -  .. _`CEC_MSG_USER_CONTROL_PRESSED`:
+    -  .. _`CEC-MSG-USER-CONTROL-PRESSED`:
 
        -  ``CEC_MSG_USER_CONTROL_PRESSED``
 
-       -  If :ref:`CEC_CAP_RC <CEC_CAP_RC>` is set, then generate a remote control key
-          press. This message is always passed on to userspace.
+       -  If :ref:`CEC_CAP_RC <CEC-CAP-RC>` is set, then generate a remote control key
+	  press. This message is always passed on to userspace.
 
-    -  .. _`CEC_MSG_USER_CONTROL_RELEASED`:
+    -  .. _`CEC-MSG-USER-CONTROL-RELEASED`:
 
        -  ``CEC_MSG_USER_CONTROL_RELEASED``
 
-       -  If :ref:`CEC_CAP_RC <CEC_CAP_RC>` is set, then generate a remote control key
-          release. This message is always passed on to userspace.
+       -  If :ref:`CEC_CAP_RC <CEC-CAP-RC>` is set, then generate a remote control key
+	  release. This message is always passed on to userspace.
 
-    -  .. _`CEC_MSG_REPORT_PHYSICAL_ADDR`:
+    -  .. _`CEC-MSG-REPORT-PHYSICAL-ADDR`:
 
        -  ``CEC_MSG_REPORT_PHYSICAL_ADDR``
 
        -  The CEC framework will make note of the reported physical address
-          and then just pass the message on to userspace.
+	  and then just pass the message on to userspace.
 
 
 

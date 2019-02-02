@@ -33,17 +33,18 @@ signals. The first enumerated standard is a set of B and G/PAL, switched
 automatically depending on the selected radio frequency in UHF or VHF
 band. Enumeration gives a "PAL-B/G" or "PAL-I" choice. Similar a
 Composite input may collapse standards, enumerating "PAL-B/G/H/I",
-"NTSC-M" and "SECAM-D/K". [1]_
+"NTSC-M" and "SECAM-D/K". [#f1]_
 
 To query and select the standard used by the current video input or
 output applications call the :ref:`VIDIOC_G_STD <VIDIOC_G_STD>` and
 :ref:`VIDIOC_S_STD <VIDIOC_G_STD>` ioctl, respectively. The
 *received* standard can be sensed with the
-:ref:`VIDIOC_QUERYSTD` ioctl. Note that the
-parameter of all these ioctls is a pointer to a
-:ref:`v4l2_std_id <v4l2-std-id>` type (a standard set), *not* an
-index into the standard enumeration. Drivers must implement all video
-standard ioctls when the device has one or more video inputs or outputs.
+:ref:`VIDIOC_QUERYSTD` ioctl.
+
+..note:: The parameter of all these ioctls is a pointer to a
+   :ref:`v4l2_std_id <v4l2-std-id>` type (a standard set), *not* an
+   index into the standard enumeration. Drivers must implement all video
+   standard ioctls when the device has one or more video inputs or outputs.
 
 Special rules apply to devices such as USB cameras where the notion of
 video standards makes little sense. More generally for any capture or
@@ -64,9 +65,10 @@ Applications can make use of the :ref:`input-capabilities` and
 :ref:`output-capabilities` flags to determine whether the video
 standard ioctls can be used with the given input or output.
 
+Example: Information about the current video standard
+=====================================================
 
 .. code-block:: c
-    :caption: Example 1.5. Information about the current video standard
 
     v4l2_std_id std_id;
     struct v4l2_standard standard;
@@ -100,9 +102,10 @@ standard ioctls can be used with the given input or output.
 	exit(EXIT_FAILURE);
     }
 
+Example: Listing the video standards supported by the current input
+===================================================================
 
 .. code-block:: c
-    :caption: Example 1.6. Listing the video standards supported by the current input
 
     struct v4l2_input input;
     struct v4l2_standard standard;
@@ -139,9 +142,10 @@ standard ioctls can be used with the given input or output.
 	exit(EXIT_FAILURE);
     }
 
+Example: Selecting a new video standard
+=======================================
 
 .. code-block:: c
-    :caption: Example 1.7. Selecting a new video standard
 
     struct v4l2_input input;
     v4l2_std_id std_id;
@@ -173,7 +177,7 @@ standard ioctls can be used with the given input or output.
 	exit(EXIT_FAILURE);
     }
 
-.. [1]
+.. [#f1]
    Some users are already confused by technical terms PAL, NTSC and
    SECAM. There is no point asking them to distinguish between B, G, D,
    or K when the software or hardware can do that automatically.

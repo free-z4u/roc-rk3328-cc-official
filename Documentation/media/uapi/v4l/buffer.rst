@@ -166,11 +166,11 @@ struct v4l2_buffer
 	  output device because the application did not pass new data in
 	  time.
 
-	  Note this may count the frames received e.g. over USB, without
-	  taking into account the frames dropped by the remote hardware due
-	  to limited compression throughput or bus bandwidth. These devices
-	  identify by not enumerating any video standards, see
-	  :ref:`standard`.
+	  .. note:: This may count the frames received e.g. over USB, without
+	     taking into account the frames dropped by the remote hardware due
+	     to limited compression throughput or bus bandwidth. These devices
+	     identify by not enumerating any video standards, see
+	     :ref:`standard`.
 
     -  .. row 10
 
@@ -297,8 +297,10 @@ struct v4l2_plane
 	  stream, applications when it refers to an output stream. If the
 	  application sets this to 0 for an output stream, then
 	  ``bytesused`` will be set to the size of the plane (see the
-	  ``length`` field of this struct) by the driver. Note that the
-	  actual image data starts at ``data_offset`` which may not be 0.
+	  ``length`` field of this struct) by the driver.
+
+	  .. note:: Note that the actual image data starts at ``data_offset``
+	     which may not be 0.
 
     -  .. row 2
 
@@ -367,10 +369,11 @@ struct v4l2_plane
        -
        -  Offset in bytes to video data in the plane. Drivers must set this
 	  field when ``type`` refers to a capture stream, applications when
-	  it refers to an output stream. Note that data_offset is included
-	  in ``bytesused``. So the size of the image in the plane is
-	  ``bytesused``-``data_offset`` at offset ``data_offset`` from the
-	  start of the plane.
+	  it refers to an output stream.
+
+	  .. note:: That data_offset is included  in ``bytesused``. So the
+	     size of the image in the plane is ``bytesused``-``data_offset``
+	     at offset ``data_offset`` from the start of the plane.
 
     -  .. row 8
 
@@ -509,7 +512,7 @@ Buffer Flags
     :widths:       3 1 4
 
 
-    -  .. row 1
+    -  .. _`V4L2-BUF-FLAG-MAPPED`:
 
        -  ``V4L2_BUF_FLAG_MAPPED``
 
@@ -523,7 +526,7 @@ Buffer Flags
 	  :ref:`VIDIOC_DQBUF <VIDIOC_QBUF>` ioctl is called. Set by the
 	  driver.
 
-    -  .. row 2
+    -  .. _`V4L2-BUF-FLAG-QUEUED`:
 
        -  ``V4L2_BUF_FLAG_QUEUED``
 
@@ -538,7 +541,7 @@ Buffer Flags
 	  the ``VIDIOC_QBUF``\ ioctl it is always set and after
 	  ``VIDIOC_DQBUF`` always cleared.
 
-    -  .. row 3
+    -  .. _`V4L2-BUF-FLAG-DONE`:
 
        -  ``V4L2_BUF_FLAG_DONE``
 
@@ -554,7 +557,7 @@ Buffer Flags
 	  buffer is in "dequeued" state, in the application domain so to
 	  say.
 
-    -  .. row 4
+    -  .. _`V4L2-BUF-FLAG-ERROR`:
 
        -  ``V4L2_BUF_FLAG_ERROR``
 
@@ -566,7 +569,7 @@ Buffer Flags
 	  normally. Drivers set this flag when the ``VIDIOC_DQBUF`` ioctl is
 	  called.
 
-    -  .. row 5
+    -  .. _`V4L2-BUF-FLAG-KEYFRAME`:
 
        -  ``V4L2_BUF_FLAG_KEYFRAME``
 
@@ -579,7 +582,7 @@ Buffer Flags
 	  Applications can set this bit when ``type`` refers to an output
 	  stream.
 
-    -  .. row 6
+    -  .. _`V4L2-BUF-FLAG-PFRAME`:
 
        -  ``V4L2_BUF_FLAG_PFRAME``
 
@@ -590,7 +593,7 @@ Buffer Flags
 	  Applications can set this bit when ``type`` refers to an output
 	  stream.
 
-    -  .. row 7
+    -  .. _`V4L2-BUF-FLAG-BFRAME`:
 
        -  ``V4L2_BUF_FLAG_BFRAME``
 
@@ -602,7 +605,7 @@ Buffer Flags
 	  frames to specify its content. Applications can set this bit when
 	  ``type`` refers to an output stream.
 
-    -  .. row 8
+    -  .. _`V4L2-BUF-FLAG-TIMECODE`:
 
        -  ``V4L2_BUF_FLAG_TIMECODE``
 
@@ -613,7 +616,7 @@ Buffer Flags
 	  this bit and the corresponding ``timecode`` structure when
 	  ``type`` refers to an output stream.
 
-    -  .. row 9
+    -  .. _`V4L2-BUF-FLAG-PREPARED`:
 
        -  ``V4L2_BUF_FLAG_PREPARED``
 
@@ -626,7 +629,7 @@ Buffer Flags
 	  :ref:`VIDIOC_QBUF` or
 	  :ref:`VIDIOC_DQBUF <VIDIOC_QBUF>` ioctl is called.
 
-    -  .. row 10
+    -  .. _`V4L2-BUF-FLAG-NO-CACHE-INVALIDATE`:
 
        -  ``V4L2_BUF_FLAG_NO_CACHE_INVALIDATE``
 
@@ -638,7 +641,7 @@ Buffer Flags
 	  will, probably, be passed on to a DMA-capable hardware unit for
 	  further processing or output.
 
-    -  .. row 11
+    -  .. _`V4L2-BUF-FLAG-NO-CACHE-CLEAN`:
 
        -  ``V4L2_BUF_FLAG_NO_CACHE_CLEAN``
 
@@ -649,7 +652,7 @@ Buffer Flags
 	  this buffer has not been created by the CPU but by some
 	  DMA-capable unit, in which case caches have not been used.
 
-    -  .. row 12
+    -  .. _`V4L2-BUF-FLAG-LAST`:
 
        -  ``V4L2_BUF_FLAG_LAST``
 
@@ -665,7 +668,7 @@ Buffer Flags
 	  :ref:`VIDIOC_DQBUF <VIDIOC_QBUF>` ioctl will not block anymore,
 	  but return an ``EPIPE`` error code.
 
-    -  .. row 13
+    -  .. _`V4L2-BUF-FLAG-TIMESTAMP-MASK`:
 
        -  ``V4L2_BUF_FLAG_TIMESTAMP_MASK``
 
@@ -675,7 +678,7 @@ Buffer Flags
 	  out bits not belonging to timestamp type by performing a logical
 	  and operation with buffer flags and timestamp mask.
 
-    -  .. row 14
+    -  .. _`V4L2-BUF-FLAG-TIMESTAMP-UNKNOWN`:
 
        -  ``V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN``
 
@@ -689,7 +692,7 @@ Buffer Flags
 	  :c:func:`clock_gettime(2)` using clock IDs ``CLOCK_MONOTONIC``
 	  and ``CLOCK_REALTIME``, respectively.
 
-    -  .. row 15
+    -  .. _`V4L2-BUF-FLAG-TIMESTAMP-MONOTONIC`:
 
        -  ``V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC``
 
@@ -699,7 +702,7 @@ Buffer Flags
 	  clock. To access the same clock outside V4L2, use
 	  :c:func:`clock_gettime(2)`.
 
-    -  .. row 16
+    -  .. _`V4L2-BUF-FLAG-TIMESTAMP-COPY`:
 
        -  ``V4L2_BUF_FLAG_TIMESTAMP_COPY``
 
@@ -708,7 +711,7 @@ Buffer Flags
        -  The CAPTURE buffer timestamp has been taken from the corresponding
 	  OUTPUT buffer. This flag applies only to mem2mem devices.
 
-    -  .. row 17
+    -  .. _`V4L2-BUF-FLAG-TSTAMP-SRC-MASK`:
 
        -  ``V4L2_BUF_FLAG_TSTAMP_SRC_MASK``
 
@@ -722,7 +725,7 @@ Buffer Flags
 	  ``type`` refers to an output stream and
 	  ``V4L2_BUF_FLAG_TIMESTAMP_COPY`` is set.
 
-    -  .. row 18
+    -  .. _`V4L2-BUF-FLAG-TSTAMP-SRC-EOF`:
 
        -  ``V4L2_BUF_FLAG_TSTAMP_SRC_EOF``
 
@@ -735,7 +738,7 @@ Buffer Flags
 	  time after the last pixel has been received or transmitten,
 	  depending on the system and other activity in it.
 
-    -  .. row 19
+    -  .. _`V4L2-BUF-FLAG-TSTAMP-SRC-SOE`:
 
        -  ``V4L2_BUF_FLAG_TSTAMP_SRC_SOE``
 

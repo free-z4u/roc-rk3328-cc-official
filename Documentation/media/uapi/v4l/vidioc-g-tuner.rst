@@ -391,9 +391,9 @@ To change the radio frequency the
 	  carrier for a monaural secondary language. Only
 	  ``V4L2_TUNER_ANALOG_TV`` tuners can have this capability.
 
-	  Note the ``V4L2_TUNER_CAP_LANG2`` and ``V4L2_TUNER_CAP_SAP`` flags
-	  are synonyms. ``V4L2_TUNER_CAP_SAP`` applies when the tuner
-	  supports the ``V4L2_STD_NTSC_M`` video standard.
+	  .. note:: The ``V4L2_TUNER_CAP_LANG2`` and ``V4L2_TUNER_CAP_SAP``
+	     flags are synonyms. ``V4L2_TUNER_CAP_SAP`` applies when the tuner
+	     supports the ``V4L2_STD_NTSC_M`` video standard.
 
     -  .. row 9
 
@@ -500,10 +500,11 @@ To change the radio frequency the
 
        -  0x0004
 
-       -  The tuner receives a Second Audio Program. Note the
-	  ``V4L2_TUNER_SUB_LANG2`` and ``V4L2_TUNER_SUB_SAP`` flags are
-	  synonyms. The ``V4L2_TUNER_SUB_SAP`` flag applies when the current
-	  video standard is ``V4L2_STD_NTSC_M``.
+       -  The tuner receives a Second Audio Program.
+
+	  .. note:: The ``V4L2_TUNER_SUB_LANG2`` and ``V4L2_TUNER_SUB_SAP``
+	     flags are synonyms. The ``V4L2_TUNER_SUB_SAP`` flag applies
+	     when the current video standard is ``V4L2_STD_NTSC_M``.
 
     -  .. row 6
 
@@ -578,9 +579,10 @@ To change the radio frequency the
        -  Play the Second Audio Program. When the tuner receives no
 	  bilingual audio or SAP, or their reception is not supported the
 	  driver shall fall back to mono or stereo mode. Only
-	  ``V4L2_TUNER_ANALOG_TV`` tuners support this mode. Note the
-	  ``V4L2_TUNER_MODE_LANG2`` and ``V4L2_TUNER_MODE_SAP`` are
-	  synonyms.
+	  ``V4L2_TUNER_ANALOG_TV`` tuners support this mode.
+
+	  .. note:: The ``V4L2_TUNER_MODE_LANG2`` and ``V4L2_TUNER_MODE_SAP``
+	     are synonyms.
 
     -  .. row 6
 
@@ -620,7 +622,7 @@ To change the radio frequency the
 
        -  ``LANG2 = SAP``
 
-       -  ``LANG1_LANG2``\  [1]_
+       -  ``LANG1_LANG2``\  [#f1]_
 
     -  .. row 3
 
@@ -684,7 +686,7 @@ To change the radio frequency the
 
        -  Language 1
 
-       -  Lang1/Lang2 (deprecated [2]_) or Lang1/Lang1
+       -  Lang1/Lang2 (deprecated [#f2]_) or Lang1/Lang1
 
        -  Language 1
 
@@ -704,11 +706,11 @@ EINVAL
     The struct :ref:`v4l2_tuner <v4l2-tuner>` ``index`` is out of
     bounds.
 
-.. [1]
+.. [#f1]
    This mode has been added in Linux 2.6.17 and may not be supported by
    older drivers.
 
-.. [2]
+.. [#f2]
    Playback of both languages in ``MODE_STEREO`` is deprecated. In the
    future drivers should produce only the primary language in this mode.
    Applications should request ``MODE_LANG1_LANG2`` to record both

@@ -26,7 +26,7 @@ memory.
 A driver can support many sets of buffers. Each set is identified by a
 unique buffer type value. The sets are independent and each set can hold
 a different type of data. To access different sets at the same time
-different file descriptors must be used. [1]_
+different file descriptors must be used. [#f1]_
 
 To allocate device buffers applications call the
 :ref:`VIDIOC_REQBUFS` ioctl with the desired number
@@ -52,9 +52,10 @@ allocated in physical memory, as opposed to virtual memory, which can be
 swapped out to disk. Applications should free the buffers as soon as
 possible with the :ref:`munmap() <func-munmap>` function.
 
+Example: Mapping buffers in the single-planar API
+=================================================
 
 .. code-block:: c
-    :caption: Example 3.1. Mapping buffers in the single-planar API
 
     struct v4l2_requestbuffers reqbuf;
     struct {
@@ -122,8 +123,10 @@ possible with the :ref:`munmap() <func-munmap>` function.
 	munmap(buffers[i].start, buffers[i].length);
 
 
+Example: Mapping buffers in the multi-planar API
+================================================
+
 .. code-block:: c
-    :caption: Example 3.2. Mapping buffers in the multi-planar API
 
     struct v4l2_requestbuffers reqbuf;
     /* Our current format uses 3 planes per buffer */
@@ -214,7 +217,7 @@ The driver may require a minimum number of buffers enqueued at all times
 to function, apart of this no limit exists on the number of buffers
 applications can enqueue in advance, or dequeue and process. They can
 also enqueue in a different order than buffers have been dequeued, and
-the driver can *fill* enqueued *empty* buffers in any order.  [2]_ The
+the driver can *fill* enqueued *empty* buffers in any order.  [#f2]_ The
 index number of a buffer (struct :ref:`v4l2_buffer <v4l2-buffer>`
 ``index``) plays no role here, it only identifies the buffer.
 
@@ -242,12 +245,14 @@ available. The :ref:`select() <func-select>` or :ref:`poll()
 
 To start and stop capturing or output applications call the
 :ref:`VIDIOC_STREAMON <VIDIOC_STREAMON>` and :ref:`VIDIOC_STREAMOFF
-<VIDIOC_STREAMON>` ioctl. Note :ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>`
-removes all buffers from both queues as a side effect. Since there is
-no notion of doing anything "now" on a multitasking system, if an
-application needs to synchronize with another event it should examine
-the struct ::ref:`v4l2_buffer <v4l2-buffer>` ``timestamp`` of captured
-or outputted buffers.
+<VIDIOC_STREAMON>` ioctl.
+
+.. note:::ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>`
+   removes all buffers from both queues as a side effect. Since there is
+   no notion of doing anything "now" on a multitasking system, if an
+   application needs to synchronize with another event it should examine
+   the struct ::ref:`v4l2_buffer <v4l2-buffer>` ``timestamp`` of captured
+   or outputted buffers.
 
 Drivers implementing memory mapping I/O must support the
 :ref:`VIDIOC_REQBUFS <VIDIOC_REQBUFS>`, :ref:`VIDIOC_QUERYBUF
@@ -255,11 +260,11 @@ Drivers implementing memory mapping I/O must support the
 <VIDIOC_QBUF>`, :ref:`VIDIOC_STREAMON <VIDIOC_STREAMON>`
 and :ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` ioctls, the :ref:`mmap()
 <func-mmap>`, :ref:`munmap() <func-munmap>`, :ref:`select()
-<func-select>` and :ref:`poll() <func-poll>` function. [3]_
+<func-select>` and :ref:`poll() <func-poll>` function. [#f3]_
 
 [capture example]
 
-.. [1]
+.. [#f1]
    One could use one file descriptor and set the buffer type field
    accordingly when calling :ref:`VIDIOC_QBUF` etc.,
    but it makes the :ref:`select() <func-select>` function ambiguous. We also
@@ -267,14 +272,14 @@ and :ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` ioctls, the :ref:`mmap()
    Video overlay for example is also a logical stream, although the CPU
    is not needed for continuous operation.
 
-.. [2]
+.. [#f2]
    Random enqueue order permits applications processing images out of
    order (such as video codecs) to return buffers earlier, reducing the
    probability of data loss. Random fill order allows drivers to reuse
    buffers on a LIFO-basis, taking advantage of caches holding
    scatter-gather lists and the like.
 
-.. [3]
+.. [#f3]
    At the driver level :ref:`select() <func-select>` and :ref:`poll() <func-poll>` are
    the same, and :ref:`select() <func-select>` is too important to be optional.
    The rest should be evident.

@@ -17,9 +17,11 @@ identifier (enum :ref:`v4l2_quantization <v4l2-quantization>`) to
 specify non-standard quantization methods. Most of the time only the
 colorspace field of struct :ref:`v4l2_pix_format <v4l2-pix-format>`
 or struct :ref:`v4l2_pix_format_mplane <v4l2-pix-format-mplane>`
-needs to be filled in. Note that the default R'G'B' quantization is full
-range for all colorspaces except for BT.2020 which uses limited range
-R'G'B' quantization.
+needs to be filled in.
+
+.. note:: The default R'G'B' quantization is full range for all
+   colorspaces except for BT.2020 which uses limited range R'G'B'
+   quantization.
 
 
 .. _v4l2-colorspace:
@@ -237,6 +239,12 @@ R'G'B' quantization.
        -  ``V4L2_YCBCR_ENC_BT2020_CONST_LUM``
 
        -  Use the constant luminance BT.2020 Yc'CbcCrc encoding.
+
+    -  .. row 10
+
+       -  ``V4L2_YCBCR_ENC_SMPTE_240M``
+
+       -  Use the SMPTE 240M Y'CbCr encoding.
 
 
 

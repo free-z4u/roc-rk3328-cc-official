@@ -26,9 +26,10 @@ No buffers (planes) are allocated beforehand, consequently they are not
 indexed and cannot be queried like mapped buffers with the
 :ref:`VIDIOC_QUERYBUF <VIDIOC_QUERYBUF>` ioctl.
 
+Example: Initiating streaming I/O with user pointers
+====================================================
 
 .. code-block:: c
-    :caption: Example 3.3. Initiating streaming I/O with user pointers
 
     struct v4l2_requestbuffers reqbuf;
 
@@ -53,7 +54,7 @@ driver swaps memory pages within physical memory to create a continuous
 area of memory. This happens transparently to the application in the
 virtual memory subsystem of the kernel. When buffer pages have been
 swapped out to disk they are brought back and finally locked in physical
-memory for DMA. [1]_
+memory for DMA. [#f1]_
 
 Filled or displayed buffers are dequeued with the
 :ref:`VIDIOC_DQBUF <VIDIOC_QBUF>` ioctl. The driver can unlock the
@@ -85,21 +86,22 @@ available.
 
 To start and stop capturing or output applications call the
 :ref:`VIDIOC_STREAMON <VIDIOC_STREAMON>` and
-:ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` ioctl. Note
-:ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` removes all buffers from both
-queues and unlocks all buffers as a side effect. Since there is no
-notion of doing anything "now" on a multitasking system, if an
-application needs to synchronize with another event it should examine
-the struct :ref:`v4l2_buffer <v4l2-buffer>` ``timestamp`` of captured or
-outputted buffers.
+:ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` ioctl.
+
+.. note:: ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` removes all buffers from
+   both queues and unlocks all buffers as a side effect. Since there is no
+   notion of doing anything "now" on a multitasking system, if an
+   application needs to synchronize with another event it should examine
+   the struct :ref:`v4l2_buffer <v4l2-buffer>` ``timestamp`` of captured or
+   outputted buffers.
 
 Drivers implementing user pointer I/O must support the
 :ref:`VIDIOC_REQBUFS <VIDIOC_REQBUFS>`, :ref:`VIDIOC_QBUF <VIDIOC_QBUF>`,
 :ref:`VIDIOC_DQBUF <VIDIOC_QBUF>`, :ref:`VIDIOC_STREAMON <VIDIOC_STREAMON>`
 and :ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` ioctls, the
-:ref:`select() <func-select>` and :ref:`poll() <func-poll>` function. [2]_
+:ref:`select() <func-select>` and :ref:`poll() <func-poll>` function. [#f2]_
 
-.. [1]
+.. [#f1]
    We expect that frequently used buffers are typically not swapped out.
    Anyway, the process of swapping, locking or generating scatter-gather
    lists may be time consuming. The delay can be masked by the depth of
@@ -111,7 +113,7 @@ and :ref:`VIDIOC_STREAMOFF <VIDIOC_STREAMON>` ioctls, the
    disk. Output buffers must be saved on the incoming and outgoing queue
    because an application may share them with other processes.
 
-.. [2]
+.. [#f2]
    At the driver level :ref:`select() <func-select>` and :ref:`poll() <func-poll>` are
    the same, and :ref:`select() <func-select>` is too important to be optional.
    The rest should be evident.
