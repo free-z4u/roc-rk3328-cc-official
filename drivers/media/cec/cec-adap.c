@@ -777,6 +777,9 @@ int cec_transmit_msg_fh(struct cec_adapter *adap, struct cec_msg *msg,
 		return -EBUSY;
 	}
 
+	if (adap->transmit_queue_sz >= CEC_MAX_MSG_TX_QUEUE_SZ)
+		return -EBUSY;
+
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
