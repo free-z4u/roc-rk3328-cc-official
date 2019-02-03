@@ -80,7 +80,6 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	void *ptr;
 
 	phys = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
-	BUG_ON(!phys);
 
 	/*
 	 * The FIX_{PGD,PUD,PMD} slots may be in active use, but the FIX_PTE
@@ -391,14 +390,14 @@ static void __init __map_memblock(pgd_t *pgd, phys_addr_t start,
 				  bool allow_block_mappings)
 {
 	unsigned long kernel_start = __pa(_text);
-	unsigned long kernel_end = __pa(_etext);
+	unsigned long kernel_end = __pa(__init_begin);
 
 	/*
 	 * Take care not to create a writable alias for the
 	 * read-only text and rodata sections of the kernel image.
 	 */
 
-	/* No overlap with the kernel text */
+	/* No overlap with the kernel text/rodata */
 	if (end < kernel_start || start >= kernel_end) {
 		__create_pgd_mapping(pgd, start, __phys_to_virt(start),
 				     end - start, PAGE_KERNEL,
@@ -407,7 +406,7 @@ static void __init __map_memblock(pgd_t *pgd, phys_addr_t start,
 	}
 
 	/*
-	 * This block overlaps the kernel text mapping.
+	 * This block overlaps the kernel text/rodata mappings.
 	 * Map the portion(s) which don't overlap.
 	 */
 	if (start < kernel_start)
@@ -422,7 +421,7 @@ static void __init __map_memblock(pgd_t *pgd, phys_addr_t start,
 				     early_pgtable_alloc);
 
 	/*
-	 * Map the linear alias of the [_text, _etext) interval as
+	 * Map the linear alias of the [_text, __init_begin) interval as
 	 * read-only/non-executable. This makes the contents of the
 	 * region accessible to subsystems such as hibernate, but
 	 * protects it from inadvertent modification or execution.
