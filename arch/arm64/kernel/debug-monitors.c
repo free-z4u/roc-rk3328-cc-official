@@ -170,22 +170,13 @@ postcore_initcall(debug_monitors_init);
  */
 static void set_regs_spsr_ss(struct pt_regs *regs)
 {
-	unsigned long spsr;
-
-	spsr = regs->pstate;
-	spsr &= ~DBG_SPSR_SS;
-	spsr |= DBG_SPSR_SS;
-	regs->pstate = spsr;
+	regs->pstate |= DBG_SPSR_SS;
 }
 NOKPROBE_SYMBOL(set_regs_spsr_ss);
 
 static void clear_regs_spsr_ss(struct pt_regs *regs)
 {
-	unsigned long spsr;
-
-	spsr = regs->pstate;
-	spsr &= ~DBG_SPSR_SS;
-	regs->pstate = spsr;
+	regs->pstate &= ~DBG_SPSR_SS;
 }
 NOKPROBE_SYMBOL(clear_regs_spsr_ss);
 
