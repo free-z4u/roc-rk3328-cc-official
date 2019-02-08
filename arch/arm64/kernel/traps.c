@@ -448,6 +448,8 @@ void cpu_enable_cache_maint_trap(void *__unused)
 	config_sctlr_el1(SCTLR_EL1_UCI, 0);
 }
 
+#if 0
+// revert after 6126ce0588eb5a0752d5c8b5796a7fca324fd887
 #define __user_cache_maint(insn, address, res)			\
 	asm volatile (						\
 		"1:	" insn ", %1\n"				\
@@ -501,6 +503,7 @@ asmlinkage void __exception do_sysinstr(unsigned int esr, struct pt_regs *regs)
 	else
 		regs->pc += 4;
 }
+#endif
 
 static void cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
 {
