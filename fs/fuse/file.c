@@ -418,12 +418,7 @@ static int fuse_flush(struct file *file, fl_owner_t id)
 	fuse_sync_writes(inode);
 	inode_unlock(inode);
 
-	if (test_bit(AS_ENOSPC, &file->f_mapping->flags) &&
-	    test_and_clear_bit(AS_ENOSPC, &file->f_mapping->flags))
-		err = -ENOSPC;
-	if (test_bit(AS_EIO, &file->f_mapping->flags) &&
-	    test_and_clear_bit(AS_EIO, &file->f_mapping->flags))
-		err = -EIO;
+	err = filemap_check_errors(file->f_mapping);
 	if (err)
 		return err;
 
@@ -478,12 +473,7 @@ int fuse_fsync_common(struct file *file, loff_t start, loff_t end,
 	 * filemap_write_and_wait_range() does not catch errors.
 	 * We have to do this directly after fuse_sync_writes()
 	 */
-	if (test_bit(AS_ENOSPC, &file->f_mapping->flags) &&
-	    test_and_clear_bit(AS_ENOSPC, &file->f_mapping->flags))
-		err = -ENOSPC;
-	if (test_bit(AS_EIO, &file->f_mapping->flags) &&
-	    test_and_clear_bit(AS_EIO, &file->f_mapping->flags))
-		err = -EIO;
+	err = filemap_check_errors(file->f_mapping);
 	if (err)
 		goto out;
 
@@ -587,7 +577,6 @@ static ssize_t fuse_get_res_by_io(struct fuse_io_priv *io)
  */
 static void fuse_aio_complete(struct fuse_io_priv *io, int err, ssize_t pos)
 {
-	bool is_sync = is_sync_kiocb(io->iocb);
 	int left;
 
 	spin_lock(&io->lock);
@@ -597,11 +586,11 @@ static void fuse_aio_complete(struct fuse_io_priv *io, int err, ssize_t pos)
 		io->bytes = pos;
 
 	left = --io->reqs;
-	if (!left && is_sync)
+	if (!left && io->blocking)
 		complete(io->done);
 	spin_unlock(&io->lock);
 
-	if (!left && !is_sync) {
+	if (!left && !io->blocking) {
 		ssize_t res = fuse_get_res_by_io(io);
 
 		if (res >= 0) {
@@ -2883,7 +2872,6 @@ fuse_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	size_t count = iov_iter_count(iter);
 	loff_t offset = iocb->ki_pos;
 	struct fuse_io_priv *io;
-	bool is_sync = is_sync_kiocb(iocb);
 
 	pos = offset;
 	inode = file->f_mapping->host;
@@ -2918,17 +2906,16 @@ fuse_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	 */
 	io->async = async_dio;
 	io->iocb = iocb;
+	io->blocking = is_sync_kiocb(iocb);
 
 	/*
-	 * We cannot asynchronously extend the size of a file. We have no method
-	 * to wait on real async I/O requests, so we must submit this request
-	 * synchronously.
+	 * We cannot asynchronously extend the size of a file.
+	 * In such case the aio will behave exactly like sync io.
 	 */
-	if (!is_sync && (offset + count > i_size) &&
-	    iov_iter_rw(iter) == WRITE)
-		io->async = false;
+	if ((offset + count > i_size) && iov_iter_rw(iter) == WRITE)
+		io->blocking = true;
 
-	if (io->async && is_sync) {
+	if (io->async && io->blocking) {
 		/*
 		 * Additional reference to keep io around after
 		 * calling fuse_aio_complete()
@@ -2948,7 +2935,7 @@ fuse_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 		fuse_aio_complete(io, ret < 0 ? ret : 0, -1);
 
 		/* we have a non-extending, async request, so return */
-		if (!is_sync)
+		if (!io->blocking)
 			return -EIOCBQUEUED;
 
 		wait_for_completion(&wait);
