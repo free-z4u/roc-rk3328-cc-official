@@ -73,22 +73,22 @@ ip6_packet_match(const struct sk_buff *skb,
 	unsigned long ret;
 	const struct ipv6hdr *ipv6 = ipv6_hdr(skb);
 
-#define FWINV(bool, invflg) ((bool) ^ !!(ip6info->invflags & (invflg)))
-
-	if (FWINV(ipv6_masked_addr_cmp(&ipv6->saddr, &ip6info->smsk,
-				       &ip6info->src), IP6T_INV_SRCIP) ||
-	    FWINV(ipv6_masked_addr_cmp(&ipv6->daddr, &ip6info->dmsk,
-				       &ip6info->dst), IP6T_INV_DSTIP))
+	if (NF_INVF(ip6info, IP6T_INV_SRCIP,
+		    ipv6_masked_addr_cmp(&ipv6->saddr, &ip6info->smsk,
+					 &ip6info->src)) ||
+	    NF_INVF(ip6info, IP6T_INV_DSTIP,
+		    ipv6_masked_addr_cmp(&ipv6->daddr, &ip6info->dmsk,
+					 &ip6info->dst)))
 		return false;
 
 	ret = ifname_compare_aligned(indev, ip6info->iniface, ip6info->iniface_mask);
 
-	if (FWINV(ret != 0, IP6T_INV_VIA_IN))
+	if (NF_INVF(ip6info, IP6T_INV_VIA_IN, ret != 0))
 		return false;
 
 	ret = ifname_compare_aligned(outdev, ip6info->outiface, ip6info->outiface_mask);
 
-	if (FWINV(ret != 0, IP6T_INV_VIA_OUT))
+	if (NF_INVF(ip6info, IP6T_INV_VIA_OUT, ret != 0))
 		return false;
 
 /* ... might want to do something with class and flowlabel here ... */
@@ -404,18 +404,6 @@ ip6t_do_table(struct sk_buff *skb,
 	if (acpar.hotdrop)
 		return NF_DROP;
 	else return verdict;
-}
-
-static bool find_jump_target(const struct xt_table_info *t,
-			     const struct ip6t_entry *target)
-{
-	struct ip6t_entry *iter;
-
-	xt_entry_foreach(iter, t->entries, t->size) {
-		 if (iter == target)
-			return true;
-	}
-	return false;
 }
 
 /* Figures out from what hook each rule can be called: returns 0 if
