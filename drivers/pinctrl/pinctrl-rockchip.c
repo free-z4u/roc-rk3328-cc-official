@@ -464,7 +464,7 @@ static struct regmap_config rockchip_regmap_config = {
 	.reg_stride = 4,
 };
 
-static const inline struct rockchip_pin_group *pinctrl_name_to_group(
+static inline const struct rockchip_pin_group *pinctrl_name_to_group(
 					const struct rockchip_pinctrl *info,
 					const char *name)
 {
@@ -3945,7 +3945,7 @@ static const struct of_device_id rockchip_pinctrl_dt_match[] = {
 	{ .compatible = "rockchip,rk3066b-pinctrl",
 		.data = &rk3066b_pin_ctrl },
 	{ .compatible = "rockchip,rk3128-pinctrl",
-		.data = &rk3128_pin_ctrl },
+		.data = (void *)&rk3128_pin_ctrl },
 	{ .compatible = "rockchip,rk3188-pinctrl",
 		.data = &rk3188_pin_ctrl },
 	{ .compatible = "rockchip,rk3228-pinctrl",
