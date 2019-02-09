@@ -1031,6 +1031,7 @@ static int i2c_hid_probe(struct i2c_client *client,
 	pm_runtime_get_noresume(&client->dev);
 	pm_runtime_set_active(&client->dev);
 	pm_runtime_enable(&client->dev);
+	device_enable_async_suspend(&client->dev);
 
 	/* Make sure there is something at this address */
 	ret = i2c_smbus_read_byte(client);
@@ -1123,6 +1124,14 @@ static int i2c_hid_remove(struct i2c_client *client)
 	acpi_dev_remove_driver_gpios(ACPI_COMPANION(&client->dev));
 
 	return 0;
+}
+
+static void i2c_hid_shutdown(struct i2c_client *client)
+{
+	struct i2c_hid *ihid = i2c_get_clientdata(client);
+
+	i2c_hid_set_power(client, I2C_HID_PWR_SLEEP);
+	free_irq(client->irq, ihid);
 }
 
 #ifdef CONFIG_PM_SLEEP
@@ -1249,7 +1258,7 @@ static struct i2c_driver i2c_hid_driver = {
 
 	.probe		= i2c_hid_probe,
 	.remove		= i2c_hid_remove,
-
+	.shutdown	= i2c_hid_shutdown,
 	.id_table	= i2c_hid_id_table,
 };
 
