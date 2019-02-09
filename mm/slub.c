@@ -124,7 +124,7 @@ static inline int kmem_cache_debug(struct kmem_cache *s)
 #endif
 }
 
-static inline void *fixup_red_left(struct kmem_cache *s, void *p)
+inline void *fixup_red_left(struct kmem_cache *s, void *p)
 {
 	if (kmem_cache_debug(s) && s->flags & SLAB_RED_ZONE)
 		p += s->red_left_pad;
@@ -788,6 +788,7 @@ static int check_pad_bytes(struct kmem_cache *s, struct page *page, u8 *p)
 		off += 2 * sizeof(struct track);
 
 	off += kasan_metadata_size(s);
+
 	if (size_from_object(s) == off)
 		return 1;
 
