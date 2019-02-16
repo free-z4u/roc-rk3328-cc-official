@@ -1217,6 +1217,7 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, iommu);
 	iommu->dev = dev;
 	iommu->num_mmu = 0;
+
 	iommu->bases = devm_kzalloc(dev, sizeof(*iommu->bases) * num_res,
 				    GFP_KERNEL);
 	if (!iommu->bases)
