@@ -7,10 +7,8 @@ obj-$(CONFIG_SND_SOC_ROCKCHIP_SPDIF) += snd-soc-rockchip-spdif.o
 
 snd-soc-rockchip-max98090-objs := rockchip_max98090.o
 snd-soc-rockchip-rt5645-objs := rockchip_rt5645.o
-snd-soc-rockchip-rt5651-tc358749x-objs := rockchip_rt5651_tc358749x.o
 snd-soc-rockchip-cdndp-objs := rockchip_cdndp.o
 
 obj-$(CONFIG_SND_SOC_ROCKCHIP_MAX98090) += snd-soc-rockchip-max98090.o
 obj-$(CONFIG_SND_SOC_ROCKCHIP_RT5645) += snd-soc-rockchip-rt5645.o
-obj-$(CONFIG_SND_SOC_ROCKCHIP_RT5651_TC358749) += snd-soc-rockchip-rt5651-tc358749x.o
 obj-$(CONFIG_SND_SOC_ROCKCHIP_CDNDP) += snd-soc-rockchip-cdndp.o
