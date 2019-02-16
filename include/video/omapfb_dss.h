@@ -1,22 +1,14 @@
 /*
- * Copyright (C) 2008 Nokia Corporation
- * Author: Tomi Valkeinen <tomi.valkeinen@nokia.com>
+ * Copyright (C) 2016 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  */
 
-#ifndef __OMAP_OMAPDSS_H
-#define __OMAP_OMAPDSS_H
+#ifndef __OMAPFB_DSS_H
+#define __OMAPFB_DSS_H
 
 #include <linux/list.h>
 #include <linux/kobject.h>
@@ -166,11 +158,6 @@ enum omap_display_caps {
 enum omap_dss_display_state {
 	OMAP_DSS_DISPLAY_DISABLED = 0,
 	OMAP_DSS_DISPLAY_ACTIVE,
-};
-
-struct omap_dss_audio {
-	struct snd_aes_iec958 *iec;
-	struct snd_cea_861_aud_if *cea;
 };
 
 enum omap_dss_rotation_type {
@@ -870,4 +857,4 @@ omapdss_of_get_first_endpoint(const struct device_node *parent);
 struct omap_dss_device *
 omapdss_of_find_source_for_first_ep(struct device_node *node);
 
-#endif
+#endif /* __OMAPFB_DSS_H */
