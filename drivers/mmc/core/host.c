@@ -316,6 +316,13 @@ int mmc_of_parse(struct mmc_host *host)
 	if (of_property_read_bool(np, "mmc-hs400-enhanced-strobe"))
 		host->caps2 |= MMC_CAP2_HS400_ES;
 
+	if (of_property_read_bool(np, "no-sdio"))
+		host->caps2 |= MMC_CAP2_NO_SDIO;
+	if (of_property_read_bool(np, "no-sd"))
+		host->caps2 |= MMC_CAP2_NO_SD;
+	if (of_property_read_bool(np, "no-mmc"))
+		host->caps2 |= MMC_CAP2_NO_MMC;
+
 	if (of_property_read_bool(np, "supports-sd"))
 		host->restrict_caps |= RESTRICT_CARD_TYPE_SD;
 	if (of_property_read_bool(np, "supports-sdio"))
