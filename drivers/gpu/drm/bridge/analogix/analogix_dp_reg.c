@@ -75,11 +75,9 @@ void analogix_dp_init_analog_param(struct analogix_dp_device *dp)
 	writel(reg, dp->reg_base + ANALOGIX_DP_ANALOG_CTL_2);
 
 	if (dp->plat_data && (dp->plat_data->dev_type == RK3288_DP ||
-			      dp->plat_data->dev_type == RK3368_EDP ||
 			      dp->plat_data->dev_type == RK3399_EDP)) {
 		reg = REF_CLK_24M;
-		if (dp->plat_data->dev_type == RK3288_DP ||
-		    dp->plat_data->dev_type == RK3368_EDP)
+		if (dp->plat_data->dev_type == RK3288_DP)
 			reg ^= REF_CLK_MASK;
 
 		writel(reg, dp->reg_base + ANALOGIX_DP_PLL_REG_1);
@@ -252,7 +250,6 @@ void analogix_dp_set_analog_power_down(struct analogix_dp_device *dp,
 	u32 phy_pd_addr = ANALOGIX_DP_PHY_PD;
 
 	if (dp->plat_data && (dp->plat_data->dev_type == RK3288_DP ||
-			      dp->plat_data->dev_type == RK3368_EDP ||
 			      dp->plat_data->dev_type == RK3399_EDP))
 		phy_pd_addr = ANALOGIX_DP_PD;
 
@@ -458,7 +455,6 @@ void analogix_dp_init_aux(struct analogix_dp_device *dp)
 
 	/* Disable AUX transaction H/W retry */
 	if (dp->plat_data && (dp->plat_data->dev_type == RK3288_DP ||
-			      dp->plat_data->dev_type == RK3368_EDP ||
 			      dp->plat_data->dev_type == RK3399_EDP))
 		reg = AUX_BIT_PERIOD_EXPECTED_DELAY(0) |
 		      AUX_HW_RETRY_COUNT_SEL(3) |

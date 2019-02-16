@@ -16,7 +16,6 @@
 enum analogix_dp_devtype {
 	EXYNOS_DP,
 	RK3288_DP,
-	RK3368_EDP,
 	RK3399_EDP,
 };
 

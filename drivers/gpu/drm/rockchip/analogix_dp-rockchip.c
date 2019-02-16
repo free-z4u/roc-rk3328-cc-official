@@ -446,10 +446,6 @@ static const struct rockchip_dp_chip_data rk3399_edp = {
 	.has_vop_sel = true,
 };
 
-static const struct rockchip_dp_chip_data rk3368_edp = {
-	.chip_type = RK3368_EDP,
-};
-
 static const struct rockchip_dp_chip_data rk3288_dp = {
 	.lcdsel_grf_reg = 0x025c,
 	.lcdsel_big = 0 | BIT(21),
@@ -460,7 +456,6 @@ static const struct rockchip_dp_chip_data rk3288_dp = {
 
 static const struct of_device_id rockchip_dp_dt_ids[] = {
 	{.compatible = "rockchip,rk3288-dp", .data = &rk3288_dp },
-	{.compatible = "rockchip,rk3368-edp", .data = &rk3368_edp },
 	{.compatible = "rockchip,rk3399-edp", .data = &rk3399_edp },
 	{}
 };
