@@ -496,22 +496,6 @@ struct nfs_pgio_header *nfs_pgio_header_alloc(const struct nfs_rw_ops *ops)
 }
 EXPORT_SYMBOL_GPL(nfs_pgio_header_alloc);
 
-/**
- * nfs_pgio_data_destroy - make @hdr suitable for reuse
- *
- * Frees memory and releases refs from nfs_generic_pgio, so that it may
- * be called again.
- *
- * @hdr: A header that has had nfs_generic_pgio called
- */
-static void nfs_pgio_data_destroy(struct nfs_pgio_header *hdr)
-{
-	if (hdr->args.context)
-		put_nfs_open_context(hdr->args.context);
-	if (hdr->page_array.pagevec != hdr->page_array.page_array)
-		kfree(hdr->page_array.pagevec);
-}
-
 /*
  * nfs_pgio_header_free - Free a read or write header
  * @hdr: The header to free
@@ -522,6 +506,23 @@ void nfs_pgio_header_free(struct nfs_pgio_header *hdr)
 	hdr->rw_ops->rw_free_header(hdr);
 }
 EXPORT_SYMBOL_GPL(nfs_pgio_header_free);
+
+/**
+ * nfs_pgio_data_destroy - make @hdr suitable for reuse
+ *
+ * Frees memory and releases refs from nfs_generic_pgio, so that it may
+ * be called again.
+ *
+ * @hdr: A header that has had nfs_generic_pgio called
+ */
+void nfs_pgio_data_destroy(struct nfs_pgio_header *hdr)
+{
+	if (hdr->args.context)
+		put_nfs_open_context(hdr->args.context);
+	if (hdr->page_array.pagevec != hdr->page_array.page_array)
+		kfree(hdr->page_array.pagevec);
+}
+EXPORT_SYMBOL_GPL(nfs_pgio_data_destroy);
 
 /**
  * nfs_pgio_rpcsetup - Set up arguments for a pageio call
