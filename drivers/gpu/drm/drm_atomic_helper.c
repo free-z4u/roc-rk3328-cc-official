@@ -110,8 +110,10 @@ static int handle_conflicting_encoders(struct drm_atomic_state *state,
 
 		if (funcs->atomic_best_encoder)
 			new_encoder = funcs->atomic_best_encoder(connector, conn_state);
-		else
+		else if (funcs->best_encoder)
 			new_encoder = funcs->best_encoder(connector);
+		else
+			new_encoder = drm_atomic_helper_best_encoder(connector);
 
 		if (new_encoder) {
 			if (encoder_mask & (1 << drm_encoder_index(new_encoder))) {
@@ -1967,21 +1969,21 @@ void drm_atomic_helper_swap_state(struct drm_device *dev,
 			ret = wait_for_completion_timeout(&commit->hw_done,
 							  10*HZ);
 			if (ret == 0)
-				DRM_ERROR("[CRTC:%d] hw_done timed out\n",
-					  crtc->base.id);
+				DRM_ERROR("[CRTC:%d:%s] hw_done timed out\n",
+					  crtc->base.id, crtc->name);
 			drm_crtc_commit_put(commit);
 		}
 	}
 
 	for_each_connector_in_state(state, connector, conn_state, i) {
 		connector->state->state = state;
-		swap(state->connector_states[i], connector->state);
+		swap(state->connectors[i].state, connector->state);
 		connector->state->state = NULL;
 	}
 
 	for_each_crtc_in_state(state, crtc, crtc_state, i) {
 		crtc->state->state = state;
-		swap(state->crtc_states[i], crtc->state);
+		swap(state->crtcs[i].state, crtc->state);
 		crtc->state->state = NULL;
 
 		if (state->crtc_commits[i]) {
@@ -1996,7 +1998,7 @@ void drm_atomic_helper_swap_state(struct drm_device *dev,
 
 	for_each_plane_in_state(state, plane, plane_state, i) {
 		plane->state->state = state;
-		swap(state->plane_states[i], plane->state);
+		swap(state->planes[i].state, plane->state);
 		plane->state->state = NULL;
 	}
 }
@@ -2809,7 +2811,7 @@ EXPORT_SYMBOL(drm_atomic_helper_page_flip);
  * This is the main helper function provided by the atomic helper framework for
  * implementing the legacy DPMS connector interface. It computes the new desired
  * ->active state for the corresponding CRTC (if the connector is enabled) and
- *  updates it.
+ * updates it.
  *
  * Returns:
  * Returns 0 on success, negative errno numbers on failure.
@@ -3337,16 +3339,15 @@ EXPORT_SYMBOL(drm_atomic_helper_connector_destroy_state);
  * @red: red correction table
  * @green: green correction table
  * @blue: green correction table
- * @start:
  * @size: size of the tables
  *
  * Implements support for legacy gamma correction table for drivers
  * that support color management through the DEGAMMA_LUT/GAMMA_LUT
  * properties.
  */
-void drm_atomic_helper_legacy_gamma_set(struct drm_crtc *crtc,
-					u16 *red, u16 *green, u16 *blue,
-					uint32_t start, uint32_t size)
+int drm_atomic_helper_legacy_gamma_set(struct drm_crtc *crtc,
+				       u16 *red, u16 *green, u16 *blue,
+				       uint32_t size)
 {
 	struct drm_device *dev = crtc->dev;
 	struct drm_mode_config *config = &dev->mode_config;
@@ -3358,7 +3359,7 @@ void drm_atomic_helper_legacy_gamma_set(struct drm_crtc *crtc,
 
 	state = drm_atomic_state_alloc(crtc->dev);
 	if (!state)
-		return;
+		return -ENOMEM;
 
 	blob = drm_property_create_blob(dev,
 					sizeof(struct drm_color_lut) * size,
@@ -3409,7 +3410,7 @@ retry:
 
 	drm_property_unreference_blob(blob);
 
-	return;
+	return 0;
 fail:
 	if (ret == -EDEADLK)
 		goto backoff;
@@ -3417,7 +3418,7 @@ fail:
 	drm_atomic_state_free(state);
 	drm_property_unreference_blob(blob);
 
-	return;
+	return ret;
 backoff:
 	drm_atomic_state_clear(state);
 	drm_atomic_legacy_backoff(state);

@@ -2259,7 +2259,7 @@ static void vop_crtc_cancel_pending_vblank(struct drm_crtc *crtc,
 	if (e && e->base.file_priv == file_priv) {
 		vop->event = NULL;
 
-		e->base.destroy(&e->base);
+		kfree(&e->base);
 		file_priv->event_space += sizeof(e->event);
 	}
 	spin_unlock_irqrestore(&drm->event_lock, flags);
@@ -2778,7 +2778,7 @@ static int vop_crtc_atomic_check(struct drm_crtc *crtc,
 		}
 
 		plane = &win->base;
-		pstate = state->plane_states[drm_plane_index(plane)];
+		pstate = state->planes[drm_plane_index(plane)].state;
 		/*
 		 * plane might not have changed, in which case take
 		 * current state:
@@ -3451,21 +3451,23 @@ static int vop_crtc_atomic_set_property(struct drm_crtc *crtc,
 	return -EINVAL;
 }
 
-static void vop_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
-			       u16 *blue, uint32_t start, uint32_t size)
+static int vop_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
+			       u16 *blue, uint32_t size)
 {
 	struct vop *vop = to_vop(crtc);
-	int end = min_t(u32, start + size, vop->lut_len);
+	int end = min_t(u32, size, vop->lut_len);
 	int i;
 
 	if (!vop->lut)
-		return;
+		return 0;
 
-	for (i = start; i < end; i++)
+	for (i = 0; i < end; i++)
 		rockchip_vop_crtc_fb_gamma_set(crtc, red[i], green[i],
 					       blue[i], i);
 
 	vop_crtc_load_lut(crtc);
+
+	return 0;
 }
 
 static const struct drm_crtc_funcs vop_crtc_funcs = {
