@@ -3076,6 +3076,10 @@ struct drm_display_mode *
 drm_display_mode_from_vic_index(struct drm_connector *connector,
 				const u8 *video_db, u8 video_len,
 				u8 video_index);
+extern void drm_crtc_enable_color_mgmt(struct drm_crtc *crtc,
+				       uint degamma_lut_size,
+				       bool has_ctm,
+				       uint gamma_lut_size);
 
 /* Helpers */
 
