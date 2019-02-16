@@ -83,8 +83,8 @@ struct rk_iommu_domain {
 	struct platform_device *pdev;
 	u32 *dt; /* page directory table */
 	dma_addr_t dt_dma;
-	struct mutex iommus_lock; /* lock for iommus list */
-	struct mutex dt_lock; /* lock for modifying page directory table */
+	spinlock_t iommus_lock; /* lock for iommus list */
+	spinlock_t dt_lock; /* lock for modifying page directory table */
 
 	struct iommu_domain domain;
 };
@@ -619,11 +619,12 @@ static phys_addr_t rk_iommu_iova_to_phys(struct iommu_domain *domain,
 					 dma_addr_t iova)
 {
 	struct rk_iommu_domain *rk_domain = to_rk_domain(domain);
+	unsigned long flags;
 	phys_addr_t pt_phys, phys = 0;
 	u32 dte, pte;
 	u32 *page_table;
 
-	mutex_lock(&rk_domain->dt_lock);
+	spin_lock_irqsave(&rk_domain->dt_lock, flags);
 
 	dte = rk_domain->dt[rk_iova_dte_index(iova)];
 	if (!rk_dte_is_pt_valid(dte))
@@ -637,7 +638,7 @@ static phys_addr_t rk_iommu_iova_to_phys(struct iommu_domain *domain,
 
 	phys = rk_pte_page_address(pte) + rk_iova_page_offset(iova);
 out:
-	mutex_unlock(&rk_domain->dt_lock);
+	spin_unlock_irqrestore(&rk_domain->dt_lock, flags);
 
 	return phys;
 }
@@ -646,15 +647,16 @@ static void rk_iommu_zap_iova(struct rk_iommu_domain *rk_domain,
 			      dma_addr_t iova, size_t size)
 {
 	struct list_head *pos;
+	unsigned long flags;
 
 	/* shootdown these iova from all iommus using this domain */
-	mutex_lock(&rk_domain->iommus_lock);
+	spin_lock_irqsave(&rk_domain->iommus_lock, flags);
 	list_for_each(pos, &rk_domain->iommus) {
 		struct rk_iommu *iommu;
 		iommu = list_entry(pos, struct rk_iommu, node);
 		rk_iommu_zap_lines(iommu, iova, size);
 	}
-	mutex_unlock(&rk_domain->iommus_lock);
+	spin_unlock_irqrestore(&rk_domain->iommus_lock, flags);
 }
 
 static void rk_iommu_zap_iova_first_last(struct rk_iommu_domain *rk_domain,
@@ -675,7 +677,7 @@ static u32 *rk_dte_get_page_table(struct rk_iommu_domain *rk_domain,
 	phys_addr_t pt_phys;
 	dma_addr_t pt_dma;
 
-	WARN_ON(!mutex_is_locked(&rk_domain->dt_lock));
+	assert_spin_locked(&rk_domain->dt_lock);
 
 	dte_index = rk_iova_dte_index(iova);
 	dte_addr = &rk_domain->dt[dte_index];
@@ -712,7 +714,7 @@ static size_t rk_iommu_unmap_iova(struct rk_iommu_domain *rk_domain,
 	unsigned int pte_count;
 	unsigned int pte_total = size / SPAGE_SIZE;
 
-	WARN_ON(!mutex_is_locked(&rk_domain->dt_lock));
+	assert_spin_locked(&rk_domain->dt_lock);
 
 	for (pte_count = 0; pte_count < pte_total; pte_count++) {
 		u32 pte = pte_addr[pte_count];
@@ -735,7 +737,7 @@ static int rk_iommu_map_iova(struct rk_iommu_domain *rk_domain, u32 *pte_addr,
 	unsigned int pte_total = size / SPAGE_SIZE;
 	phys_addr_t page_phys;
 
-	WARN_ON(!mutex_is_locked(&rk_domain->dt_lock));
+	assert_spin_locked(&rk_domain->dt_lock);
 
 	for (pte_count = 0; pte_count < pte_total; pte_count++) {
 		u32 pte = pte_addr[pte_count];
@@ -776,12 +778,13 @@ static int rk_iommu_map(struct iommu_domain *domain, unsigned long _iova,
 			phys_addr_t paddr, size_t size, int prot)
 {
 	struct rk_iommu_domain *rk_domain = to_rk_domain(domain);
+	unsigned long flags;
 	dma_addr_t pte_dma, iova = (dma_addr_t)_iova;
 	u32 *page_table, *pte_addr;
 	u32 dte_index, pte_index;
 	int ret;
 
-	mutex_lock(&rk_domain->dt_lock);
+	spin_lock_irqsave(&rk_domain->dt_lock, flags);
 
 	/*
 	 * pgsize_bitmap specifies iova sizes that fit in one page table
@@ -792,7 +795,7 @@ static int rk_iommu_map(struct iommu_domain *domain, unsigned long _iova,
 	 */
 	page_table = rk_dte_get_page_table(rk_domain, iova);
 	if (IS_ERR(page_table)) {
-		mutex_unlock(&rk_domain->dt_lock);
+		spin_unlock_irqrestore(&rk_domain->dt_lock, flags);
 		return PTR_ERR(page_table);
 	}
 
@@ -803,7 +806,7 @@ static int rk_iommu_map(struct iommu_domain *domain, unsigned long _iova,
 	ret = rk_iommu_map_iova(rk_domain, pte_addr, pte_dma, iova,
 				paddr, size, prot);
 
-	mutex_unlock(&rk_domain->dt_lock);
+	spin_unlock_irqrestore(&rk_domain->dt_lock, flags);
 
 	return ret;
 }
@@ -812,13 +815,14 @@ static size_t rk_iommu_unmap(struct iommu_domain *domain, unsigned long _iova,
 			     size_t size)
 {
 	struct rk_iommu_domain *rk_domain = to_rk_domain(domain);
+	unsigned long flags;
 	dma_addr_t pte_dma, iova = (dma_addr_t)_iova;
 	phys_addr_t pt_phys;
 	u32 dte;
 	u32 *pte_addr;
 	size_t unmap_size;
 
-	mutex_lock(&rk_domain->dt_lock);
+	spin_lock_irqsave(&rk_domain->dt_lock, flags);
 
 	/*
 	 * pgsize_bitmap specifies iova sizes that fit in one page table
@@ -830,7 +834,7 @@ static size_t rk_iommu_unmap(struct iommu_domain *domain, unsigned long _iova,
 	dte = rk_domain->dt[rk_iova_dte_index(iova)];
 	/* Just return 0 if iova is unmapped */
 	if (!rk_dte_is_pt_valid(dte)) {
-		mutex_unlock(&rk_domain->dt_lock);
+		spin_unlock_irqrestore(&rk_domain->dt_lock, flags);
 		return 0;
 	}
 
@@ -839,7 +843,7 @@ static size_t rk_iommu_unmap(struct iommu_domain *domain, unsigned long _iova,
 	pte_dma = pt_phys + rk_iova_pte_index(iova) * sizeof(u32);
 	unmap_size = rk_iommu_unmap_iova(rk_domain, pte_addr, pte_dma, size);
 
-	mutex_unlock(&rk_domain->dt_lock);
+	spin_unlock_irqrestore(&rk_domain->dt_lock, flags);
 
 	/* Shootdown iotlb entries for iova range that was just unmapped */
 	rk_iommu_zap_iova(rk_domain, iova, unmap_size);
@@ -873,6 +877,7 @@ static int rk_iommu_attach_device(struct iommu_domain *domain,
 {
 	struct rk_iommu *iommu;
 	struct rk_iommu_domain *rk_domain = to_rk_domain(domain);
+	unsigned long flags;
 	int ret, i;
 
 	/*
@@ -917,9 +922,9 @@ skip_request_irq:
 	if (ret)
 		return ret;
 
-	mutex_lock(&rk_domain->iommus_lock);
+	spin_lock_irqsave(&rk_domain->iommus_lock, flags);
 	list_add_tail(&iommu->node, &rk_domain->iommus);
-	mutex_unlock(&rk_domain->iommus_lock);
+	spin_unlock_irqrestore(&rk_domain->iommus_lock, flags);
 
 	dev_dbg(dev, "Attached to iommu domain\n");
 
@@ -933,6 +938,7 @@ static void rk_iommu_detach_device(struct iommu_domain *domain,
 {
 	struct rk_iommu *iommu;
 	struct rk_iommu_domain *rk_domain = to_rk_domain(domain);
+	unsigned long flags;
 	int i;
 
 	/* Allow 'virtual devices' (eg drm) to detach from domain */
@@ -940,9 +946,9 @@ static void rk_iommu_detach_device(struct iommu_domain *domain,
 	if (!iommu)
 		return;
 
-	mutex_lock(&rk_domain->iommus_lock);
+	spin_lock_irqsave(&rk_domain->iommus_lock, flags);
 	list_del_init(&iommu->node);
-	mutex_unlock(&rk_domain->iommus_lock);
+	spin_unlock_irqrestore(&rk_domain->iommus_lock, flags);
 
 	/* Ignore error while disabling, just keep going */
 	rk_iommu_enable_stall(iommu);
@@ -1014,8 +1020,8 @@ static struct iommu_domain *rk_iommu_domain_alloc(unsigned type)
 
 	rk_table_flush(rk_domain, rk_domain->dt_dma, NUM_DT_ENTRIES);
 
-	mutex_init(&rk_domain->iommus_lock);
-	mutex_init(&rk_domain->dt_lock);
+	spin_lock_init(&rk_domain->iommus_lock);
+	spin_lock_init(&rk_domain->dt_lock);
 	INIT_LIST_HEAD(&rk_domain->iommus);
 
 	rk_domain->domain.geometry.aperture_start = 0;
