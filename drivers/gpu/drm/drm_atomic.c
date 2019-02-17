@@ -30,6 +30,7 @@
 #include <drm/drm_atomic.h>
 #include <drm/drm_mode.h>
 #include <drm/drm_plane_helper.h>
+
 #include "drm_crtc_internal.h"
 
 static void crtc_commit_free(struct kref *kref)
@@ -58,7 +59,6 @@ void drm_atomic_state_default_release(struct drm_atomic_state *state)
 {
 	kfree(state->connectors);
 	kfree(state->crtcs);
-	kfree(state->crtc_commits);
 	kfree(state->planes);
 }
 EXPORT_SYMBOL(drm_atomic_state_default_release);
@@ -82,10 +82,6 @@ drm_atomic_state_init(struct drm_device *dev, struct drm_atomic_state *state)
 	state->crtcs = kcalloc(dev->mode_config.num_crtc,
 			       sizeof(*state->crtcs), GFP_KERNEL);
 	if (!state->crtcs)
-		goto fail;
-	state->crtc_commits = kcalloc(dev->mode_config.num_crtc,
-				     sizeof(*state->crtc_commits), GFP_KERNEL);
-	if (!state->crtc_commits)
 		goto fail;
 	state->planes = kcalloc(dev->mode_config.num_total_plane,
 				sizeof(*state->planes), GFP_KERNEL);
@@ -167,13 +163,13 @@ void drm_atomic_state_default_clear(struct drm_atomic_state *state)
 		crtc->funcs->atomic_destroy_state(crtc,
 						  state->crtcs[i].state);
 
-		if (state->crtc_commits[i]) {
-			kfree(state->crtc_commits[i]->event);
-			state->crtc_commits[i]->event = NULL;
-			drm_crtc_commit_put(state->crtc_commits[i]);
+		if (state->crtcs[i].commit) {
+			kfree(state->crtcs[i].commit->event);
+			state->crtcs[i].commit->event = NULL;
+			drm_crtc_commit_put(state->crtcs[i].commit);
 		}
 
-		state->crtc_commits[i] = NULL;
+		state->crtcs[i].commit = NULL;
 		state->crtcs[i].ptr = NULL;
 		state->crtcs[i].state = NULL;
 	}
@@ -1462,7 +1458,7 @@ int drm_atomic_check_only(struct drm_atomic_state *state)
 		}
 	}
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(drm_atomic_check_only);
 

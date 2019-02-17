@@ -847,9 +847,6 @@ struct drm_crtc_funcs {
  * @gamma_store: gamma ramp values
  * @helper_private: mid-layer private data
  * @properties: property tracking for this CRTC
- * @state: current atomic state for this CRTC
- * @acquire_ctx: per-CRTC implicit acquire context used by atomic drivers for
- * 	legacy IOCTLs
  *
  * Each CRTC may have one or more connectors associated with it.  This structure
  * allows the CRTC to be controlled.
@@ -931,9 +928,12 @@ struct drm_crtc {
 	 */
 	spinlock_t commit_lock;
 
-	/*
-	 * For legacy crtc IOCTLs so that atomic drivers can get at the locking
-	 * acquire context.
+	/**
+	 * @acquire_ctx:
+	 *
+	 * Per-CRTC implicit acquire context used by atomic drivers for legacy
+	 * IOCTLs, so that atomic drivers can get at the locking acquire
+	 * context.
 	 */
 	struct drm_modeset_acquire_ctx *acquire_ctx;
 };
@@ -1519,7 +1519,6 @@ struct drm_connector {
 	uint8_t num_h_tile, num_v_tile;
 	uint8_t tile_h_loc, tile_v_loc;
 	uint16_t tile_h_size, tile_v_size;
-
 };
 
 /**
@@ -2008,21 +2007,6 @@ struct drm_bridge {
 	void *driver_private;
 };
 
-struct __drm_planes_state {
-	struct drm_plane *ptr;
-	struct drm_plane_state *state;
-};
-
-struct __drm_crtcs_state {
-	struct drm_crtc *ptr;
-	struct drm_crtc_state *state;
-};
-
-struct __drm_connnectors_state {
-	struct drm_connector *ptr;
-	struct drm_connector_state *state;
-};
-
 /**
  * struct drm_crtc_commit - track modeset commits on a CRTC
  *
@@ -2128,6 +2112,22 @@ struct drm_crtc_commit {
 	struct drm_pending_vblank_event *event;
 };
 
+struct __drm_planes_state {
+	struct drm_plane *ptr;
+	struct drm_plane_state *state;
+};
+
+struct __drm_crtcs_state {
+	struct drm_crtc *ptr;
+	struct drm_crtc_state *state;
+	struct drm_crtc_commit *commit;
+};
+
+struct __drm_connnectors_state {
+	struct drm_connector *ptr;
+	struct drm_connector_state *state;
+};
+
 /**
  * struct drm_atomic_state - the global state object for atomic updates
  * @dev: parent DRM device
@@ -2147,7 +2147,6 @@ struct drm_atomic_state {
 	bool legacy_set_config : 1;
 	struct __drm_planes_state *planes;
 	struct __drm_crtcs_state *crtcs;
-	struct drm_crtc_commit **crtc_commits;
 	int num_connector;
 	struct __drm_connnectors_state *connectors;
 
@@ -2500,6 +2499,7 @@ struct drm_mode_config_funcs {
  * @async_page_flip: does this device support async flips on the primary plane?
  * @cursor_width: hint to userspace for max cursor width
  * @cursor_height: hint to userspace for max cursor height
+ * @helper_private: mid-layer private data
  *
  * Core mode resource tracking structure.  All CRTC, encoders, and connectors
  * enumerated by the driver are added here, as are global properties.  Some
@@ -2655,6 +2655,8 @@ struct drm_mode_config {
 
 	/* cursor size */
 	uint32_t cursor_width, cursor_height;
+
+	struct drm_mode_config_helper_funcs *helper_private;
 };
 
 /**
