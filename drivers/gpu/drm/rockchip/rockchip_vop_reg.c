@@ -53,9 +53,6 @@ static const uint32_t formats_win_full[] = {
 	DRM_FORMAT_NV12,
 	DRM_FORMAT_NV16,
 	DRM_FORMAT_NV24,
-	DRM_FORMAT_NV12_10,
-	DRM_FORMAT_NV16_10,
-	DRM_FORMAT_NV24_10,
 };
 
 static const uint32_t formats_win_lite[] = {

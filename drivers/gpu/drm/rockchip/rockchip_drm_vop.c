@@ -507,13 +507,10 @@ static enum vop_data_format vop_convert_format(uint32_t format)
 	case DRM_FORMAT_BGR565:
 		return VOP_FMT_RGB565;
 	case DRM_FORMAT_NV12:
-	case DRM_FORMAT_NV12_10:
 		return VOP_FMT_YUV420SP;
 	case DRM_FORMAT_NV16:
-	case DRM_FORMAT_NV16_10:
 		return VOP_FMT_YUV422SP;
 	case DRM_FORMAT_NV24:
-	case DRM_FORMAT_NV24_10:
 		return VOP_FMT_YUV444SP;
 	default:
 		DRM_ERROR("unsupport format[%08x]\n", format);
@@ -558,23 +555,8 @@ static bool is_yuv_support(uint32_t format)
 {
 	switch (format) {
 	case DRM_FORMAT_NV12:
-	case DRM_FORMAT_NV12_10:
 	case DRM_FORMAT_NV16:
-	case DRM_FORMAT_NV16_10:
 	case DRM_FORMAT_NV24:
-	case DRM_FORMAT_NV24_10:
-		return true;
-	default:
-		return false;
-	}
-}
-
-static bool is_yuv_10bit(uint32_t format)
-{
-	switch (format) {
-	case DRM_FORMAT_NV12_10:
-	case DRM_FORMAT_NV16_10:
-	case DRM_FORMAT_NV24_10:
 		return true;
 	default:
 		return false;
@@ -1622,7 +1604,7 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 		VOP_WIN_SET(vop, win, uv_vir, fb->pitches[1] >> 2);
 		VOP_WIN_SET(vop, win, uv_mst, vop_plane_state->uv_mst);
 	}
-	VOP_WIN_SET(vop, win, fmt_10, is_yuv_10bit(fb->pixel_format));
+	VOP_WIN_SET(vop, win, fmt_10, false);
 
 	scl_vop_cal_scl_fac(vop, win, actual_w, actual_h,
 			    drm_rect_width(dest), drm_rect_height(dest),
