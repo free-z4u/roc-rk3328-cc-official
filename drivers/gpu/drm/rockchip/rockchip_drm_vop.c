@@ -271,6 +271,11 @@ static struct vop *dmc_vop[MAX_VOPS];
 static struct devfreq *devfreq_vop;
 static DEFINE_MUTEX(register_devfreq_lock);
 
+static inline int drm_format_plane_bpp(uint32_t format, int plane)
+{
+	return drm_format_plane_cpp(format, plane) << 3;
+}
+
 static inline void vop_writel(struct vop *vop, uint32_t offset, uint32_t v)
 {
 	writel(v, vop->regs + offset);
