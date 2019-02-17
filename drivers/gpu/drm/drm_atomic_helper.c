@@ -237,7 +237,6 @@ steal_encoder(struct drm_atomic_state *state,
 	struct drm_crtc_state *crtc_state;
 	struct drm_connector *connector;
 	struct drm_connector_state *connector_state;
-
 	int i;
 
 	for_each_connector_in_state(state, connector, connector_state, i) {
@@ -1193,7 +1192,7 @@ int drm_atomic_helper_commit(struct drm_device *dev,
 	 * the software side now.
 	 */
 
-	drm_atomic_helper_swap_state(dev, state);
+	drm_atomic_helper_swap_state(state, true);
 
 	/*
 	 * Everything below can be run asynchronously without the need to grab
@@ -1912,8 +1911,8 @@ EXPORT_SYMBOL(drm_atomic_helper_cleanup_planes);
 
 /**
  * drm_atomic_helper_swap_state - store atomic state into current sw state
- * @dev: DRM device
  * @state: atomic state
+ * @stall: stall for proceeding commits
  *
  * This function stores the atomic state into the current state pointers in all
  * driver objects. It should be called after all failing steps have been done
@@ -1940,8 +1939,8 @@ EXPORT_SYMBOL(drm_atomic_helper_cleanup_planes);
  * current atomic helpers this is almost always the case, since the helpers
  * don't pass the right state structures to the callbacks.
  */
-void drm_atomic_helper_swap_state(struct drm_device *dev,
-				  struct drm_atomic_state *state)
+void drm_atomic_helper_swap_state(struct drm_atomic_state *state,
+				  bool stall)
 {
 	int i;
 	long ret;
@@ -1952,7 +1951,6 @@ void drm_atomic_helper_swap_state(struct drm_device *dev,
 	struct drm_plane *plane;
 	struct drm_plane_state *plane_state;
 	struct drm_crtc_commit *commit;
-	bool stall = true;
 
 	if (stall) {
 		for_each_crtc_in_state(state, crtc, crtc_state, i) {

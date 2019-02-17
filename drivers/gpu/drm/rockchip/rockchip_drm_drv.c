@@ -727,7 +727,7 @@ static void show_loader_logo(struct drm_device *drm_dev)
 	 * drm deivces as old state, so if new state come, can compare
 	 * with this state to judge which status need to update.
 	 */
-	drm_atomic_helper_swap_state(drm_dev, state);
+	drm_atomic_helper_swap_state(state, true);
 	drm_atomic_state_free(state);
 	old_state = drm_atomic_helper_duplicate_state(drm_dev,
 						      mode_config->acquire_ctx);
@@ -768,7 +768,7 @@ static void show_loader_logo(struct drm_device *drm_dev)
 		/*
 		 * restore display status if atomic commit failed.
 		 */
-		drm_atomic_helper_swap_state(drm_dev, old_state);
+		drm_atomic_helper_swap_state(old_state, true);
 		goto err_free_old_state;
 	}
 

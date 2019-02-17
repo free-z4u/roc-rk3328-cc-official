@@ -337,7 +337,7 @@ int rockchip_drm_atomic_commit(struct drm_device *dev,
 		DRM_ERROR("vop bandwidth too large %zd\n", bandwidth);
 	}
 
-	drm_atomic_helper_swap_state(dev, state);
+	drm_atomic_helper_swap_state(state, true);
 
 	commit = kmalloc(sizeof(*commit), GFP_KERNEL);
 	if (!commit)
