@@ -184,10 +184,12 @@ struct vop_win {
 	const uint32_t *data_formats;
 	uint32_t nformats;
 	u64 feature;
+	struct drm_property *rotation_prop;
 	struct vop *vop;
 
-	struct drm_property *rotation_prop;
-	struct vop_plane_state state;
+	/* protected by dev->event_lock */
+	bool enable;
+	dma_addr_t yrgb_mst;
 };
 
 struct vop {
@@ -1519,6 +1521,11 @@ static void vop_plane_atomic_disable(struct drm_plane *plane,
 	if (!old_state->crtc)
 		return;
 
+	spin_lock_irq(&plane->dev->event_lock);
+	win->enable = false;
+	win->yrgb_mst = 0;
+	spin_unlock_irq(&plane->dev->event_lock);
+
 	spin_lock(&vop->reg_lock);
 
 	/*
@@ -1566,7 +1573,7 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 	/*
 	 * can't update plane when vop is disabled.
 	 */
-	if (!crtc)
+	if (WARN_ON(!crtc))
 		return;
 
 	if (!vop_plane_state->enable) {
@@ -1592,6 +1599,11 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 
 	vop = to_vop(state->crtc);
 	s = to_rockchip_crtc_state(crtc->state);
+
+	spin_lock_irq(&plane->dev->event_lock);
+	win->enable = true;
+	win->yrgb_mst = vop_plane_state->yrgb_mst;
+	spin_unlock_irq(&plane->dev->event_lock);
 
 	spin_lock(&vop->reg_lock);
 
