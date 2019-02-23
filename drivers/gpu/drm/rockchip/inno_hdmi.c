@@ -648,14 +648,6 @@ inno_hdmi_connector_mode_valid(struct drm_connector *connector,
 	return MODE_OK;
 }
 
-static struct drm_encoder *
-inno_hdmi_connector_best_encoder(struct drm_connector *connector)
-{
-	struct inno_hdmi *hdmi = to_inno_hdmi(connector);
-
-	return &hdmi->encoder;
-}
-
 static int
 inno_hdmi_probe_single_connector_modes(struct drm_connector *connector,
 				       uint32_t maxX, uint32_t maxY)
@@ -682,7 +674,6 @@ static struct drm_connector_funcs inno_hdmi_connector_funcs = {
 static struct drm_connector_helper_funcs inno_hdmi_connector_helper_funcs = {
 	.get_modes = inno_hdmi_connector_get_modes,
 	.mode_valid = inno_hdmi_connector_mode_valid,
-	.best_encoder = inno_hdmi_connector_best_encoder,
 };
 
 int inno_hdmi_audio_config_set(struct inno_hdmi *hdmi, struct audio_info *audio)
