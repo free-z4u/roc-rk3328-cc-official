@@ -13,8 +13,6 @@ obj-$(CONFIG_ROCKCHIP_INNO_HDMI) += inno_hdmi.o
 
 obj-$(CONFIG_DRM_ROCKCHIP) += rockchipdrm.o rockchip_vop_reg.o
 
-obj-$(CONFIG_ROCKCHIP_CDN_DP) += cdn-dp.o
-cdn-dp-objs := cdn-dp-core.o cdn-dp-reg.o
 obj-$(CONFIG_ROCKCHIP_ANALOGIX_DP) += analogix_dp-rockchip.o
 obj-$(CONFIG_ROCKCHIP_LVDS) += rockchip_lvds.o
 obj-$(CONFIG_ROCKCHIP_RGB) += rockchip_rgb.o
