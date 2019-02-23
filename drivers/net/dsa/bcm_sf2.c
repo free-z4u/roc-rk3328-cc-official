@@ -1626,7 +1626,7 @@ static int bcm_sf2_sw_setup(struct dsa_switch *ds)
 			  "switch_0", priv);
 	if (ret < 0) {
 		pr_err("failed to request switch_0 IRQ\n");
-		goto out_unmap;
+		goto out_mdio;
 	}
 
 	ret = request_irq(priv->irq1, bcm_sf2_switch_1_isr, 0,
@@ -1683,6 +1683,8 @@ static int bcm_sf2_sw_setup(struct dsa_switch *ds)
 
 out_free_irq0:
 	free_irq(priv->irq0, priv);
+out_mdio:
+	bcm_sf2_mdio_unregister(priv);
 out_unmap:
 	base = &priv->core;
 	for (i = 0; i < BCM_SF2_REGS_NUM; i++) {
@@ -1690,7 +1692,6 @@ out_unmap:
 			iounmap(*base);
 		base++;
 	}
-	bcm_sf2_mdio_unregister(priv);
 	return ret;
 }
 

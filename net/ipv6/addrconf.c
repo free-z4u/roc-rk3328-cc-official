@@ -3690,8 +3690,7 @@ restart:
 			state = ifa->state;
 			ifa->state = INET6_IFADDR_STATE_DEAD;
 
-			list_del(&ifa->if_list);
-			list_add(&ifa->if_list, &del_list);
+			list_move(&ifa->if_list, &del_list);
 		}
 
 		spin_unlock_bh(&ifa->lock);
