@@ -847,7 +847,7 @@ static int rga_parse_dt(struct rockchip_rga *rga)
 
 static int rga_probe(struct platform_device *pdev)
 {
-	struct dma_attrs cmdlist_dma_attrs;
+	unsigned long cmdlist_dma_attrs;
 	struct rockchip_rga *rga;
 	struct video_device *vfd;
 	struct resource *res;
@@ -931,11 +931,10 @@ static int rga_probe(struct platform_device *pdev)
 	pm_runtime_put(rga->dev);
 
 	/* Create CMD buffer */
-	init_dma_attrs(&cmdlist_dma_attrs);
-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &cmdlist_dma_attrs);
+	cmdlist_dma_attrs = DMA_ATTR_WRITE_COMBINE;
 	rga->cmdbuf_virt = dma_alloc_attrs(rga->dev, RGA_CMDBUF_SIZE,
 					   &rga->cmdbuf_phy, GFP_KERNEL,
-					   &cmdlist_dma_attrs);
+					   cmdlist_dma_attrs);
 
 	rga->src_mmu_pages =
 		(unsigned int *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, 3);
@@ -970,10 +969,9 @@ err_put_clk:
 static int rga_remove(struct platform_device *pdev)
 {
 	struct rockchip_rga *rga = platform_get_drvdata(pdev);
-	DEFINE_DMA_ATTRS(attrs);
 
 	dma_free_attrs(rga->dev, RGA_CMDBUF_SIZE, &rga->cmdbuf_virt,
-		       rga->cmdbuf_phy, &attrs);
+		       rga->cmdbuf_phy, 0);
 
 	free_pages((unsigned long)rga->src_mmu_pages, 3);
 	free_pages((unsigned long)rga->dst_mmu_pages, 3);

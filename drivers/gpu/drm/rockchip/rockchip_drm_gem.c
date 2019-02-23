@@ -20,7 +20,6 @@
 #include <drm/rockchip_drm.h>
 
 #include <linux/completion.h>
-#include <linux/dma-attrs.h>
 #include <linux/dma-buf.h>
 #include <linux/genalloc.h>
 #include <linux/reservation.h>
@@ -250,13 +249,11 @@ static int rockchip_gem_alloc_cma(struct rockchip_gem_object *rk_obj)
 	int ret, i;
 	struct scatterlist *s;
 
-	init_dma_attrs(&rk_obj->dma_attrs);
-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &rk_obj->dma_attrs);
-	dma_set_attr(DMA_ATTR_NO_KERNEL_MAPPING, &rk_obj->dma_attrs);
-
+	rk_obj->dma_attrs = DMA_ATTR_WRITE_COMBINE;
+	rk_obj->dma_attrs |= DMA_ATTR_NO_KERNEL_MAPPING;
 	rk_obj->cookie = dma_alloc_attrs(drm->dev, obj->size,
 					 &rk_obj->dma_handle, GFP_KERNEL,
-					 &rk_obj->dma_attrs);
+					 rk_obj->dma_attrs);
 	if (!rk_obj->cookie) {
 		DRM_ERROR("failed to allocate %zu byte dma buffer", obj->size);
 		return -ENOMEM;
@@ -270,7 +267,7 @@ static int rockchip_gem_alloc_cma(struct rockchip_gem_object *rk_obj)
 
 	ret = dma_get_sgtable_attrs(drm->dev, sgt, rk_obj->cookie,
 				    rk_obj->dma_handle, obj->size,
-				    &rk_obj->dma_attrs);
+				    rk_obj->dma_attrs);
 	if (ret) {
 		DRM_ERROR("failed to allocate sgt, %d\n", ret);
 		goto err_sgt_free;
@@ -307,7 +304,7 @@ err_sgt_free:
 	kfree(sgt);
 err_dma_free:
 	dma_free_attrs(drm->dev, obj->size, rk_obj->cookie,
-		       rk_obj->dma_handle, &rk_obj->dma_attrs);
+		       rk_obj->dma_handle, rk_obj->dma_attrs);
 
 	return ret;
 }
@@ -321,7 +318,7 @@ static void rockchip_gem_free_cma(struct rockchip_gem_object *rk_obj)
 	sg_free_table(rk_obj->sgt);
 	kfree(rk_obj->sgt);
 	dma_free_attrs(drm->dev, obj->size, rk_obj->cookie,
-		       rk_obj->dma_handle, &rk_obj->dma_attrs);
+		       rk_obj->dma_handle, rk_obj->dma_attrs);
 }
 
 static int rockchip_gem_alloc_secure(struct rockchip_gem_object *rk_obj)
@@ -508,7 +505,7 @@ static int rockchip_drm_gem_object_mmap_cma(struct drm_gem_object *obj,
 	struct drm_device *drm = obj->dev;
 
 	return dma_mmap_attrs(drm->dev, vma, rk_obj->cookie, rk_obj->dma_handle,
-			      obj->size, &rk_obj->dma_attrs);
+			      obj->size, rk_obj->dma_attrs);
 }
 
 static int rockchip_drm_gem_object_mmap(struct drm_gem_object *obj,
@@ -1120,6 +1117,9 @@ void *rockchip_gem_prime_vmap(struct drm_gem_object *obj)
 {
 	struct rockchip_gem_object *rk_obj = to_rockchip_obj(obj);
 
+	if (rk_obj->dma_attrs & DMA_ATTR_NO_KERNEL_MAPPING)
+		return NULL;
+
 	if (rk_obj->kvaddr)
 		return rk_obj->kvaddr;
 
@@ -1131,5 +1131,5 @@ void *rockchip_gem_prime_vmap(struct drm_gem_object *obj)
 
 void rockchip_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr)
 {
-	/* Unmap buffer on buffer destroy. */
+	/* Nothing to do */
 }

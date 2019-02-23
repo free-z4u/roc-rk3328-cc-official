@@ -34,7 +34,7 @@ struct rockchip_gem_object {
 	dma_addr_t dma_handle;
 
 	/* Used when IOMMU is disabled */
-	struct dma_attrs dma_attrs;
+	unsigned long dma_attrs;
 
 #ifdef CONFIG_DRM_DMA_SYNC
 	struct fence *acquire_fence;
