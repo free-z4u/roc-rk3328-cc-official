@@ -39,6 +39,7 @@
 #include <drm/drm_fourcc.h>
 #include <drm/drm_modeset_lock.h>
 #include <drm/drm_atomic.h>
+#include <drm/drm_auth.h>
 
 #include "drm_crtc_internal.h"
 #include "drm_internal.h"
@@ -966,6 +967,12 @@ void drm_connector_cleanup(struct drm_connector *connector)
 	struct drm_device *dev = connector->dev;
 	struct drm_display_mode *mode, *t;
 
+	/* The connector should have been removed from userspace long before
+	 * it is finally destroyed.
+	 */
+	if (WARN_ON(connector->registered))
+		drm_connector_unregister(connector);
+
 	if (connector->tile_group) {
 		drm_mode_put_tile_group(dev, connector->tile_group);
 		connector->tile_group = NULL;
@@ -1012,6 +1019,9 @@ int drm_connector_register(struct drm_connector *connector)
 {
 	int ret;
 
+	if (connector->registered)
+		return 0;
+
 	ret = drm_sysfs_connector_add(connector);
 	if (ret)
 		return ret;
@@ -1029,6 +1039,7 @@ int drm_connector_register(struct drm_connector *connector)
 
 	drm_mode_object_register(connector->dev, &connector->base);
 
+	connector->registered = true;
 	return 0;
 
 err_debugfs:
@@ -1047,11 +1058,16 @@ EXPORT_SYMBOL(drm_connector_register);
  */
 void drm_connector_unregister(struct drm_connector *connector)
 {
+	if (!connector->registered)
+		return;
+
 	if (connector->funcs->early_unregister)
 		connector->funcs->early_unregister(connector);
 
 	drm_sysfs_connector_remove(connector);
 	drm_debugfs_connector_remove(connector);
+
+	connector->registered = false;
 }
 EXPORT_SYMBOL(drm_connector_unregister);
 
@@ -1060,9 +1076,9 @@ EXPORT_SYMBOL(drm_connector_unregister);
  * @dev: drm device
  *
  * This function registers all connectors in sysfs and other places so that
- * userspace can start to access them. Drivers can call it after calling
- * drm_dev_register() to complete the device registration, if they don't call
- * drm_connector_register() on each connector individually.
+ * userspace can start to access them. drm_connector_register_all() is called
+ * automatically from drm_dev_register() to complete the device registration,
+ * if they don't call drm_connector_register() on each connector individually.
  *
  * When a device is unplugged and should be removed from userspace access,
  * call drm_connector_unregister_all(), which is the inverse of this
@@ -3761,7 +3777,7 @@ int drm_mode_getfb(struct drm_device *dev,
 	r->bpp = fb->bits_per_pixel;
 	r->pitch = fb->pitches[0];
 	if (fb->funcs->create_handle) {
-		if (file_priv->is_master || capable(CAP_SYS_ADMIN) ||
+		if (drm_is_current_master(file_priv) || capable(CAP_SYS_ADMIN) ||
 		    drm_is_control_client(file_priv)) {
 			ret = fb->funcs->create_handle(fb, file_priv,
 						       &r->handle);
@@ -3916,6 +3932,13 @@ void drm_fb_release(struct drm_file *priv)
 		flush_work(&arg.work);
 		destroy_work_on_stack(&arg.work);
 	}
+}
+
+static bool drm_property_type_valid(struct drm_property *property)
+{
+	if (property->flags & DRM_MODE_PROP_EXTENDED_TYPE)
+		return !(property->flags & DRM_MODE_PROP_LEGACY_TYPE);
+	return !!(property->flags & DRM_MODE_PROP_LEGACY_TYPE);
 }
 
 /**
