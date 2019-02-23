@@ -46,7 +46,6 @@
 #include "rockchip_drm_gem.h"
 #include "rockchip_drm_fb.h"
 #include "rockchip_drm_vop.h"
-#include "rockchip_drm_backlight.h"
 
 #define MAX_VOPS	2
 
@@ -4072,27 +4071,6 @@ int rockchip_drm_register_notifier_to_dmc(struct devfreq *devfreq)
 }
 EXPORT_SYMBOL(rockchip_drm_register_notifier_to_dmc);
 
-static void vop_backlight_config_done(struct device *dev, bool async)
-{
-	struct vop *vop = dev_get_drvdata(dev);
-
-	if (vop && vop->is_enabled) {
-		int dle;
-
-		vop_cfg_done(vop);
-		if (!async) {
-			#define CTRL_GET(name) VOP_CTRL_GET(vop, name)
-			readx_poll_timeout(CTRL_GET, cfg_done,
-					   dle, !dle, 5, 33333);
-			#undef CTRL_GET
-		}
-	}
-}
-
-static const struct rockchip_sub_backlight_ops rockchip_sub_backlight_ops = {
-	.config_done = vop_backlight_config_done,
-};
-
 static int vop_bind(struct device *dev, struct device *master, void *data)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -4228,9 +4206,6 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 		return ret;
 
 	pm_runtime_enable(&pdev->dev);
-
-	of_rockchip_drm_sub_backlight_register(dev, &vop->crtc,
-					       &rockchip_sub_backlight_ops);
 
 	mutex_lock(&register_devfreq_lock);
 

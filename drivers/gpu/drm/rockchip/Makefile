@@ -16,8 +16,6 @@ obj-$(CONFIG_DRM_ROCKCHIP) += rockchipdrm.o rockchip_vop_reg.o
 obj-$(CONFIG_ROCKCHIP_ANALOGIX_DP) += analogix_dp-rockchip.o
 obj-$(CONFIG_ROCKCHIP_LVDS) += rockchip_lvds.o
 
-obj-$(CONFIG_ROCKCHIP_DRM_BACKLIGHT) += rockchip_drm_backlight.o
-
 obj-$(CONFIG_ROCKCHIP_DRM_TVE) += rockchip_drm_tve.o
 
 obj-$(CONFIG_ROCKCHIP_RK3066_HDMI) += rk3066_hdmi.o

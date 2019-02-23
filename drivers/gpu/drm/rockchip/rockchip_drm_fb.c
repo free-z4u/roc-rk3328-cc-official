@@ -25,7 +25,6 @@
 #include "rockchip_drm_drv.h"
 #include "rockchip_drm_fb.h"
 #include "rockchip_drm_gem.h"
-#include "rockchip_drm_backlight.h"
 
 #define to_rockchip_fb(x) container_of(x, struct rockchip_drm_fb, fb)
 
@@ -276,8 +275,6 @@ rockchip_atomic_commit_complete(struct rockchip_atomic_commit *commit)
 	drm_atomic_helper_commit_modeset_disables(dev, state);
 
 	drm_atomic_helper_commit_modeset_enables(dev, state);
-
-	rockchip_drm_backlight_update(dev);
 
 	if (prv->dmc_support && !prv->devfreq) {
 		prv->devfreq = devfreq_get_devfreq_by_phandle(dev->dev, 0);
