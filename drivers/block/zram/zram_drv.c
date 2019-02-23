@@ -971,7 +971,7 @@ static void zram_slot_free_notify(struct block_device *bdev,
 }
 
 static int zram_rw_page(struct block_device *bdev, sector_t sector,
-		       struct page *page, int rw)
+		       struct page *page, bool is_write)
 {
 	int offset, err = -EIO;
 	u32 index;
@@ -995,7 +995,7 @@ static int zram_rw_page(struct block_device *bdev, sector_t sector,
 	bv.bv_len = PAGE_SIZE;
 	bv.bv_offset = 0;
 
-	err = zram_bvec_rw(zram, &bv, index, offset, rw);
+	err = zram_bvec_rw(zram, &bv, index, offset, is_write);
 put_zram:
 	zram_meta_put(zram);
 out:
@@ -1008,7 +1008,7 @@ out:
 	 * (e.g., SetPageError, set_page_dirty and extra works).
 	 */
 	if (err == 0)
-		page_endio(page, rw, 0);
+		page_endio(page, is_write, 0);
 	return err;
 }
 
