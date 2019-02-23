@@ -48,7 +48,7 @@ static void arcpgu_setup_mode_config(struct drm_device *drm)
 	drm->mode_config.funcs = &arcpgu_drm_modecfg_funcs;
 }
 
-int arcpgu_gem_mmap(struct file *filp, struct vm_area_struct *vma)
+static int arcpgu_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	int ret;
 
@@ -103,10 +103,8 @@ static int arcpgu_load(struct drm_device *drm)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	arcpgu->regs = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(arcpgu->regs)) {
-		dev_err(drm->dev, "Could not remap IO mem\n");
+	if (IS_ERR(arcpgu->regs))
 		return PTR_ERR(arcpgu->regs);
-	}
 
 	dev_info(drm->dev, "arc_pgu ID: 0x%x\n",
 		 arc_pgu_read(arcpgu, ARCPGU_REG_ID));
@@ -130,7 +128,7 @@ static int arcpgu_load(struct drm_device *drm)
 		if (ret < 0)
 			return ret;
 	} else {
-		ret = arcpgu_drm_sim_init(drm, 0);
+		ret = arcpgu_drm_sim_init(drm, NULL);
 		if (ret < 0)
 			return ret;
 	}
@@ -151,7 +149,7 @@ static int arcpgu_load(struct drm_device *drm)
 	return 0;
 }
 
-int arcpgu_unload(struct drm_device *drm)
+static int arcpgu_unload(struct drm_device *drm)
 {
 	struct arcpgu_drm_private *arcpgu = drm->dev_private;
 
