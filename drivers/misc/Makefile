@@ -3,7 +3,6 @@
 #
 
 obj-$(CONFIG_ROCKCHIP_SCR)	+= rk_scr.o
-obj-$(CONFIG_GPIO_DET)		+= gpio-detection.o
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
 obj-$(CONFIG_AD525X_DPOT_I2C)	+= ad525x_dpot-i2c.o
@@ -58,9 +57,6 @@ obj-$(CONFIG_GENWQE)		+= genwqe/
 obj-$(CONFIG_ECHO)		+= echo/
 obj-$(CONFIG_VEXPRESS_SYSCFG)	+= vexpress-syscfg.o
 obj-$(CONFIG_CXL_BASE)		+= cxl/
-obj-$(CONFIG_UID_SYS_STATS) += uid_sys_stats.o
-obj-$(CONFIG_MEMORY_STATE_TIME) += memory_state_time.o
-obj-$(CONFIG_USB_CAM_GPIO)	+= usb_cam_gpio.o
 obj-$(CONFIG_PANEL)             += panel.o
 
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
