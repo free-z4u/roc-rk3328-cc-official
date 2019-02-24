@@ -21,8 +21,11 @@
 #include <asm/byteorder.h>
 
 #include <linux/socket.h>
+#include <linux/if.h>
 #include <linux/if_ether.h>
 #include <linux/if_pppol2tp.h>
+#include <linux/in.h>
+#include <linux/in6.h>
 #include <linux/if_pppolac.h>
 #include <linux/if_pppopns.h>
 
