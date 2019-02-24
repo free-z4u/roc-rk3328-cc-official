@@ -231,7 +231,6 @@ struct pending_dir_move {
 	u64 parent_ino;
 	u64 ino;
 	u64 gen;
-	bool is_orphan;
 	struct list_head update_refs;
 };
 
@@ -273,6 +272,39 @@ struct name_cache_entry {
 	int name_len;
 	char name[];
 };
+
+static void inconsistent_snapshot_error(struct send_ctx *sctx,
+					enum btrfs_compare_tree_result result,
+					const char *what)
+{
+	const char *result_string;
+
+	switch (result) {
+	case BTRFS_COMPARE_TREE_NEW:
+		result_string = "new";
+		break;
+	case BTRFS_COMPARE_TREE_DELETED:
+		result_string = "deleted";
+		break;
+	case BTRFS_COMPARE_TREE_CHANGED:
+		result_string = "updated";
+		break;
+	case BTRFS_COMPARE_TREE_SAME:
+		ASSERT(0);
+		result_string = "unchanged";
+		break;
+	default:
+		ASSERT(0);
+		result_string = "unexpected";
+	}
+
+	btrfs_err(sctx->send_root->fs_info,
+		  "Send: inconsistent snapshot, found %s %s for inode %llu without updated inode item, send root is %llu, parent root is %llu",
+		  result_string, what, sctx->cmp_key->objectid,
+		  sctx->send_root->root_key.objectid,
+		  (sctx->parent_root ?
+		   sctx->parent_root->root_key.objectid : 0));
+}
 
 static int is_waiting_for_move(struct send_ctx *sctx, u64 ino);
 
@@ -1864,7 +1896,8 @@ static int will_overwrite_ref(struct send_ctx *sctx, u64 dir, u64 dir_gen,
 	 * was already unlinked/moved, so we can safely assume that we will not
 	 * overwrite anything at this point in time.
 	 */
-	if (other_inode > sctx->send_progress) {
+	if (other_inode > sctx->send_progress ||
+	    is_waiting_for_move(sctx, other_inode)) {
 		ret = get_inode_info(sctx->parent_root, other_inode, NULL,
 				who_gen, NULL, NULL, NULL, NULL);
 		if (ret < 0)
@@ -2505,6 +2538,8 @@ verbose_printk("btrfs: send_utimes %llu\n", ino);
 	key.type = BTRFS_INODE_ITEM_KEY;
 	key.offset = 0;
 	ret = btrfs_search_slot(NULL, sctx->send_root, &key, path, 0, 0);
+	if (ret > 0)
+		ret = -ENOENT;
 	if (ret < 0)
 		goto out;
 
@@ -2950,6 +2985,10 @@ static int can_rmdir(struct send_ctx *sctx, u64 dir, u64 dir_gen,
 		}
 
 		if (loc.objectid > send_progress) {
+			struct orphan_dir_info *odi;
+
+			odi = get_orphan_dir_info(sctx, dir);
+			free_orphan_dir_info(sctx, odi);
 			ret = 0;
 			goto out;
 		}
@@ -3050,7 +3089,6 @@ static int add_pending_dir_move(struct send_ctx *sctx,
 	pm->parent_ino = parent_ino;
 	pm->ino = ino;
 	pm->gen = ino_gen;
-	pm->is_orphan = is_orphan;
 	INIT_LIST_HEAD(&pm->list);
 	INIT_LIST_HEAD(&pm->update_refs);
 	RB_CLEAR_NODE(&pm->node);
@@ -3116,6 +3154,48 @@ static struct pending_dir_move *get_pending_dir_moves(struct send_ctx *sctx,
 	return NULL;
 }
 
+static int path_loop(struct send_ctx *sctx, struct fs_path *name,
+		     u64 ino, u64 gen, u64 *ancestor_ino)
+{
+	int ret = 0;
+	u64 parent_inode = 0;
+	u64 parent_gen = 0;
+	u64 start_ino = ino;
+
+	*ancestor_ino = 0;
+	while (ino != BTRFS_FIRST_FREE_OBJECTID) {
+		fs_path_reset(name);
+
+		if (is_waiting_for_rm(sctx, ino))
+			break;
+		if (is_waiting_for_move(sctx, ino)) {
+			if (*ancestor_ino == 0)
+				*ancestor_ino = ino;
+			ret = get_first_ref(sctx->parent_root, ino,
+					    &parent_inode, &parent_gen, name);
+		} else {
+			ret = __get_cur_name_and_parent(sctx, ino, gen,
+							&parent_inode,
+							&parent_gen, name);
+			if (ret > 0) {
+				ret = 0;
+				break;
+			}
+		}
+		if (ret < 0)
+			break;
+		if (parent_inode == start_ino) {
+			ret = 1;
+			if (*ancestor_ino == 0)
+				*ancestor_ino = ino;
+			break;
+		}
+		ino = parent_inode;
+		gen = parent_gen;
+	}
+	return ret;
+}
+
 static int apply_dir_move(struct send_ctx *sctx, struct pending_dir_move *pm)
 {
 	struct fs_path *from_path = NULL;
@@ -3126,6 +3206,8 @@ static int apply_dir_move(struct send_ctx *sctx, struct pending_dir_move *pm)
 	u64 parent_ino, parent_gen;
 	struct waiting_dir_move *dm = NULL;
 	u64 rmdir_ino = 0;
+	u64 ancestor;
+	bool is_orphan;
 	int ret;
 
 	name = fs_path_alloc();
@@ -3138,9 +3220,10 @@ static int apply_dir_move(struct send_ctx *sctx, struct pending_dir_move *pm)
 	dm = get_waiting_dir_move(sctx, pm->ino);
 	ASSERT(dm);
 	rmdir_ino = dm->rmdir_ino;
+	is_orphan = dm->orphanized;
 	free_waiting_dir_move(sctx, dm);
 
-	if (pm->is_orphan) {
+	if (is_orphan) {
 		ret = gen_unique_name(sctx, pm->ino,
 				      pm->gen, from_path);
 	} else {
@@ -3158,6 +3241,24 @@ static int apply_dir_move(struct send_ctx *sctx, struct pending_dir_move *pm)
 		goto out;
 
 	sctx->send_progress = sctx->cur_ino + 1;
+	ret = path_loop(sctx, name, pm->ino, pm->gen, &ancestor);
+	if (ret < 0)
+		goto out;
+	if (ret) {
+		LIST_HEAD(deleted_refs);
+		ASSERT(ancestor > BTRFS_FIRST_FREE_OBJECTID);
+		ret = add_pending_dir_move(sctx, pm->ino, pm->gen, ancestor,
+					   &pm->update_refs, &deleted_refs,
+					   is_orphan);
+		if (ret < 0)
+			goto out;
+		if (rmdir_ino) {
+			dm = get_waiting_dir_move(sctx, pm->ino);
+			ASSERT(dm);
+			dm->rmdir_ino = rmdir_ino;
+		}
+		goto out;
+	}
 	fs_path_reset(name);
 	to_path = name;
 	name = NULL;
@@ -3177,7 +3278,7 @@ static int apply_dir_move(struct send_ctx *sctx, struct pending_dir_move *pm)
 			/* already deleted */
 			goto finish;
 		}
-		ret = can_rmdir(sctx, rmdir_ino, odi->gen, sctx->cur_ino + 1);
+		ret = can_rmdir(sctx, rmdir_ino, odi->gen, sctx->cur_ino);
 		if (ret < 0)
 			goto out;
 		if (!ret)
@@ -3207,8 +3308,18 @@ finish:
 	 * and old parent(s).
 	 */
 	list_for_each_entry(cur, &pm->update_refs, list) {
-		if (cur->dir == rmdir_ino)
+		/*
+		 * The parent inode might have been deleted in the send snapshot
+		 */
+		ret = get_inode_info(sctx->send_root, cur->dir, NULL,
+				     NULL, NULL, NULL, NULL, NULL);
+		if (ret == -ENOENT) {
+			ret = 0;
 			continue;
+		}
+		if (ret < 0)
+			goto out;
+
 		ret = send_utimes(sctx, cur->dir, cur->dir_gen);
 		if (ret < 0)
 			goto out;
@@ -3328,6 +3439,7 @@ static int wait_for_dest_dir_move(struct send_ctx *sctx,
 	u64 left_gen;
 	u64 right_gen;
 	int ret = 0;
+	struct waiting_dir_move *wdm;
 
 	if (RB_EMPTY_ROOT(&sctx->waiting_dir_moves))
 		return 0;
@@ -3386,7 +3498,8 @@ static int wait_for_dest_dir_move(struct send_ctx *sctx,
 		goto out;
 	}
 
-	if (is_waiting_for_move(sctx, di_key.objectid)) {
+	wdm = get_waiting_dir_move(sctx, di_key.objectid);
+	if (wdm && !wdm->orphanized) {
 		ret = add_pending_dir_move(sctx,
 					   sctx->cur_ino,
 					   sctx->cur_inode_gen,
@@ -3473,7 +3586,8 @@ static int wait_for_parent_move(struct send_ctx *sctx,
 			ret = is_ancestor(sctx->parent_root,
 					  sctx->cur_ino, sctx->cur_inode_gen,
 					  ino, path_before);
-			break;
+			if (ret)
+				break;
 		}
 
 		fs_path_reset(path_before);
@@ -3646,11 +3760,26 @@ verbose_printk("btrfs: process_recorded_refs %llu\n", sctx->cur_ino);
 				goto out;
 			if (ret) {
 				struct name_cache_entry *nce;
+				struct waiting_dir_move *wdm;
 
 				ret = orphanize_inode(sctx, ow_inode, ow_gen,
 						cur->full_path);
 				if (ret < 0)
 					goto out;
+
+				/*
+				 * If ow_inode has its rename operation delayed
+				 * make sure that its orphanized name is used in
+				 * the source path when performing its rename
+				 * operation.
+				 */
+				if (is_waiting_for_move(sctx, ow_inode)) {
+					wdm = get_waiting_dir_move(sctx,
+								   ow_inode);
+					ASSERT(wdm);
+					wdm->orphanized = true;
+				}
+
 				/*
 				 * Make sure we clear our orphanized inode's
 				 * name from the name cache. This is because the
@@ -3666,6 +3795,19 @@ verbose_printk("btrfs: process_recorded_refs %llu\n", sctx->cur_ino);
 					name_cache_delete(sctx, nce);
 					kfree(nce);
 				}
+
+				/*
+				 * ow_inode might currently be an ancestor of
+				 * cur_ino, therefore compute valid_path (the
+				 * current path of cur_ino) again because it
+				 * might contain the pre-orphanization name of
+				 * ow_inode, which is no longer valid.
+				 */
+				fs_path_reset(valid_path);
+				ret = get_cur_path(sctx, sctx->cur_ino,
+					   sctx->cur_inode_gen, valid_path);
+				if (ret < 0)
+					goto out;
 			} else {
 				ret = send_unlink(sctx, cur->full_path);
 				if (ret < 0)
@@ -5627,7 +5769,10 @@ static int changed_ref(struct send_ctx *sctx,
 {
 	int ret = 0;
 
-	BUG_ON(sctx->cur_ino != sctx->cmp_key->objectid);
+	if (sctx->cur_ino != sctx->cmp_key->objectid) {
+		inconsistent_snapshot_error(sctx, result, "reference");
+		return -EIO;
+	}
 
 	if (!sctx->cur_inode_new_gen &&
 	    sctx->cur_ino != BTRFS_FIRST_FREE_OBJECTID) {
@@ -5652,7 +5797,10 @@ static int changed_xattr(struct send_ctx *sctx,
 {
 	int ret = 0;
 
-	BUG_ON(sctx->cur_ino != sctx->cmp_key->objectid);
+	if (sctx->cur_ino != sctx->cmp_key->objectid) {
+		inconsistent_snapshot_error(sctx, result, "xattr");
+		return -EIO;
+	}
 
 	if (!sctx->cur_inode_new_gen && !sctx->cur_inode_deleted) {
 		if (result == BTRFS_COMPARE_TREE_NEW)
@@ -5676,7 +5824,10 @@ static int changed_extent(struct send_ctx *sctx,
 {
 	int ret = 0;
 
-	BUG_ON(sctx->cur_ino != sctx->cmp_key->objectid);
+	if (sctx->cur_ino != sctx->cmp_key->objectid) {
+		inconsistent_snapshot_error(sctx, result, "extent");
+		return -EIO;
+	}
 
 	if (!sctx->cur_inode_new_gen && !sctx->cur_inode_deleted) {
 		if (result != BTRFS_COMPARE_TREE_DELETED)
