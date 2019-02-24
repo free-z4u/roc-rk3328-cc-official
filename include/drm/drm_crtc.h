@@ -400,6 +400,7 @@ struct drm_plane_helper_funcs;
  * @mode_changed: crtc_state->mode or crtc_state->enable has been changed
  * @active_changed: crtc_state->active has been toggled.
  * @connectors_changed: connectors to this crtc have been updated
+ * @zpos_changed: zpos values of planes on this crtc have been updated
  * @color_mgmt_changed: color management properties have changed (degamma or
  *	gamma LUT or CSC matrix)
  * @plane_mask: bitmask of (1 << drm_plane_index(plane)) of attached planes
@@ -436,6 +437,7 @@ struct drm_crtc_state {
 	bool mode_changed : 1;
 	bool active_changed : 1;
 	bool connectors_changed : 1;
+	bool zpos_changed : 1;
 	bool color_mgmt_changed : 1;
 
 	/* attached planes bitmask:
@@ -1404,6 +1406,8 @@ struct drm_encoder {
  * @encoder_ids: valid encoders for this connector
  * @encoder: encoder driving this connector, if any
  * @eld: EDID-like data, if present
+ * @dvi_dual: dual link DVI, if found
+ * @max_tmds_clock: max clock rate, if found
  * @latency_present: AV delay info from ELD, if found
  * @video_latency: video latency info from ELD, if found
  * @audio_latency: audio latency info from ELD, if found
@@ -1512,6 +1516,8 @@ struct drm_connector {
 
 	/* EDID bits */
 	uint8_t eld[MAX_ELD_BYTES];
+	bool dvi_dual;
+	int max_tmds_clock;	/* in MHz */
 	bool latency_present[2];
 	int video_latency[2];	/* [0]: progressive, [1]: interlaced */
 	int audio_latency[2];
@@ -1554,6 +1560,9 @@ struct drm_connector {
  * @src_w: width of visible portion of plane (in 16.16)
  * @src_h: height of visible portion of plane (in 16.16)
  * @rotation: rotation of the plane
+ * @zpos: priority of the given plane on crtc (optional)
+ * @normalized_zpos: normalized value of zpos: unique, range from 0 to N-1
+ *	where N is the number of active planes for given crtc
  * @state: backpointer to global drm_atomic_state
  */
 struct drm_plane_state {
@@ -1573,6 +1582,10 @@ struct drm_plane_state {
 
 	/* Plane rotation */
 	unsigned int rotation;
+
+	/* Plane zpos */
+	unsigned int zpos;
+	unsigned int normalized_zpos;
 
 	struct drm_atomic_state *state;
 };
@@ -1834,6 +1847,7 @@ enum drm_plane_type {
  * @properties: property tracking for this plane
  * @type: type of plane (overlay, primary, cursor)
  * @state: current atomic state for this plane
+ * @zpos_property: zpos property for this plane
  * @helper_private: mid-layer private data
  */
 struct drm_plane {
@@ -1879,6 +1893,8 @@ struct drm_plane {
 	const struct drm_plane_helper_funcs *helper_private;
 
 	struct drm_plane_state *state;
+
+	struct drm_property *zpos_property;
 };
 
 /**
@@ -3131,6 +3147,13 @@ extern void drm_crtc_enable_color_mgmt(struct drm_crtc *crtc,
 				       uint degamma_lut_size,
 				       bool has_ctm,
 				       uint gamma_lut_size);
+
+int drm_plane_create_zpos_property(struct drm_plane *plane,
+				   unsigned int zpos,
+				   unsigned int min, unsigned int max);
+
+int drm_plane_create_zpos_immutable_property(struct drm_plane *plane,
+					     unsigned int zpos);
 
 /* Helpers */
 struct drm_mode_object *drm_mode_object_find(struct drm_device *dev,
