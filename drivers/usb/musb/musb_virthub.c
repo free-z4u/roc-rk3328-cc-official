@@ -295,6 +295,7 @@ int musb_hub_control(
 	u32		temp;
 	int		retval = 0;
 	unsigned long	flags;
+	bool		start_musb = false;
 
 	spin_lock_irqsave(&musb->lock, flags);
 
@@ -395,7 +396,7 @@ int musb_hub_control(
 			 * logic relating to VBUS power-up.
 			 */
 			if (!hcd->self.is_b_host && musb_has_gadget(musb))
-				musb_start(musb);
+				start_musb = true;
 			break;
 		case USB_PORT_FEAT_RESET:
 			musb_port_reset(musb, true);
@@ -456,5 +457,9 @@ error:
 		retval = -EPIPE;
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
+
+	if (start_musb)
+		musb_start(musb);
+
 	return retval;
 }
