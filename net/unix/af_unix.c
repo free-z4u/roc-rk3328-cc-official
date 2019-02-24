@@ -2135,7 +2135,7 @@ static int unix_dgram_recvmsg(struct socket *sock, struct msghdr *msg,
 	} while (timeo &&
 		 !__skb_wait_for_more_packets(sk, &err, &timeo, last));
 
-	if (!skb) { /* implies readlock unlocked */
+	if (!skb) { /* implies iolock unlocked */
 		unix_state_lock(sk);
 		/* Signal EOF on disconnected non-blocking SEQPACKET socket. */
 		if (sk->sk_type == SOCK_SEQPACKET && err == -EAGAIN &&
