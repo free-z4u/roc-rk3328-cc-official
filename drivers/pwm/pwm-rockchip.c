@@ -203,7 +203,7 @@ static int rockchip_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	struct rockchip_pwm_chip *pc = to_rockchip_pwm_chip(chip);
 	struct pwm_state curstate;
 	bool enabled;
-	int ret = 0;
+	int ret;
 
 	ret = clk_enable(pc->pclk);
 	if (ret)
