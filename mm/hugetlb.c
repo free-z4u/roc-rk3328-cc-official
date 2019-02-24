@@ -1449,6 +1449,7 @@ static void dissolve_free_huge_page(struct page *page)
 		list_del(&head->lru);
 		h->free_huge_pages--;
 		h->free_huge_pages_node[nid]--;
+		h->max_huge_pages--;
 		update_and_free_page(h, head);
 	}
 	spin_unlock(&hugetlb_lock);
