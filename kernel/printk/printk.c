@@ -1989,7 +1989,6 @@ asmlinkage int printk_emit(int facility, int level,
 }
 EXPORT_SYMBOL(printk_emit);
 
-#ifdef CONFIG_PRINTK
 #define define_pr_level(func, loglevel)				\
 asmlinkage __visible void func(const char *fmt, ...)		\
 {								\
@@ -2008,7 +2007,6 @@ define_pr_level(__pr_err, LOGLEVEL_ERR);
 define_pr_level(__pr_warn, LOGLEVEL_WARNING);
 define_pr_level(__pr_notice, LOGLEVEL_NOTICE);
 define_pr_level(__pr_info, LOGLEVEL_INFO);
-#endif
 
 int vprintk_default(int level, const char *fmt, va_list args)
 {
