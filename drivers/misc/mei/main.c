@@ -202,7 +202,7 @@ static ssize_t mei_read(struct file *file, char __user *ubuf,
 
 		mutex_lock(&dev->device_lock);
 		if (!mei_cl_is_connected(cl)) {
-			rets = -ENODEV;
+			rets = -EBUSY;
 			goto out;
 		}
 	}
@@ -551,6 +551,7 @@ static long mei_ioctl(struct file *file, unsigned int cmd, unsigned long data)
 		break;
 
 	default:
+		dev_err(dev->dev, ": unsupported ioctl %d.\n", cmd);
 		rets = -ENOIOCTLCMD;
 	}
 
