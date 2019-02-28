@@ -39,16 +39,6 @@ static const struct snd_pcm_hw_constraint_list constraints_12288 = {
 	.list	= rates_12288,
 };
 
-static unsigned int ratios_12000[] = {
-	8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000,
-	48000, 88235, 96000,
-};
-
-static struct snd_pcm_hw_constraint_list constraints_12000 = {
-	.count = ARRAY_SIZE(ratios_12000),
-	.list = ratios_12000,
-};
-
 static const unsigned int rates_11289[] = {
 	8018, 11025, 22050, 44100, 88200,
 };
@@ -79,10 +69,14 @@ static const char * const supply_names[ES8328_SUPPLY_NUM] = {
 	"HPVDD",
 };
 
-#define ES8328_RATES (SNDRV_PCM_RATE_192000 | \
-		SNDRV_PCM_RATE_96000 | \
-		SNDRV_PCM_RATE_88200 | \
-		SNDRV_PCM_RATE_8000_48000)
+#define ES8328_RATES (SNDRV_PCM_RATE_96000 | \
+		SNDRV_PCM_RATE_48000 | \
+		SNDRV_PCM_RATE_44100 | \
+		SNDRV_PCM_RATE_32000 | \
+		SNDRV_PCM_RATE_22050 | \
+		SNDRV_PCM_RATE_16000 | \
+		SNDRV_PCM_RATE_11025 | \
+		SNDRV_PCM_RATE_8000)
 #define ES8328_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | \
 		SNDRV_PCM_FMTBIT_S18_3LE | \
 		SNDRV_PCM_FMTBIT_S20_3LE | \
@@ -97,7 +91,6 @@ struct es8328_priv {
 	int mclkdiv2;
 	const struct snd_pcm_hw_constraint_list *sysclk_constraints;
 	const int *mclk_ratios;
-	bool master;
 	struct regulator_bulk_data supplies[ES8328_SUPPLY_NUM];
 };
 
@@ -476,7 +469,7 @@ static int es8328_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = dai->codec;
 	struct es8328_priv *es8328 = snd_soc_codec_get_drvdata(codec);
 
-	if (es8328->master && es8328->sysclk_constraints)
+	if (es8328->sysclk_constraints)
 		snd_pcm_hw_constraint_list(substream->runtime, 0,
 				SNDRV_PCM_HW_PARAM_RATE,
 				es8328->sysclk_constraints);
@@ -495,34 +488,27 @@ static int es8328_hw_params(struct snd_pcm_substream *substream,
 	int wl;
 	int ratio;
 
+	if (!es8328->sysclk_constraints) {
+		dev_err(codec->dev, "No MCLK configured\n");
+		return -EINVAL;
+	}
+
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		reg = ES8328_DACCONTROL2;
 	else
 		reg = ES8328_ADCCONTROL5;
 
-	if (es8328->master) {
-		if (!es8328->sysclk_constraints) {
-			dev_err(codec->dev, "No MCLK configured\n");
-			return -EINVAL;
-		}
+	for (i = 0; i < es8328->sysclk_constraints->count; i++)
+		if (es8328->sysclk_constraints->list[i] == params_rate(params))
+			break;
 
-		for (i = 0; i < es8328->sysclk_constraints->count; i++)
-			if (es8328->sysclk_constraints->list[i] ==
-			    params_rate(params))
-				break;
-
-		if (i == es8328->sysclk_constraints->count) {
-			dev_err(codec->dev,
-				"LRCLK %d unsupported with current clock\n",
-				params_rate(params));
-			return -EINVAL;
-		}
-		ratio = es8328->mclk_ratios[i];
-	} else {
-		ratio = 0;
-		es8328->mclkdiv2 = 0;
+	if (i == es8328->sysclk_constraints->count) {
+		dev_err(codec->dev, "LRCLK %d unsupported with current clock\n",
+			params_rate(params));
+		return -EINVAL;
 	}
 
+	ratio = es8328->mclk_ratios[i];
 	snd_soc_update_bits(codec, ES8328_MASTERMODE,
 			ES8328_MASTERMODE_MCLKDIV2,
 			es8328->mclkdiv2 ? ES8328_MASTERMODE_MCLKDIV2 : 0);
@@ -600,27 +586,12 @@ static int es8328_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		unsigned int fmt)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
-	struct es8328_priv *es8328 = snd_soc_codec_get_drvdata(codec);
 	u8 dac_mode = 0;
 	u8 adc_mode = 0;
 
-	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBM_CFM:
-		/* Master serial port mode, with BCLK generated automatically */
-		snd_soc_update_bits(codec, ES8328_MASTERMODE,
-				    ES8328_MASTERMODE_MSC,
-				    ES8328_MASTERMODE_MSC);
-		es8328->master = true;
-		break;
-	case SND_SOC_DAIFMT_CBS_CFS:
-		/* Slave serial port mode */
-		snd_soc_update_bits(codec, ES8328_MASTERMODE,
-				    ES8328_MASTERMODE_MSC, 0);
-		es8328->master = false;
-		break;
-	default:
+	/* set master/slave audio interface */
+	if ((fmt & SND_SOC_DAIFMT_MASTER_MASK) != SND_SOC_DAIFMT_CBM_CFM)
 		return -EINVAL;
-	}
 
 	/* interface format */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
@@ -648,6 +619,10 @@ static int es8328_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			ES8328_DACCONTROL1_DACFORMAT_MASK, dac_mode);
 	snd_soc_update_bits(codec, ES8328_ADCCONTROL4,
 			ES8328_ADCCONTROL4_ADCFORMAT_MASK, adc_mode);
+
+	/* Master serial port mode, with BCLK generated automatically */
+	snd_soc_update_bits(codec, ES8328_MASTERMODE,
+			ES8328_MASTERMODE_MSC, ES8328_MASTERMODE_MSC);
 
 	return 0;
 }
@@ -848,14 +823,12 @@ static struct snd_soc_codec_driver es8328_codec_driver = {
 	.set_bias_level	  = es8328_set_bias_level,
 	.suspend_bias_off = true,
 
-	.component_driver = {
-		.controls		= es8328_snd_controls,
-		.num_controls		= ARRAY_SIZE(es8328_snd_controls),
-		.dapm_widgets		= es8328_dapm_widgets,
-		.num_dapm_widgets	= ARRAY_SIZE(es8328_dapm_widgets),
-		.dapm_routes		= es8328_dapm_routes,
-		.num_dapm_routes	= ARRAY_SIZE(es8328_dapm_routes),
-	},
+	.controls	  = es8328_snd_controls,
+	.num_controls	  = ARRAY_SIZE(es8328_snd_controls),
+	.dapm_widgets	  = es8328_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(es8328_dapm_widgets),
+	.dapm_routes	  = es8328_dapm_routes,
+	.num_dapm_routes  = ARRAY_SIZE(es8328_dapm_routes),
 };
 
 int es8328_probe(struct device *dev, struct regmap *regmap)
