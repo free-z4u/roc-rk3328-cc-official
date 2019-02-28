@@ -265,40 +265,6 @@ void call_set_spk(int on)
 	return;
 }
 #endif
-#ifdef CONFIG_RK_HEADSET_DET
-//for headset
-void rk2928_codec_set_spk(bool on)
-{
-	struct rk610_codec_priv *rk610_codec;
-	if(!rk610_codec_codec)
-		return;
-	rk610_codec=snd_soc_codec_get_drvdata(rk610_codec_codec);
-	if(!rk610_codec)
-		return;
-		
-	if(on)
-		rk610_codec->headset_status = HP_IN;
-	else
-		rk610_codec->headset_status = HP_OUT;
-		
-	if(rk610_codec->call_enable)
-		return;
-		
-	printk("%s: headset %s %s PA bias_level=%d\n",__FUNCTION__,on?"in":"out",on?"disable":"enable",codec->dapm.bias_level);
-	if(on) {
-		if(rk610_codec->spk_ctrl_io)
-			gpio_set_value(rk610_codec->spk_ctrl_io, GPIO_LOW);
-	}
-	else {
-		if(codec->dapm.bias_level == SND_SOC_BIAS_STANDBY 
-		|| codec->dapm.bias_level == SND_SOC_BIAS_OFF){
-			return;
-		}
-		if(rk610_codec->spk_ctrl_io)
-			gpio_set_value(rk610_codec->spk_ctrl_io, GPIO_HIGH);
-	}
-}
-#endif
 
 void rk610_codec_reg_read(void)
 {

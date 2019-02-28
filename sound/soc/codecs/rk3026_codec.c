@@ -30,11 +30,6 @@
 #include <mach/cru.h>
 #include "rk3026_codec.h"
 
-
-#ifdef CONFIG_RK_HEADSET_DET
-#include "../../../drivers/headset_observe/rk_headset.h"
-#endif
-
 static int debug;
 module_param(debug, int, S_IRUGO|S_IWUSR);
 

@@ -27,10 +27,6 @@
 
 #include "rk3190_codec.h"
 
-#ifdef CONFIG_RK_HEADSET_DET
-#include "../../../drivers/headset_observe/rk_headset.h"
-#endif
-
 #if 0
 #define	DBG(x...)	printk(KERN_INFO x)
 #else

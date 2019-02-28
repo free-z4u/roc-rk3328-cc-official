@@ -238,38 +238,6 @@ void call_set_spk(int on)
 	return;
 }
 #endif
-#ifdef CONFIG_RK_HEADSET_DET
-//for headset
-void rk2928_codec_set_spk(bool on)
-{
-	struct snd_soc_codec *codec = rk2928_data.codec;
-	if(codec == NULL)
-		return;
-	if(on)
-		rk2928_data.headset_status = HP_IN;
-	else
-		rk2928_data.headset_status = HP_OUT;
-	if(rk2928_data.call_enable)
-		return;
-	printk("%s: headset %s %s PA bias_level=%d\n",__FUNCTION__,on?"in":"out",on?"disable":"enable",codec->dapm.bias_level);
-	if(on) {
-		if(rk2928_data.spkctl != INVALID_GPIO)
-		{
-			gpio_direction_output(rk2928_data.spkctl, GPIO_LOW);
-		}
-	}
-	else {
-		if(codec->dapm.bias_level == SND_SOC_BIAS_STANDBY 
-		|| codec->dapm.bias_level == SND_SOC_BIAS_OFF){
-			return;
-		}		
-		if(rk2928_data.spkctl != INVALID_GPIO)
-		{
-			gpio_direction_output(rk2928_data.spkctl, GPIO_HIGH);
-		}
-	}
-}
-#endif
 
 static int rk2928_audio_hw_params(struct snd_pcm_substream *substream,
 				    struct snd_pcm_hw_params *params,

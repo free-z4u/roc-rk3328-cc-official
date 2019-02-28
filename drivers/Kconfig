@@ -208,6 +208,4 @@ source "drivers/tee/Kconfig"
 
 source "drivers/rk_nand/Kconfig"
 
-source "drivers/headset_observe/Kconfig"
-
 endmenu
