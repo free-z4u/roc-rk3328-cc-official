@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: ((GPL-2.0 WITH Linux-syscall-note) OR BSD-3-Clause) */
 /*
  * cec - HDMI Consumer Electronics Control public header
  *
@@ -223,7 +224,7 @@ static inline int cec_msg_status_is_ok(const struct cec_msg *msg)
 #define CEC_LOG_ADDR_BACKUP_2		13
 #define CEC_LOG_ADDR_SPECIFIC		14
 #define CEC_LOG_ADDR_UNREGISTERED	15 /* as initiator address */
-#define CEC_LOG_ADDR_BROADCAST		15 /* ad destination address */
+#define CEC_LOG_ADDR_BROADCAST		15 /* as destination address */
 
 /* The logical address types that the CEC device wants to claim */
 #define CEC_LOG_ADDR_TYPE_TV		0
