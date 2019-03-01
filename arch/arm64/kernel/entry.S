@@ -851,7 +851,11 @@ work_pending:
 #ifdef CONFIG_TRACE_IRQFLAGS
 	bl	trace_hardirqs_on		// enabled while in userspace
 #endif
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+	ldr	x1, [tsk, #TSK_TI_FLAGS]		// re-check for single-step
+#else
 	ldr	x1, [tsk, #TI_FLAGS]		// re-check for single-step
+#endif
 	b	finish_ret_to_user
 /*
  * "slow" syscall return path.
