@@ -1043,10 +1043,6 @@ static int mmc_select_hs(struct mmc_card *card)
 		err = mmc_switch_status(card);
 	}
 
-	if (err)
-		pr_warn("%s: switch to high-speed failed, err:%d\n",
-			mmc_hostname(card->host), err);
-
 	return err;
 }
 
@@ -1992,7 +1988,6 @@ static int mmc_suspend(struct mmc_host *host)
 static int _mmc_resume(struct mmc_host *host)
 {
 	int err = 0;
-	int i;
 
 	BUG_ON(!host);
 	BUG_ON(!host->card);
@@ -2002,22 +1997,8 @@ static int _mmc_resume(struct mmc_host *host)
 	if (!mmc_card_suspended(host->card))
 		goto out;
 
-	/*
-	 * Let's try to fallback the host->f_init
-	 * if failing to init mmc card after resume.
-	 */
-	for (i = 0; i < ARRAY_SIZE(freqs); i++) {
-		if (host->f_init < max(freqs[i], host->f_min))
-			continue;
-		else
-			host->f_init = max(freqs[i], host->f_min);
-
-		mmc_power_up(host, host->card->ocr);
-		err = mmc_init_card(host, host->card->ocr, host->card);
-		if (!err)
-			break;
-	}
-
+	mmc_power_up(host, host->card->ocr);
+	err = mmc_init_card(host, host->card->ocr, host->card);
 	mmc_card_clr_suspended(host->card);
 
 out:

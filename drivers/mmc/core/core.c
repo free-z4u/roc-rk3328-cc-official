@@ -49,11 +49,6 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_erase_start);
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_erase_end);
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_rw_start);
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_rw_end);
-
 /* If the device is not responding */
 #define MMC_CORE_TIMEOUT_MS	(10 * 60 * 1000) /* 10 minute timeout */
 
@@ -62,6 +57,8 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_rw_end);
  * operations the card has to perform.
  */
 #define MMC_BKOPS_MAX_TIMEOUT	(4 * 60 * 1000) /* max time to wait in ms */
+
+static const unsigned freqs[] = { 400000, 300000, 200000, 100000 };
 
 /*
  * Enabling software CRCs on the data blocks can be a significant (30%)
@@ -178,7 +175,6 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 			pr_debug("%s:     %d bytes transferred: %d\n",
 				mmc_hostname(host),
 				mrq->data->bytes_xfered, mrq->data->error);
-			trace_mmc_blk_rw_end(cmd->opcode, cmd->arg, mrq->data);
 		}
 
 		if (mrq->stop) {
@@ -623,12 +619,8 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 		}
 	}
 
-	if (!err && areq) {
-		trace_mmc_blk_rw_start(areq->mrq->cmd->opcode,
-				       areq->mrq->cmd->arg,
-				       areq->mrq->data);
+	if (!err && areq)
 		start_err = __mmc_start_data_req(host, areq->mrq);
-	}
 
 	if (host->areq)
 		mmc_post_req(host, host->areq->mrq, 0);
@@ -2079,12 +2071,7 @@ static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 	unsigned int qty = 0, busy_timeout = 0;
 	bool use_r1b_resp = false;
 	unsigned long timeout;
-	unsigned int fr, nr;
 	int err;
-
-	fr = from;
-	nr = to - from + 1;
-	trace_mmc_blk_erase_start(arg, fr, nr);
 
 	mmc_retune_hold(card->host);
 
@@ -2213,7 +2200,6 @@ static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 		 (R1_CURRENT_STATE(cmd.resp[0]) == R1_STATE_PRG));
 out:
 	mmc_retune_release(card->host);
-	trace_mmc_blk_erase_end(arg, fr, nr);
 	return err;
 }
 
@@ -2549,7 +2535,6 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	 * should be ignored by SD/eMMC cards.
 	 * Skip it if we already know that we do not support SDIO commands
 	 */
-#ifdef MMC_STANDARD_PROBE
 	if (!(host->caps2 & MMC_CAP2_NO_SDIO))
 		sdio_reset(host);
 
@@ -2570,26 +2555,7 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	if (!(host->caps2 & MMC_CAP2_NO_MMC))
 		if (!mmc_attach_mmc(host))
 			return 0;
-#else
-	if (host->restrict_caps & RESTRICT_CARD_TYPE_SDIO)
-		sdio_reset(host);
 
-	mmc_go_idle(host);
-
-	if (host->restrict_caps &
-	    (RESTRICT_CARD_TYPE_SDIO | RESTRICT_CARD_TYPE_SD))
-		mmc_send_if_cond(host, host->ocr_avail);
-	/* Order's important: probe SDIO, then SD, then MMC */
-	if ((host->restrict_caps & RESTRICT_CARD_TYPE_SDIO) &&
-	    !mmc_attach_sdio(host))
-		return 0;
-	if ((host->restrict_caps & RESTRICT_CARD_TYPE_SD) &&
-	     !mmc_attach_sd(host))
-		return 0;
-	if ((host->restrict_caps & RESTRICT_CARD_TYPE_EMMC) &&
-	     !mmc_attach_mmc(host))
-		return 0;
-#endif
 	mmc_power_off(host);
 	return -EIO;
 }
@@ -2889,14 +2855,6 @@ static int mmc_pm_notify(struct notifier_block *notify_block,
 			err = host->bus_ops->pre_suspend(host);
 		if (!err)
 			break;
-
-		if (!mmc_card_is_removable(host)) {
-			dev_warn(mmc_dev(host),
-				 "pre_suspend failed for non-removable host: "
-				 "%d\n", err);
-			/* Avoid removing non-removable hosts */
-			break;
-		}
 
 		/* Calling bus_ops->remove() with a claimed host can deadlock */
 		host->bus_ops->remove(host);
