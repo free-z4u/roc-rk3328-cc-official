@@ -111,7 +111,7 @@ ENDPROC(_resume_switched)
 	.ltorg
 	.popsection
 
-_cpu_resume:
+ENTRY(_cpu_resume)
 	mrs	x1, mpidr_el1
 	adr_l	x8, mpidr_hash		// x8 = struct mpidr_hash virt address
 
