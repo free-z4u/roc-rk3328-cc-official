@@ -437,17 +437,10 @@ __primary_switched:
 	bl	__pi_memset
 	dsb	ishst				// Make zero page visible to PTW
 
-#ifdef CONFIG_THREAD_INFO_IN_TASK
-        adrp    x4, init_thread_union
-        add     sp, x4, #THREAD_SIZE
-        adr_l   x5, init_task
-        msr     sp_el0, x5                      // Save thread_info
-#else
 	adr_l	sp, initial_sp, x4
 	mov	x4, sp
 	and	x4, x4, #~(THREAD_SIZE - 1)
 	msr	sp_el0, x4			// Save thread_info
-#endif
 
 	mov	x29, #0
 #ifdef CONFIG_KASAN
@@ -697,19 +690,12 @@ __secondary_switched:
 	adr_l	x5, vectors
 	msr	vbar_el1, x5
 	isb
-#ifdef CONFIG_THREAD_INFO_IN_TASK
-	adr_l	x0, secondary_data
-	ldr	x1, [x0, #CPU_BOOT_STACK]	// get secondary_data.stack
-	mov	sp, x1
-	ldr	x2, [x0, #CPU_BOOT_TASK]
-	msr	sp_el0, x2
-#else
+
 	adr_l	x0, secondary_data
 	ldr	x0, [x0, #CPU_BOOT_STACK]	// get secondary_data.stack
 	mov	sp, x0
 	and	x0, x0, #~(THREAD_SIZE - 1)
 	msr	sp_el0, x0			// save thread_info
-#endif
 	mov	x29, #0
 	b	secondary_start_kernel
 ENDPROC(__secondary_switched)
