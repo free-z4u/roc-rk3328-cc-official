@@ -36,9 +36,10 @@
 #include <linux/dma-contiguous.h>
 #include <linux/efi.h>
 #include <linux/swiotlb.h>
+#include <linux/vmalloc.h>
+#include <linux/mm.h>
 #include <linux/kexec.h>
 #include <linux/crash_dump.h>
-#include <linux/mm.h>
 
 #include <asm/boot.h>
 #include <asm/fixmap.h>
@@ -51,8 +52,6 @@
 #include <asm/sizes.h>
 #include <asm/tlb.h>
 #include <asm/alternative.h>
-
-#include "mm.h"
 
 /*
  * We need to be able to catch inadvertent references to memstart_addr
@@ -670,7 +669,12 @@ void free_initmem(void)
 {
 	free_reserved_area(__va(__pa(__init_begin)), __va(__pa(__init_end)),
 			   0, "unused kernel");
-	fixup_init();
+	/*
+	 * Unmap the __init region but leave the VM area in place. This
+	 * prevents the region from being reused for kernel modules, which
+	 * is not supported by kallsyms.
+	 */
+	unmap_kernel_range((u64)__init_begin, (u64)(__init_end - __init_begin));
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
