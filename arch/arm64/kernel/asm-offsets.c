@@ -23,6 +23,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/kvm_host.h>
 #include <linux/suspend.h>
+#include <asm/cpufeature.h>
 #include <asm/fixmap.h>
 #include <asm/thread_info.h>
 #include <asm/memory.h>
@@ -149,9 +150,10 @@ int main(void)
   DEFINE(HIBERN_PBE_NEXT,	offsetof(struct pbe, next));
   BLANK();
 #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-  DEFINE(TRAMP_VALIAS,         TRAMP_VALIAS);
+  DEFINE(TRAMP_VALIAS,		TRAMP_VALIAS);
 #endif
   DEFINE(ARM_SMCCC_RES_X0_OFFS,	offsetof(struct arm_smccc_res, a0));
   DEFINE(ARM_SMCCC_RES_X2_OFFS,	offsetof(struct arm_smccc_res, a2));
+  DEFINE(ARM64_FTR_SYSVAL,	offsetof(struct arm64_ftr_reg, sys_val));
   return 0;
 }
