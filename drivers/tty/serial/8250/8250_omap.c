@@ -613,10 +613,6 @@ static int omap_8250_startup(struct uart_port *port)
 	up->lsr_saved_flags = 0;
 	up->msr_saved_flags = 0;
 
-	/* Disable DMA for console UART */
-	if (uart_console(port))
-		up->dma = NULL;
-
 	if (up->dma) {
 		ret = serial8250_request_dma(up);
 		if (ret) {
@@ -1244,8 +1240,7 @@ static int omap8250_probe(struct platform_device *pdev)
 	pm_runtime_put_autosuspend(&pdev->dev);
 	return 0;
 err:
-	pm_runtime_dont_use_autosuspend(&pdev->dev);
-	pm_runtime_put_sync(&pdev->dev);
+	pm_runtime_put(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 	return ret;
 }
@@ -1254,7 +1249,6 @@ static int omap8250_remove(struct platform_device *pdev)
 {
 	struct omap8250_priv *priv = platform_get_drvdata(pdev);
 
-	pm_runtime_dont_use_autosuspend(&pdev->dev);
 	pm_runtime_put_sync(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 	serial8250_unregister_port(priv->line);
@@ -1353,10 +1347,6 @@ static int omap8250_runtime_suspend(struct device *dev)
 {
 	struct omap8250_priv *priv = dev_get_drvdata(dev);
 	struct uart_8250_port *up;
-
-	/* In case runtime-pm tries this before we are setup */
-	if (!priv)
-		return 0;
 
 	up = serial8250_get_port(priv->line);
 	/*
