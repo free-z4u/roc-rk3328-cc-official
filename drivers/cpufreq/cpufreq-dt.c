@@ -25,6 +25,8 @@
 #include <linux/slab.h>
 #include <linux/thermal.h>
 
+#include "cpufreq-dt.h"
+
 #define MAX_CLUSTERS		2
 
 struct private_data {
@@ -401,6 +403,7 @@ static struct cpufreq_driver dt_cpufreq_driver = {
 
 static int dt_cpufreq_probe(struct platform_device *pdev)
 {
+	struct cpufreq_dt_platform_data *data = dev_get_platdata(&pdev->dev);
 	int ret;
 
 	/*
@@ -414,7 +417,8 @@ static int dt_cpufreq_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	dt_cpufreq_driver.driver_data = dev_get_platdata(&pdev->dev);
+	if (data && data->have_governor_per_policy)
+		dt_cpufreq_driver.flags |= CPUFREQ_HAVE_GOVERNOR_PER_POLICY;
 
 	ret = cpufreq_register_driver(&dt_cpufreq_driver);
 	if (ret)

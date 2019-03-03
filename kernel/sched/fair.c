@@ -3086,7 +3086,6 @@ static inline int propagate_entity_load_avg(struct sched_entity *se)
 }
 
 #else /* CONFIG_FAIR_GROUP_SCHED */
-
 static inline void update_tg_load_avg(struct cfs_rq *cfs_rq, int force) {}
 
 static inline int propagate_entity_load_avg(struct sched_entity *se)
@@ -3376,10 +3375,7 @@ update_cfs_rq_load_avg(u64 now, struct cfs_rq *cfs_rq, bool update_freq)
 
 static inline void update_load_avg(struct sched_entity *se, int not_used)
 {
-	struct cfs_rq *cfs_rq = cfs_rq_of(se);
-	struct rq *rq = rq_of(cfs_rq);
-
-	cpufreq_trigger_update(rq_clock(rq));
+	cpufreq_update_util(rq_of(cfs_rq_of(se)), 0);
 }
 
 static inline void
@@ -4741,6 +4737,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct cfs_rq *cfs_rq;
 	struct sched_entity *se = &p->se;
+
 	/*
 	 * If in_iowait is set, the code below may not trigger any cpufreq
 	 * utilization updates, so do it here explicitly with the IOWAIT flag
