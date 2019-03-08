@@ -987,14 +987,6 @@ void proc_sched_show_task(struct task_struct *p, struct seq_file *m)
 		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_suff_cap);
 		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_idle_cpu);
 		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_count);
-		/* select_energy_cpu_brute() */
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_attempts);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_sync);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_idle_bt);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_insuff_cap);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_no_nrg_sav);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_nrg_sav);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_secb_count);
 		/* cas */
 		/* select_task_rq_fair() */
 		P_SCHEDSTAT(se.statistics.nr_wakeups_cas_attempts);

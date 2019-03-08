@@ -1115,15 +1115,6 @@ struct eas_stats {
 	u64 sis_idle_cpu;
 	u64 sis_count;
 
-	/* select_energy_cpu_brute() stats */
-	u64 secb_attempts;
-	u64 secb_sync;
-	u64 secb_idle_bt;
-	u64 secb_insuff_cap;
-	u64 secb_no_nrg_sav;
-	u64 secb_nrg_sav;
-	u64 secb_count;
-
 	/* cas */
 	/* select_task_rq_fair() stats */
 	u64 cas_attempts;
