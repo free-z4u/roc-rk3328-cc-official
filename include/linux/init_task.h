@@ -185,7 +185,13 @@ extern struct task_group root_task_group;
 # define INIT_KASAN(tsk)
 #endif
 
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+# define INIT_TASK_TI(tsk)			\
+	.thread_info = INIT_THREAD_INFO(tsk),	\
+	.stack_refcount = ATOMIC_INIT(1),
+#else
 # define INIT_TASK_TI(tsk)
+#endif
 
 /*
  *  INIT_TASK is used to set up the first task table, touch at

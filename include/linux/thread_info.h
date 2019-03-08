@@ -11,6 +11,24 @@
 #include <linux/bug.h>
 #include <linux/restart_block.h>
 
+struct timespec;
+struct compat_timespec;
+
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+struct thread_info {
+	unsigned long		flags;		/* low level flags */
+};
+
+#define INIT_THREAD_INFO(tsk)			\
+{						\
+	.flags		= 0,			\
+}
+#endif
+
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+#define current_thread_info() ((struct thread_info *)current)
+#endif
+
 #include <linux/bitops.h>
 #include <asm/thread_info.h>
 
