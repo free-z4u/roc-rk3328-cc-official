@@ -404,7 +404,6 @@ struct cfs_rq {
 	unsigned long runnable_load_avg;
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	unsigned long tg_load_avg_contrib;
-	unsigned long propagate_avg;
 #endif
 	atomic_long_t removed_load_avg, removed_util_avg;
 #ifndef CONFIG_64BIT
@@ -458,7 +457,7 @@ static inline int rt_bandwidth_enabled(void)
 }
 
 /* RT IPI pull logic requires IRQ_WORK */
-#if defined(CONFIG_IRQ_WORK) && defined(CONFIG_SMP)
+#ifdef CONFIG_IRQ_WORK
 # define HAVE_RT_PUSH_IPI
 #endif
 
@@ -480,6 +479,12 @@ struct rt_rq {
 	unsigned long rt_nr_total;
 	int overloaded;
 	struct plist_head pushable_tasks;
+#ifdef HAVE_RT_PUSH_IPI
+	int push_flags;
+	int push_cpu;
+	struct irq_work push_work;
+	raw_spinlock_t push_lock;
+#endif
 #endif /* CONFIG_SMP */
 	int rt_queued;
 
@@ -530,17 +535,9 @@ struct dl_rq {
 #else
 	struct dl_bw dl_bw;
 #endif
-	/* This is the "average utilization" for this runqueue */
-	s64 avg_bw;
 };
 
 #ifdef CONFIG_SMP
-
-struct max_cpu_capacity {
-	raw_spinlock_t lock;
-	unsigned long val;
-	int cpu;
-};
 
 /*
  * We add the notion of a root-domain which will be used to define per-domain
@@ -560,9 +557,6 @@ struct root_domain {
 	/* Indicate more than one runnable task for any CPU */
 	bool overload;
 
-	/* Indicate one or more cpus over-utilized (tipping point) */
-	bool overutilized;
-
 	/*
 	 * The bit corresponding to a CPU gets set here if such CPU has more
 	 * than one runnable -deadline task (as it is below for RT tasks).
@@ -572,19 +566,6 @@ struct root_domain {
 	struct dl_bw dl_bw;
 	struct cpudl cpudl;
 
-#ifdef HAVE_RT_PUSH_IPI
-	/*
-	 * For IPI pull requests, loop across the rto_mask.
-	 */
-	struct irq_work rto_push_work;
-	raw_spinlock_t rto_lock;
-	/* These are only updated and read within rto_lock */
-	int rto_loop;
-	int rto_cpu;
-	/* These atomics are updated outside of a lock */
-	atomic_t rto_loop_next;
-	atomic_t rto_loop_start;
-#endif
 	/*
 	 * The "RT overload" flag: it gets set if a CPU has more than
 	 * one runnable RT task.
@@ -592,20 +573,11 @@ struct root_domain {
 	cpumask_var_t rto_mask;
 	struct cpupri cpupri;
 
-	/* Maximum cpu capacity in the system. */
-	struct max_cpu_capacity max_cpu_capacity;
-
-	/* First cpu with maximum and minimum original capacity */
-	int max_cap_orig_cpu, min_cap_orig_cpu;
+	unsigned long max_cpu_capacity;
 };
 
 extern struct root_domain def_root_domain;
-extern void sched_get_rd(struct root_domain *rd);
-extern void sched_put_rd(struct root_domain *rd);
 
-#ifdef HAVE_RT_PUSH_IPI
-extern void rto_push_irq_work_func(struct irq_work *work);
-#endif
 #endif /* CONFIG_SMP */
 
 /*
@@ -630,7 +602,6 @@ struct rq {
 #endif
 	#define CPU_LOAD_IDX_MAX 5
 	unsigned long cpu_load[CPU_LOAD_IDX_MAX];
-	unsigned int misfit_task;
 #ifdef CONFIG_NO_HZ_COMMON
 #ifdef CONFIG_SMP
 	unsigned long last_load_update_tick;
@@ -652,7 +623,6 @@ struct rq {
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
 	struct list_head leaf_cfs_rq_list;
-	struct list_head *tmp_alone_branch;
 #endif /* CONFIG_FAIR_GROUP_SCHED */
 
 	/*
@@ -686,7 +656,6 @@ struct rq {
 	/* For active balancing */
 	int active_balance;
 	int push_cpu;
-	struct task_struct *push_task;
 	struct cpu_stop_work active_balance_work;
 	/* cpu of this runqueue: */
 	int cpu;
@@ -750,7 +719,6 @@ struct rq {
 #ifdef CONFIG_CPU_IDLE
 	/* Must be inspected within a rcu lock section */
 	struct cpuidle_state *idle_state;
-	int idle_state_idx;
 #endif
 };
 
@@ -917,8 +885,6 @@ DECLARE_PER_CPU(int, sd_llc_id);
 DECLARE_PER_CPU(struct sched_domain_shared *, sd_llc_shared);
 DECLARE_PER_CPU(struct sched_domain *, sd_numa);
 DECLARE_PER_CPU(struct sched_domain *, sd_asym);
-DECLARE_PER_CPU(struct sched_domain *, sd_ea);
-DECLARE_PER_CPU(struct sched_domain *, sd_scs);
 
 struct sched_group_capacity {
 	atomic_t ref;
@@ -926,9 +892,7 @@ struct sched_group_capacity {
 	 * CPU capacity of this group, SCHED_CAPACITY_SCALE being max capacity
 	 * for a single CPU.
 	 */
-	unsigned long capacity;
-	unsigned long max_capacity; /* Max per-cpu capacity in group */
-	unsigned long min_capacity; /* Min per-CPU capacity in group */
+	unsigned int capacity;
 	unsigned long next_update;
 	int imbalance; /* XXX unrelated to capacity but shared group state */
 
@@ -941,7 +905,6 @@ struct sched_group {
 
 	unsigned int group_weight;
 	struct sched_group_capacity *sgc;
-	const struct sched_group_energy *sge;
 
 	/*
 	 * The CPUs this group covers.
@@ -1250,7 +1213,6 @@ extern const u32 sched_prio_to_wmult[40];
 #else
 #define ENQUEUE_MIGRATED	0x00
 #endif
-#define ENQUEUE_WAKEUP_NEW	0x40
 
 #define RETRY_TASK		((void *)-1UL)
 
@@ -1278,8 +1240,7 @@ struct sched_class {
 	void (*put_prev_task) (struct rq *rq, struct task_struct *p);
 
 #ifdef CONFIG_SMP
-	int  (*select_task_rq)(struct task_struct *p, int task_cpu, int sd_flag, int flags,
-			       int subling_count_hint);
+	int  (*select_task_rq)(struct task_struct *p, int task_cpu, int sd_flag, int flags);
 	void (*migrate_task_rq)(struct task_struct *p);
 
 	void (*task_woken) (struct rq *this_rq, struct task_struct *task);
@@ -1315,7 +1276,7 @@ struct sched_class {
 #define TASK_MOVE_GROUP	1
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
-	void (*task_change_group)(struct task_struct *p, int type);
+	void (*task_change_group) (struct task_struct *p, int type);
 #endif
 };
 
@@ -1342,7 +1303,6 @@ extern const struct sched_class idle_sched_class;
 
 #ifdef CONFIG_SMP
 
-extern void init_max_cpu_capacity(struct max_cpu_capacity *mcc);
 extern void update_group_capacity(struct sched_domain *sd, int cpu);
 
 extern void trigger_load_balance(struct rq *rq);
@@ -1363,17 +1323,6 @@ static inline struct cpuidle_state *idle_get_state(struct rq *rq)
 	SCHED_WARN_ON(!rcu_read_lock_held());
 	return rq->idle_state;
 }
-
-static inline void idle_set_state_idx(struct rq *rq, int idle_state_idx)
-{
-	rq->idle_state_idx = idle_state_idx;
-}
-
-static inline int idle_get_state_idx(struct rq *rq)
-{
-	WARN_ON(!rcu_read_lock_held());
-	return rq->idle_state_idx;
-}
 #else
 static inline void idle_set_state(struct rq *rq,
 				  struct cpuidle_state *idle_state)
@@ -1383,15 +1332,6 @@ static inline void idle_set_state(struct rq *rq,
 static inline struct cpuidle_state *idle_get_state(struct rq *rq)
 {
 	return NULL;
-}
-
-static inline void idle_set_state_idx(struct rq *rq, int idle_state_idx)
-{
-}
-
-static inline int idle_get_state_idx(struct rq *rq)
-{
-	return -1;
 }
 #endif
 
@@ -1542,65 +1482,10 @@ unsigned long arch_scale_cpu_capacity(struct sched_domain *sd, int cpu)
 }
 #endif
 
-#ifdef CONFIG_SMP
-static inline unsigned long capacity_of(int cpu)
-{
-	return cpu_rq(cpu)->cpu_capacity;
-}
-
-static inline unsigned long capacity_orig_of(int cpu)
-{
-	return cpu_rq(cpu)->cpu_capacity_orig;
-}
-
-/*
- * cpu_util returns the amount of capacity of a CPU that is used by CFS
- * tasks. The unit of the return value must be the one of capacity so we can
- * compare the utilization with the capacity of the CPU that is available for
- * CFS task (ie cpu_capacity).
- *
- * cfs_rq.avg.util_avg is the sum of running time of runnable tasks plus the
- * recent utilization of currently non-runnable tasks on a CPU. It represents
- * the amount of utilization of a CPU in the range [0..capacity_orig] where
- * capacity_orig is the cpu_capacity available at the highest frequency
- * (arch_scale_freq_capacity()).
- * The utilization of a CPU converges towards a sum equal to or less than the
- * current capacity (capacity_curr <= capacity_orig) of the CPU because it is
- * the running time on this CPU scaled by capacity_curr.
- *
- * Nevertheless, cfs_rq.avg.util_avg can be higher than capacity_curr or even
- * higher than capacity_orig because of unfortunate rounding in
- * cfs.avg.util_avg or just after migrating tasks and new task wakeups until
- * the average stabilizes with the new running time. We need to check that the
- * utilization stays within the range of [0..capacity_orig] and cap it if
- * necessary. Without utilization capping, a group could be seen as overloaded
- * (CPU0 utilization at 121% + CPU1 utilization at 80%) whereas CPU1 has 20% of
- * available capacity. We allow utilization to overshoot capacity_curr (but not
- * capacity_orig) as it useful for predicting the capacity required after task
- * migrations (scheduler-driven DVFS).
- */
-static inline unsigned long __cpu_util(int cpu, int delta)
-{
-	unsigned long util = cpu_rq(cpu)->cfs.avg.util_avg;
-	unsigned long capacity = capacity_orig_of(cpu);
-
-	delta += util;
-	if (delta < 0)
-		return 0;
-
-	return (delta >= capacity) ? capacity : delta;
-}
-
-static inline unsigned long cpu_util(int cpu)
-{
-	return __cpu_util(cpu, 0);
-}
-
-#endif
-
 static inline void sched_rt_avg_update(struct rq *rq, u64 rt_delta)
 {
 	rq->rt_avg += rt_delta * arch_scale_freq_capacity(NULL, cpu_of(rq));
+	sched_avg_update(rq);
 }
 #else
 static inline void sched_rt_avg_update(struct rq *rq, u64 rt_delta) { }
@@ -1634,9 +1519,6 @@ task_rq_unlock(struct rq *rq, struct task_struct *p, struct rq_flags *rf)
 	raw_spin_unlock(&rq->lock);
 	raw_spin_unlock_irqrestore(&p->pi_lock, rf->flags);
 }
-
-extern struct rq *lock_rq_of(struct task_struct *p, struct rq_flags *rf);
-extern void unlock_rq_of(struct rq *rq, struct task_struct *p, struct rq_flags *rf);
 
 #ifdef CONFIG_SMP
 #ifdef CONFIG_PREEMPT
@@ -1710,8 +1592,7 @@ static inline int double_lock_balance(struct rq *this_rq, struct rq *busiest)
 static inline void double_unlock_balance(struct rq *this_rq, struct rq *busiest)
 	__releases(busiest->lock)
 {
-	if (this_rq != busiest)
-		raw_spin_unlock(&busiest->lock);
+	raw_spin_unlock(&busiest->lock);
 	lock_set_subclass(&this_rq->lock.dep_map, 0, _RET_IP_);
 }
 
@@ -1926,14 +1807,6 @@ static inline void cpufreq_update_this_cpu(struct rq *rq, unsigned int flags)
 static inline void cpufreq_update_util(struct rq *rq, unsigned int flags) {}
 static inline void cpufreq_update_this_cpu(struct rq *rq, unsigned int flags) {}
 #endif /* CONFIG_CPU_FREQ */
-
-#ifdef arch_scale_freq_capacity
-#ifndef arch_scale_freq_invariant
-#define arch_scale_freq_invariant()	(true)
-#endif
-#else /* arch_scale_freq_capacity */
-#define arch_scale_freq_invariant()	(false)
-#endif
 
 #ifdef arch_scale_freq_capacity
 #ifndef arch_scale_freq_invariant

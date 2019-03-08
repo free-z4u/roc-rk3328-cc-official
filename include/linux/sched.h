@@ -828,16 +828,6 @@ struct signal_struct {
 
 #define SIGNAL_UNKILLABLE	0x00000040 /* for init: ignore fatal signals */
 
-#define SIGNAL_STOP_MASK (SIGNAL_CLD_MASK | SIGNAL_STOP_STOPPED | \
-			  SIGNAL_STOP_CONTINUED)
-
-static inline void signal_set_stop_flags(struct signal_struct *sig,
-					 unsigned int flags)
-{
-	WARN_ON(sig->flags & (SIGNAL_GROUP_EXIT|SIGNAL_GROUP_COREDUMP));
-	sig->flags = (sig->flags & ~SIGNAL_STOP_MASK) | flags;
-}
-
 /* If true, all threads except ->group_exit_task have pending SIGKILL */
 static inline int signal_group_exit(const struct signal_struct *sig)
 {
@@ -980,14 +970,6 @@ enum cpu_idle_type {
 #define SCHED_CAPACITY_SHIFT	SCHED_FIXEDPOINT_SHIFT
 #define SCHED_CAPACITY_SCALE	(1L << SCHED_CAPACITY_SHIFT)
 
-struct sched_capacity_reqs {
-	unsigned long cfs;
-	unsigned long rt;
-	unsigned long dl;
-
-	unsigned long total;
-};
-
 /*
  * Wake-queues are lists of tasks with a pending wakeup, whose
  * callers have already marked the task as woken internally,
@@ -1052,7 +1034,6 @@ extern void wake_up_q(struct wake_q_head *head);
 #define SD_PREFER_SIBLING	0x1000	/* Prefer to place tasks in a sibling domain */
 #define SD_OVERLAP		0x2000	/* sched_domains of this level overlap */
 #define SD_NUMA			0x4000	/* cross-node balancing */
-#define SD_SHARE_CAP_STATES	0x8000  /* Domain members share capacity state */
 
 #ifdef CONFIG_SCHED_SMT
 static inline int cpu_smt_flags(void)
@@ -1084,24 +1065,6 @@ struct sched_domain_attr {
 }
 
 extern int sched_domain_level_max;
-
-struct capacity_state {
-	unsigned long cap;	/* compute capacity */
-	unsigned long power;	/* power consumption at this compute capacity */
-};
-
-struct idle_state {
-	unsigned long power;	 /* power consumption in this idle state */
-};
-
-struct sched_group_energy {
-	unsigned int nr_idle_states;	/* number of idle states */
-	struct idle_state *idle_states;	/* ptr to idle state array */
-	unsigned int nr_cap_states;	/* number of capacity states */
-	struct capacity_state *cap_states; /* ptr to capacity state array */
-};
-
-unsigned long capacity_curr_of(int cpu);
 
 struct sched_group;
 
