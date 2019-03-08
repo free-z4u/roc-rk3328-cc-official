@@ -444,7 +444,7 @@ static const struct of_device_id rockchip_efuse_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rockchip_efuse_match);
 
-static int __init rockchip_efuse_probe(struct platform_device *pdev)
+static int rockchip_efuse_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	struct nvmem_device *nvmem;
@@ -500,6 +500,7 @@ static int rockchip_efuse_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver rockchip_efuse_driver = {
+	.probe = rockchip_efuse_probe,
 	.remove = rockchip_efuse_remove,
 	.driver = {
 		.name = "rockchip-efuse",
@@ -507,13 +508,6 @@ static struct platform_driver rockchip_efuse_driver = {
 	},
 };
 
-static int __init rockchip_efuse_module_init(void)
-{
-	return platform_driver_probe(&rockchip_efuse_driver,
-				     rockchip_efuse_probe);
-}
-
-subsys_initcall(rockchip_efuse_module_init);
-
+module_platform_driver(rockchip_efuse_driver);
 MODULE_DESCRIPTION("rockchip_efuse driver");
 MODULE_LICENSE("GPL v2");
