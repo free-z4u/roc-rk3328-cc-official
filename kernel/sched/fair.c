@@ -792,10 +792,6 @@ void post_init_entity_util_avg(struct sched_entity *se)
 		} else {
 			sa->util_avg = cap;
 		}
-		/*
-		 * If we wish to restore tuning via setting initial util,
-		 * this is where we should do it.
-		 */
 		sa->util_sum = sa->util_avg * LOAD_AVG_MAX;
 	}
 
