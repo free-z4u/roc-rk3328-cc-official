@@ -1124,13 +1124,6 @@ struct eas_stats {
 	u64 secb_nrg_sav;
 	u64 secb_count;
 
-	/* find_best_target() stats */
-	u64 fbt_attempts;
-	u64 fbt_no_cpu;
-	u64 fbt_no_sd;
-	u64 fbt_pref_idle;
-	u64 fbt_count;
-
 	/* cas */
 	/* select_task_rq_fair() stats */
 	u64 cas_attempts;
@@ -1412,13 +1405,6 @@ struct sched_statistics {
 	u64			nr_wakeups_secb_no_nrg_sav;
 	u64			nr_wakeups_secb_nrg_sav;
 	u64			nr_wakeups_secb_count;
-
-	/* find_best_target() */
-	u64			nr_wakeups_fbt_attempts;
-	u64			nr_wakeups_fbt_no_cpu;
-	u64			nr_wakeups_fbt_no_sd;
-	u64			nr_wakeups_fbt_pref_idle;
-	u64			nr_wakeups_fbt_count;
 
 	/* cas */
 	/* select_task_rq_fair() */

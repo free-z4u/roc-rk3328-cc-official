@@ -25,10 +25,6 @@ static inline void show_easstat(struct seq_file *seq, struct eas_stats *stats)
 	    stats->secb_insuff_cap, stats->secb_no_nrg_sav,
 	    stats->secb_nrg_sav, stats->secb_count);
 
-	seq_printf(seq, "%llu %llu %llu %llu %llu ",
-	    stats->fbt_attempts, stats->fbt_no_cpu, stats->fbt_no_sd,
-	    stats->fbt_pref_idle, stats->fbt_count);
-
 	seq_printf(seq, "%llu %llu\n",
 	    stats->cas_attempts, stats->cas_count);
 }
