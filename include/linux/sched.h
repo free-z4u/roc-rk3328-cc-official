@@ -1103,21 +1103,6 @@ unsigned long capacity_curr_of(int cpu);
 
 struct sched_group;
 
-struct eas_stats {
-	/* select_idle_sibling() stats */
-	u64 sis_attempts;
-	u64 sis_idle;
-	u64 sis_cache_affine;
-	u64 sis_suff_cap;
-	u64 sis_idle_cpu;
-	u64 sis_count;
-
-	/* cas */
-	/* select_task_rq_fair() stats */
-	u64 cas_attempts;
-	u64 cas_count;
-};
-
 struct sched_domain {
 	/* These fields must be setup */
 	struct sched_domain *parent;	/* top domain must be null terminated */
@@ -1178,8 +1163,6 @@ struct sched_domain {
 	unsigned int ttwu_wake_remote;
 	unsigned int ttwu_move_affine;
 	unsigned int ttwu_move_balance;
-
-	struct eas_stats eas_stats;
 #endif
 #ifdef CONFIG_SCHED_DEBUG
 	char *name;
