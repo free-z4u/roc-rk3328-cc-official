@@ -979,18 +979,6 @@ void proc_sched_show_task(struct task_struct *p, struct seq_file *m)
 		P_SCHEDSTAT(se.statistics.nr_wakeups_affine_attempts);
 		P_SCHEDSTAT(se.statistics.nr_wakeups_passive);
 		P_SCHEDSTAT(se.statistics.nr_wakeups_idle);
-		/* eas */
-		/* select_idle_sibling() */
-		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_attempts);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_idle);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_cache_affine);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_suff_cap);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_idle_cpu);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_sis_count);
-		/* cas */
-		/* select_task_rq_fair() */
-		P_SCHEDSTAT(se.statistics.nr_wakeups_cas_attempts);
-		P_SCHEDSTAT(se.statistics.nr_wakeups_cas_count);
 
 		avg_atom = p->se.sum_exec_runtime;
 		if (nr_switches)
