@@ -98,6 +98,11 @@ struct __extcon_info {
 		.id = EXTCON_CHG_USB_SLOW,
 		.name = "SLOW-CHARGER",
 	},
+	[EXTCON_CHG_WPT] = {
+		.type = EXTCON_TYPE_CHG,
+		.id = EXTCON_CHG_WPT,
+		.name = "WPT",
+	},
 
 	/* Jack external connector */
 	[EXTCON_JACK_MICROPHONE] = {
@@ -166,6 +171,11 @@ struct __extcon_info {
 		.type = EXTCON_TYPE_DISP | EXTCON_TYPE_USB,
 		.id = EXTCON_DISP_DP,
 		.name = "DP",
+	},
+	[EXTCON_DISP_HMD] = {
+		.type = EXTCON_TYPE_DISP | EXTCON_TYPE_USB,
+		.id = EXTCON_DISP_HMD,
+		.name = "HMD",
 	},
 
 	/* Miscellaneous external connector */
@@ -834,7 +844,6 @@ int extcon_set_property_capability(struct extcon_dev *edev, unsigned int id,
 	if (index < 0)
 		return index;
 
-	/* Check whether the property is supported or not. */
 	type = get_extcon_type(prop);
 	if (type < 0)
 		return type;
