@@ -250,6 +250,7 @@ void musb_root_disconnect(struct musb *musb)
 			usb_otg_state_string(musb->xceiv->otg->state));
 	}
 }
+EXPORT_SYMBOL_GPL(musb_root_disconnect);
 
 
 /*---------------------------------------------------------------------*/
