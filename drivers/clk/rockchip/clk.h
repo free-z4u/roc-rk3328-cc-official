@@ -355,7 +355,7 @@ struct clk *rockchip_clk_register_mmc(const char *name,
  * ROCKCHIP_DDRCLK_SIP: use SIP call to bl31 to change ddrclk rate.
  * ROCKCHIP_DDRCLK_SCPI: use SCPI APIs to let mcu change ddrclk rate.
  */
-#define ROCKCHIP_DDRCLK_SIP		0x01
+#define ROCKCHIP_DDRCLK_SIP		BIT(0)
 #define ROCKCHIP_DDRCLK_SCPI		0x02
 #define ROCKCHIP_DDRCLK_SIP_V2		0x03
 
@@ -364,7 +364,8 @@ struct clk *rockchip_clk_register_ddrclk(const char *name, int flags,
 					 u8 num_parents, int mux_offset,
 					 int mux_shift, int mux_width,
 					 int div_shift, int div_width,
-					 int ddr_flags, void __iomem *reg_base);
+					 int ddr_flags, void __iomem *reg_base,
+					 spinlock_t *lock);
 
 #define ROCKCHIP_INVERTER_HIWORD_MASK	BIT(0)
 
@@ -390,7 +391,7 @@ enum rockchip_clk_branch_type {
 	branch_mmc,
 	branch_inverter,
 	branch_factor,
-	branch_ddrc,
+	branch_ddrclk,
 };
 
 struct rockchip_clk_branch {
@@ -584,7 +585,7 @@ struct rockchip_clk_branch {
 			 ds, dw, df)				\
 	{							\
 		.id		= _id,				\
-		.branch_type	= branch_ddrc,			\
+		.branch_type	= branch_ddrclk,		\
 		.name		= cname,			\
 		.parent_names	= pnames,			\
 		.num_parents	= ARRAY_SIZE(pnames),		\

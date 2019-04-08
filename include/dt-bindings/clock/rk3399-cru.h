@@ -16,8 +16,6 @@
 #ifndef _DT_BINDINGS_CLK_ROCKCHIP_RK3399_H
 #define _DT_BINDINGS_CLK_ROCKCHIP_RK3399_H
 
-#define RK3399_TWO_PLL_FOR_VOP
-
 /* core clocks */
 #define PLL_APLLL			1
 #define PLL_APLLB			2
@@ -133,22 +131,15 @@
 #define SCLK_DPHY_RX0_CFG		165
 #define SCLK_RMII_SRC			166
 #define SCLK_PCIEPHY_REF100M		167
-#define SCLK_USBPHY0_480M_SRC		168
-#define SCLK_USBPHY1_480M_SRC		169
-#define SCLK_DDRCLK			170
-#define SCLK_TESTOUT2			171
-#define SCLK_UART0_SRC			172
-#define SCLK_UART_SRC			173
-#define SCLK_I2S0_DIV			174
-#define SCLK_I2S1_DIV			175
-#define SCLK_I2S2_DIV			176
-#define SCLK_SPDIF_DIV			177
+#define SCLK_DDRC			168
 
 #define DCLK_VOP0			180
 #define DCLK_VOP1			181
 #define DCLK_VOP0_DIV			182
 #define DCLK_VOP1_DIV			183
 #define DCLK_M0_PERILP			184
+#define DCLK_VOP0_FRAC			185
+#define DCLK_VOP1_FRAC			186
 
 #define FCLK_CM0S			190
 
@@ -367,7 +358,6 @@
 #define SCLK_I2C0_PMU			9
 #define SCLK_I2C4_PMU			10
 #define SCLK_I2C8_PMU			11
-#define SCLK_UART4_SRC			12
 
 #define PCLK_SRC_PMU			19
 #define PCLK_PMU			20
@@ -611,13 +601,13 @@
 #define SRST_P_SPI0			214
 #define SRST_P_SPI1			215
 #define SRST_P_SPI2			216
-#define SRST_P_SPI4			217
-#define SRST_P_SPI5			218
+#define SRST_P_SPI3			217
+#define SRST_P_SPI4			218
 #define SRST_SPI0			219
 #define SRST_SPI1			220
 #define SRST_SPI2			221
-#define SRST_SPI4			222
-#define SRST_SPI5			223
+#define SRST_SPI3			222
+#define SRST_SPI4			223
 
 /* cru_softrst_con14 */
 #define SRST_I2S0_8CH			224
@@ -739,8 +729,8 @@
 #define SRST_H_CM0S_NOC			3
 #define SRST_DBG_CM0S			4
 #define SRST_PO_CM0S			5
-#define SRST_P_SPI3			6
-#define SRST_SPI3			7
+#define SRST_P_SPI6			6
+#define SRST_SPI6			7
 #define SRST_P_TIMER_0_1		8
 #define SRST_P_TIMER_0			9
 #define SRST_P_TIMER_1			10

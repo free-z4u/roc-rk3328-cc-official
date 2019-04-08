@@ -43,6 +43,7 @@ struct rockchip_ddrclk {
 	int		div_shift;
 	int		div_width;
 	int		ddr_flag;
+	spinlock_t	*lock;
 };
 
 #define to_rockchip_ddrclk_hw(hw) container_of(hw, struct rockchip_ddrclk, hw)
@@ -308,11 +309,12 @@ static const struct clk_ops rockchip_ddrclk_sip_ops_v2 = {
 
 struct clk * __init
 rockchip_clk_register_ddrclk(const char *name, int flags,
-			     const char *const *parent_names,
-			     u8 num_parents, int mux_offset,
-			     int mux_shift, int mux_width,
-			     int div_shift, int div_width,
-			     int ddr_flag, void __iomem *reg_base)
+					 const char *const *parent_names,
+					 u8 num_parents, int mux_offset,
+					 int mux_shift, int mux_width,
+					 int div_shift, int div_width,
+					 int ddr_flag, void __iomem *reg_base,
+					 spinlock_t *lock)
 {
 	struct rockchip_ddrclk *ddrclk;
 	struct clk_init_data init;
@@ -352,6 +354,7 @@ rockchip_clk_register_ddrclk(const char *name, int flags,
 	}
 
 	ddrclk->reg_base = reg_base;
+	ddrclk->lock = lock;
 	ddrclk->hw.init = &init;
 	ddrclk->mux_offset = mux_offset;
 	ddrclk->mux_shift = mux_shift;
