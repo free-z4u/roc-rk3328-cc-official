@@ -1111,12 +1111,14 @@ static struct snd_soc_codec_driver soc_codec_dev_es8316 = {
 	.resume =	es8316_resume,
 	.set_bias_level = es8316_set_bias_level,
 
-	.controls = es8316_snd_controls,
-	.num_controls = ARRAY_SIZE(es8316_snd_controls),
-	.dapm_widgets = es8316_dapm_widgets,
-	.num_dapm_widgets = ARRAY_SIZE(es8316_dapm_widgets),
-	.dapm_routes = es8316_dapm_routes,
-	.num_dapm_routes = ARRAY_SIZE(es8316_dapm_routes),
+	.component_driver = {
+		.controls = es8316_snd_controls,
+		.num_controls = ARRAY_SIZE(es8316_snd_controls),
+		.dapm_widgets = es8316_dapm_widgets,
+		.num_dapm_widgets = ARRAY_SIZE(es8316_dapm_widgets),
+		.dapm_routes = es8316_dapm_routes,
+		.num_dapm_routes = ARRAY_SIZE(es8316_dapm_routes),
+	},
 };
 
 static int es8316_i2c_probe(struct i2c_client *i2c,

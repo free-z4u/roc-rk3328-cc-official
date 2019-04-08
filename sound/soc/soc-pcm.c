@@ -1706,6 +1706,9 @@ static int dpcm_apply_symmetry(struct snd_pcm_substream *fe_substream,
 		struct snd_soc_pcm_runtime *rtd = be_substream->private_data;
 		int i;
 
+		if (rtd->dai_link->be_hw_params_fixup)
+			continue;
+
 		if (soc_pcm_has_symmetry(be_substream))
 			be_substream->runtime->hw.info |= SNDRV_PCM_INFO_JOINT_DUPLEX;
 
@@ -1804,7 +1807,7 @@ int dpcm_be_dai_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 		}
 
 		dev_dbg(be->dev, "ASoC: close BE %s\n",
-			dpcm->fe->dai_link->name);
+			be->dai_link->name);
 
 		soc_pcm_close(be_substream);
 		be_substream->runtime = NULL;
@@ -1870,7 +1873,7 @@ int dpcm_be_dai_hw_free(struct snd_soc_pcm_runtime *fe, int stream)
 			continue;
 
 		dev_dbg(be->dev, "ASoC: hw_free BE %s\n",
-			dpcm->fe->dai_link->name);
+			be->dai_link->name);
 
 		soc_pcm_hw_free(be_substream);
 
@@ -1948,7 +1951,7 @@ int dpcm_be_dai_hw_params(struct snd_soc_pcm_runtime *fe, int stream)
 			continue;
 
 		dev_dbg(be->dev, "ASoC: hw_params BE %s\n",
-			dpcm->fe->dai_link->name);
+			be->dai_link->name);
 
 		ret = soc_pcm_hw_params(be_substream, &dpcm->hw_params);
 		if (ret < 0) {
@@ -2028,7 +2031,7 @@ static int dpcm_do_trigger(struct snd_soc_dpcm *dpcm,
 	int ret;
 
 	dev_dbg(dpcm->be->dev, "ASoC: trigger BE %s cmd %d\n",
-			dpcm->fe->dai_link->name, cmd);
+			dpcm->be->dai_link->name, cmd);
 
 	ret = soc_pcm_trigger(substream, cmd);
 	if (ret < 0)
@@ -2245,7 +2248,7 @@ int dpcm_be_dai_prepare(struct snd_soc_pcm_runtime *fe, int stream)
 			continue;
 
 		dev_dbg(be->dev, "ASoC: prepare BE %s\n",
-			dpcm->fe->dai_link->name);
+			be->dai_link->name);
 
 		ret = soc_pcm_prepare(be_substream);
 		if (ret < 0) {
