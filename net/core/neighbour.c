@@ -1153,7 +1153,8 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 			} else
 				goto out;
 		} else {
-			if (lladdr == neigh->ha && new == NUD_STALE)
+			if (lladdr == neigh->ha && new == NUD_STALE &&
+			    !(flags & NEIGH_UPDATE_F_ADMIN))
 				new = old;
 		}
 	}

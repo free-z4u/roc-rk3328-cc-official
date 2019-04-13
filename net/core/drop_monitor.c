@@ -126,7 +126,7 @@ out:
 	return skb;
 }
 
-static struct genl_multicast_group dropmon_mcgrps[] = {
+static const struct genl_multicast_group dropmon_mcgrps[] = {
 	{ .name = "events", },
 };
 

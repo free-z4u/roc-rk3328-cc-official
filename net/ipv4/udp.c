@@ -114,6 +114,7 @@
 #include <net/busy_poll.h>
 #include "udp_impl.h"
 #include <net/sock_reuseport.h>
+#include <net/addrconf.h>
 
 struct udp_table udp_table __read_mostly;
 EXPORT_SYMBOL(udp_table);
@@ -1022,12 +1023,6 @@ int udp_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
 				   flow_flags,
 				   faddr, saddr, dport, inet->inet_sport,
 				   sk->sk_uid);
-
-		if (!saddr && ipc.oif) {
-			err = l3mdev_get_saddr(net, ipc.oif, fl4);
-			if (err < 0)
-				goto out;
-		}
 
 		security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
 		rt = ip_route_output_flow(net, fl4, sk);
@@ -2244,7 +2239,6 @@ struct proto udp_prot = {
 	.compat_setsockopt = compat_udp_setsockopt,
 	.compat_getsockopt = compat_udp_getsockopt,
 #endif
-	.clear_sk	   = sk_prot_clear_portaddr_nulls,
 	.diag_destroy	   = udp_abort,
 };
 EXPORT_SYMBOL(udp_prot);
