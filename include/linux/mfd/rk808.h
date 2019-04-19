@@ -1,5 +1,5 @@
 /*
- * rk808.h for Rockchip RK808
+ * Register definitions for Rockchip's RK808/RK818 PMIC
  *
  * Copyright (c) 2014, Fuzhou Rockchip Electronics Co., Ltd
  *
@@ -16,8 +16,8 @@
  * more details.
  */
 
-#ifndef __LINUX_REGULATOR_rk808_H
-#define __LINUX_REGULATOR_rk808_H
+#ifndef __LINUX_REGULATOR_RK808_H
+#define __LINUX_REGULATOR_RK808_H
 
 #include <linux/regulator/machine.h>
 #include <linux/regmap.h>
@@ -28,7 +28,7 @@
 
 #define RK808_DCDC1	0 /* (0+RK808_START) */
 #define RK808_LDO1	4 /* (4+RK808_START) */
-#define RK808_NUM_REGULATORS   14
+#define RK808_NUM_REGULATORS	14
 
 enum rk808_reg {
 	RK808_ID_DCDC1,
@@ -202,17 +202,17 @@ enum rk805_reg {
 #define RK818_LDO8_SLP_VSEL_REG		0x4a
 #define RK818_DEVCTRL_REG		0x4b
 #define RK818_INT_STS_REG1		0X4c
-#define RK818_INT_STS_MSK_REG1		0X4d
-#define RK818_INT_STS_REG2		0X4e
-#define RK818_INT_STS_MSK_REG2		0X4f
-#define RK818_IO_POL_REG		0X50
+#define RK818_INT_STS_MSK_REG1		0x4d
+#define RK818_INT_STS_REG2		0x4e
+#define RK818_INT_STS_MSK_REG2		0x4f
+#define RK818_IO_POL_REG		0x50
 #define RK818_OTP_VDD_EN_REG		0x51
 #define RK818_H5V_EN_REG		0x52
 #define RK818_SLEEP_SET_OFF_REG3	0x53
 #define RK818_BOOST_LDO9_ON_VSEL_REG	0x54
 #define RK818_BOOST_LDO9_SLP_VSEL_REG	0x55
 #define RK818_BOOST_CTRL_REG		0x56
-#define RK818_DCDC_ILMAX_REG		0x90
+#define RK818_DCDC_ILMAX		0x90
 #define RK818_CHRG_COMP_REG		0x9a
 #define RK818_SUP_STS_REG		0xa0
 #define RK818_USB_CTRL_REG		0xa1
@@ -292,7 +292,7 @@ enum rk805_reg {
 #define RK818_SAVE_DATA19		0xf2
 #define RK818_NUM_REGULATORS		17
 
-/* IRQ Definitions */
+/* RK808 IRQ Definitions */
 #define RK808_IRQ_VOUT_LO	0
 #define RK808_IRQ_VB_LO		1
 #define RK808_IRQ_PWRON		2
@@ -944,14 +944,6 @@ enum {
 	BOOST_ILMIN_250MA,
 };
 
-struct rk808 {
-	struct i2c_client *i2c;
-	struct regmap_irq_chip_data *irq_data;
-	struct regmap_irq_chip_data *battery_irq_data;
-	struct regmap *regmap;
-	long variant;
-};
-
 enum {
 	RK805_ID = 0x8050,
 	RK808_ID = 0x0000,
@@ -961,4 +953,11 @@ enum {
 	RK818_ID = 0x8180,
 };
 
-#endif /* __LINUX_REGULATOR_rk808_H */
+struct rk808 {
+	struct i2c_client		*i2c;
+	struct regmap_irq_chip_data	*irq_data;
+	struct regmap			*regmap;
+	long				variant;
+	struct regmap_irq_chip_data	*battery_irq_data;
+};
+#endif /* __LINUX_REGULATOR_RK808_H */
