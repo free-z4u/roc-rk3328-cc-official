@@ -94,16 +94,6 @@ static int rk808_shutdown(struct regmap *regmap)
 	return ret;
 }
 
-static int rk816_shutdown(struct regmap *regmap)
-{
-	int ret;
-
-	ret = regmap_update_bits(regmap,
-				 RK816_DEV_CTRL_REG,
-				 DEV_OFF, DEV_OFF);
-	return ret;
-}
-
 static int rk818_shutdown(struct regmap *regmap)
 {
 	int ret;
@@ -177,8 +167,6 @@ static bool rk818_is_volatile_reg(struct device *dev, unsigned int reg)
 	case RK808_INT_STS_REG2:
 	case RK808_INT_STS_MSK_REG1:
 	case RK808_INT_STS_MSK_REG2:
-	case RK816_INT_STS_REG1:
-	case RK816_INT_STS_MSK_REG1:
 	case RK818_SUP_STS_REG ... RK818_SAVE_DATA19:
 		return true;
 	}
@@ -200,14 +188,6 @@ static const struct regmap_config rk805_regmap_config = {
 	.max_register = RK805_OFF_SOURCE_REG,
 	.cache_type = REGCACHE_RBTREE,
 	.volatile_reg = rk808_is_volatile_reg,
-};
-
-static const struct regmap_config rk816_regmap_config = {
-	.reg_bits = 8,
-	.val_bits = 8,
-	.max_register = RK816_DATA18_REG,
-	.cache_type = REGCACHE_RBTREE,
-	.volatile_reg = rk818_is_volatile_reg,
 };
 
 static const struct regmap_config rk818_regmap_config = {
@@ -242,14 +222,6 @@ static struct resource rk817_rtc_resources[] = {
 	}
 };
 
-static struct resource rk816_rtc_resources[] = {
-	{
-		.start  = RK816_IRQ_RTC_ALARM,
-		.end    = RK816_IRQ_RTC_ALARM,
-		.flags  = IORESOURCE_IRQ,
-	}
-};
-
 static struct resource rk805_pwrkey_resources[] = {
 	{
 		.start  = RK805_IRQ_PWRON_RISE,
@@ -272,19 +244,6 @@ static struct resource rk817_pwrkey_resources[] = {
 	{
 		.start  = RK817_IRQ_PWRON_FALL,
 		.end    = RK817_IRQ_PWRON_FALL,
-		.flags  = IORESOURCE_IRQ,
-	},
-};
-
-static struct resource rk816_pwrkey_resources[] = {
-	{
-		.start  = RK816_IRQ_PWRON_RISE,
-		.end    = RK816_IRQ_PWRON_RISE,
-		.flags  = IORESOURCE_IRQ,
-	},
-	{
-		.start  = RK816_IRQ_PWRON_FALL,
-		.end    = RK816_IRQ_PWRON_FALL,
 		.flags  = IORESOURCE_IRQ,
 	},
 };
@@ -362,154 +321,6 @@ static struct regmap_irq_chip rk808_irq_chip = {
 	.status_base = RK808_INT_STS_REG1,
 	.mask_base = RK808_INT_STS_MSK_REG1,
 	.ack_base = RK808_INT_STS_REG1,
-	.init_ack_masked = true,
-};
-
-static const struct mfd_cell rk816s[] = {
-	{ .name = "rk808-clkout", },
-	{ .name = "rk808-regulator", },
-	{ .name = "rk8xx-gpio", },
-	{ .name = "rk816-battery", .of_compatible = "rk816-battery", },
-	{
-		.name = "rk8xx-pwrkey",
-		.num_resources = ARRAY_SIZE(rk816_pwrkey_resources),
-		.resources = &rk816_pwrkey_resources[0],
-	},
-	{
-		.name = "rk808-rtc",
-		.num_resources = ARRAY_SIZE(rk816_rtc_resources),
-		.resources = &rk816_rtc_resources[0],
-	},
-};
-
-static const struct rk808_reg_data rk816_pre_init_reg[] = {
-	/* buck4 Max ILMIT*/
-	{ RK816_BUCK4_CONFIG_REG, REG_WRITE_MSK, BUCK4_MAX_ILIMIT },
-	/* hotdie temperature: 105c*/
-	{ RK816_THERMAL_REG, REG_WRITE_MSK, TEMP105C },
-	/* set buck 12.5mv/us */
-	{ RK816_BUCK1_CONFIG_REG, BUCK_RATE_MSK, BUCK_RATE_12_5MV_US },
-	{ RK816_BUCK2_CONFIG_REG, BUCK_RATE_MSK, BUCK_RATE_12_5MV_US },
-	/* enable RTC_PERIOD & RTC_ALARM int */
-	{ RK816_INT_STS_MSK_REG2, REG_WRITE_MSK, RTC_PERIOD_ALARM_INT_EN },
-	/* set bat 3.0 low and act shutdown */
-	{ RK816_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
-	  RK816_VBAT_LOW_3V0 | EN_VABT_LOW_SHUT_DOWN },
-	/* enable PWRON rising/faling int */
-	{ RK816_INT_STS_MSK_REG1, REG_WRITE_MSK, RK816_PWRON_FALL_RISE_INT_EN },
-	/* enable PLUG IN/OUT int */
-	{ RK816_INT_STS_MSK_REG3, REG_WRITE_MSK, PLUGIN_OUT_INT_EN },
-	/* clear int flags */
-	{ RK816_INT_STS_REG1, REG_WRITE_MSK, ALL_INT_FLAGS_ST },
-	{ RK816_INT_STS_REG2, REG_WRITE_MSK, ALL_INT_FLAGS_ST },
-	{ RK816_INT_STS_REG3, REG_WRITE_MSK, ALL_INT_FLAGS_ST },
-	{ RK816_DCDC_EN_REG2, BOOST_EN_MASK, BOOST_DISABLE },
-};
-
-static struct rk808_reg_data rk816_suspend_reg[] = {
-	/* set bat 3.4v low and act irq */
-	{ RK816_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
-	  RK816_VBAT_LOW_3V4 | EN_VBAT_LOW_IRQ },
-};
-
-static struct rk808_reg_data rk816_resume_reg[] = {
-	/* set bat 3.0v low and act shutdown*/
-	{ RK816_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
-	  RK816_VBAT_LOW_3V0 | EN_VABT_LOW_SHUT_DOWN },
-};
-
-static const struct regmap_irq rk816_irqs[] = {
-	/* INT_STS */
-	[RK816_IRQ_PWRON_FALL] = {
-		.mask = RK816_IRQ_PWRON_FALL_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_PWRON_RISE] = {
-		.mask = RK816_IRQ_PWRON_RISE_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_VB_LOW] = {
-		.mask = RK816_IRQ_VB_LOW_MSK,
-		.reg_offset = 1,
-	},
-	[RK816_IRQ_PWRON] = {
-		.mask = RK816_IRQ_PWRON_MSK,
-		.reg_offset = 1,
-	},
-	[RK816_IRQ_PWRON_LP] = {
-		.mask = RK816_IRQ_PWRON_LP_MSK,
-		.reg_offset = 1,
-	},
-	[RK816_IRQ_HOTDIE] = {
-		.mask = RK816_IRQ_HOTDIE_MSK,
-		.reg_offset = 1,
-	},
-	[RK816_IRQ_RTC_ALARM] = {
-		.mask = RK816_IRQ_RTC_ALARM_MSK,
-		.reg_offset = 1,
-	},
-	[RK816_IRQ_RTC_PERIOD] = {
-		.mask = RK816_IRQ_RTC_PERIOD_MSK,
-		.reg_offset = 1,
-	},
-	[RK816_IRQ_USB_OV] = {
-		.mask = RK816_IRQ_USB_OV_MSK,
-		.reg_offset = 1,
-	},
-};
-
-static const struct regmap_irq rk816_battery_irqs[] = {
-	/* INT_STS */
-	[RK816_IRQ_PLUG_IN] = {
-		.mask = RK816_IRQ_PLUG_IN_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_PLUG_OUT] = {
-		.mask = RK816_IRQ_PLUG_OUT_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_CHG_OK] = {
-		.mask = RK816_IRQ_CHG_OK_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_CHG_TE] = {
-		.mask = RK816_IRQ_CHG_TE_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_CHG_TS] = {
-		.mask = RK816_IRQ_CHG_TS_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_CHG_CVTLIM] = {
-		.mask = RK816_IRQ_CHG_CVTLIM_MSK,
-		.reg_offset = 0,
-	},
-	[RK816_IRQ_DISCHG_ILIM] = {
-		.mask = RK816_IRQ_DISCHG_ILIM_MSK,
-		.reg_offset = 0,
-	},
-};
-
-static struct regmap_irq_chip rk816_irq_chip = {
-	.name = "rk816",
-	.irqs = rk816_irqs,
-	.num_irqs = ARRAY_SIZE(rk816_irqs),
-	.num_regs = 2,
-	.irq_reg_stride = 3,
-	.status_base = RK816_INT_STS_REG1,
-	.mask_base = RK816_INT_STS_MSK_REG1,
-	.ack_base = RK816_INT_STS_REG1,
-	.init_ack_masked = true,
-};
-
-static struct regmap_irq_chip rk816_battery_irq_chip = {
-	.name = "rk816_battery",
-	.irqs = rk816_battery_irqs,
-	.num_irqs = ARRAY_SIZE(rk816_battery_irqs),
-	.num_regs = 1,
-	.status_base = RK816_INT_STS_REG3,
-	.mask_base = RK816_INT_STS_MSK_REG3,
-	.ack_base = RK816_INT_STS_REG3,
 	.init_ack_masked = true,
 };
 
@@ -913,7 +724,6 @@ static const struct of_device_id rk808_of_match[] = {
 	{ .compatible = "rockchip,rk805" },
 	{ .compatible = "rockchip,rk808" },
 	{ .compatible = "rockchip,rk809" },
-	{ .compatible = "rockchip,rk816" },
 	{ .compatible = "rockchip,rk817" },
 	{ .compatible = "rockchip,rk818" },
 	{ },
@@ -986,22 +796,6 @@ static int rk808_probe(struct i2c_client *client,
 		suspend_reg_num = ARRAY_SIZE(rk818_suspend_reg);
 		resume_reg = rk818_resume_reg;
 		resume_reg_num = ARRAY_SIZE(rk818_resume_reg);
-		break;
-	case RK816_ID:
-		cell = rk816s;
-		cell_num = ARRAY_SIZE(rk816s);
-		pre_init_reg = rk816_pre_init_reg;
-		reg_num = ARRAY_SIZE(rk816_pre_init_reg);
-		regmap_config = &rk816_regmap_config;
-		irq_chip = &rk816_irq_chip;
-		battery_irq_chip = &rk816_battery_irq_chip;
-		pm_shutdown_fn = rk816_shutdown;
-		on_source = RK816_ON_SOURCE_REG;
-		off_source = RK816_OFF_SOURCE_REG;
-		suspend_reg = rk816_suspend_reg;
-		suspend_reg_num = ARRAY_SIZE(rk816_suspend_reg);
-		resume_reg = rk816_resume_reg;
-		resume_reg_num = ARRAY_SIZE(rk816_resume_reg);
 		break;
 	case RK808_ID:
 		cell = rk808s;
@@ -1112,7 +906,7 @@ static int rk808_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, rk808);
 
 	ret = devm_mfd_add_devices(&client->dev, -1,
-			      cell, cell_num, NULL, 0, 
+			      cell, cell_num, NULL, 0,
 			      regmap_irq_get_domain(rk808->irq_data));
 	if (ret) {
 		dev_err(&client->dev, "failed to add MFD devices %d\n", ret);
@@ -1211,7 +1005,6 @@ static const struct i2c_device_id rk808_ids[] = {
 	{ "rk805" },
 	{ "rk808" },
 	{ "rk809" },
-	{ "rk816" },
 	{ "rk817" },
 	{ "rk818" },
 	{ },
