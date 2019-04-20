@@ -750,7 +750,7 @@ static int arizona_suspend(struct device *dev)
 	return 0;
 }
 
-static int arizona_suspend_late(struct device *dev)
+static int arizona_suspend_noirq(struct device *dev)
 {
 	struct arizona *arizona = dev_get_drvdata(dev);
 
@@ -774,7 +774,7 @@ static int arizona_resume(struct device *dev)
 {
 	struct arizona *arizona = dev_get_drvdata(dev);
 
-	dev_dbg(arizona->dev, "Late resume, reenabling IRQ\n");
+	dev_dbg(arizona->dev, "Resume, reenabling IRQ\n");
 	enable_irq(arizona->irq);
 
 	return 0;
@@ -786,10 +786,8 @@ const struct dev_pm_ops arizona_pm_ops = {
 			   arizona_runtime_resume,
 			   NULL)
 	SET_SYSTEM_SLEEP_PM_OPS(arizona_suspend, arizona_resume)
-#ifdef CONFIG_PM_SLEEP
-	.suspend_late = arizona_suspend_late,
-	.resume_noirq = arizona_resume_noirq,
-#endif
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(arizona_suspend_noirq,
+				      arizona_resume_noirq)
 };
 EXPORT_SYMBOL_GPL(arizona_pm_ops);
 
@@ -805,35 +803,25 @@ unsigned long arizona_of_get_type(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(arizona_of_get_type);
 
-int arizona_of_get_named_gpio(struct arizona *arizona, const char *prop,
-			      bool mandatory)
-{
-	int gpio;
-
-	gpio = of_get_named_gpio(arizona->dev->of_node, prop, 0);
-	if (gpio < 0) {
-		if (mandatory)
-			dev_err(arizona->dev,
-				"Mandatory DT gpio %s missing/malformed: %d\n",
-				prop, gpio);
-
-		gpio = 0;
-	}
-
-	return gpio;
-}
-EXPORT_SYMBOL_GPL(arizona_of_get_named_gpio);
-
 static int arizona_of_get_core_pdata(struct arizona *arizona)
 {
 	struct arizona_pdata *pdata = &arizona->pdata;
 	struct property *prop;
 	const __be32 *cur;
 	u32 val;
+	u32 pdm_val[ARIZONA_MAX_PDM_SPK];
 	int ret, i;
 	int count = 0;
 
-	pdata->reset = arizona_of_get_named_gpio(arizona, "wlf,reset", true);
+	pdata->reset = of_get_named_gpio(arizona->dev->of_node, "wlf,reset", 0);
+	if (pdata->reset == -EPROBE_DEFER) {
+		return pdata->reset;
+	} else if (pdata->reset < 0) {
+		dev_err(arizona->dev, "Reset GPIO missing/malformed: %d\n",
+			pdata->reset);
+
+		pdata->reset = 0;
+	}
 
 	ret = of_property_read_u32_array(arizona->dev->of_node,
 					 "wlf,gpio-defaults",
@@ -885,6 +873,35 @@ static int arizona_of_get_core_pdata(struct arizona *arizona)
 		pdata->out_mono[count] = !!val;
 		count++;
 	}
+
+	count = 0;
+	of_property_for_each_u32(arizona->dev->of_node,
+				 "wlf,max-channels-clocked",
+				 prop, cur, val) {
+		if (count == ARRAY_SIZE(pdata->max_channels_clocked))
+			break;
+
+		pdata->max_channels_clocked[count] = val;
+		count++;
+	}
+
+	ret = of_property_read_u32_array(arizona->dev->of_node,
+					 "wlf,spk-fmt",
+					 pdm_val,
+					 ARRAY_SIZE(pdm_val));
+
+	if (ret >= 0)
+		for (count = 0; count < ARRAY_SIZE(pdata->spk_fmt); ++count)
+			pdata->spk_fmt[count] = pdm_val[count];
+
+	ret = of_property_read_u32_array(arizona->dev->of_node,
+					 "wlf,spk-mute",
+					 pdm_val,
+					 ARRAY_SIZE(pdm_val));
+
+	if (ret >= 0)
+		for (count = 0; count < ARRAY_SIZE(pdata->spk_mute); ++count)
+			pdata->spk_mute[count] = pdm_val[count];
 
 	return 0;
 }
@@ -1026,11 +1043,14 @@ int arizona_dev_init(struct arizona *arizona)
 	dev_set_drvdata(arizona->dev, arizona);
 	mutex_init(&arizona->clk_lock);
 
-	if (dev_get_platdata(arizona->dev))
+	if (dev_get_platdata(arizona->dev)) {
 		memcpy(&arizona->pdata, dev_get_platdata(arizona->dev),
 		       sizeof(arizona->pdata));
-	else
-		arizona_of_get_core_pdata(arizona);
+	} else {
+		ret = arizona_of_get_core_pdata(arizona);
+		if (ret < 0)
+			return ret;
+	}
 
 	BUILD_BUG_ON(ARRAY_SIZE(arizona->mclk) != ARRAY_SIZE(mclk_name));
 	for (i = 0; i < ARRAY_SIZE(arizona->mclk); i++) {
@@ -1061,7 +1081,7 @@ int arizona_dev_init(struct arizona *arizona)
 	default:
 		dev_err(arizona->dev, "Unknown device type %d\n",
 			arizona->type);
-		return -EINVAL;
+		return -ENODEV;
 	}
 
 	/* Mark DCVDD as external, LDO1 driver will clear if internal */
@@ -1147,6 +1167,7 @@ int arizona_dev_init(struct arizona *arizona)
 		break;
 	default:
 		dev_err(arizona->dev, "Unknown device ID: %x\n", reg);
+		ret = -ENODEV;
 		goto err_reset;
 	}
 
@@ -1306,12 +1327,14 @@ int arizona_dev_init(struct arizona *arizona)
 		break;
 	default:
 		dev_err(arizona->dev, "Unknown device ID %x\n", reg);
+		ret = -ENODEV;
 		goto err_reset;
 	}
 
 	if (!subdevs) {
 		dev_err(arizona->dev,
 			"No kernel support for device ID %x\n", reg);
+		ret = -ENODEV;
 		goto err_reset;
 	}
 

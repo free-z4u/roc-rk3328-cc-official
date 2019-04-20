@@ -50,7 +50,7 @@ config MFD_AS3711
 	  Support for the AS3711 PMIC from AMS
 
 config MFD_AS3722
-	bool "ams AS3722 Power Management IC"
+	tristate "ams AS3722 Power Management IC"
 	select MFD_CORE
 	select REGMAP_I2C
 	select REGMAP_IRQ
@@ -290,6 +290,14 @@ config MFD_DLN2
 	  DLN-2. Additional drivers such as I2C_DLN2, GPIO_DLN2,
 	  etc. must be enabled in order to use the functionality of
 	  the device.
+
+config MFD_EXYNOS_LPASS
+	tristate "Samsung Exynos SoC Low Power Audio Subsystem"
+	select MFD_CORE
+	select REGMAP_MMIO
+	help
+	  Select this option to enable support for Samsung Exynos Low Power
+	  Audio Subsystem.
 
 config MFD_MC13XXX
 	tristate
@@ -1216,6 +1224,7 @@ config MFD_TPS65217
 	depends on I2C
 	select MFD_CORE
 	select REGMAP_I2C
+	select IRQ_DOMAIN
 	help
 	  If you say yes here you get support for the TPS65217 series of
 	  Power Management / White LED chips.
