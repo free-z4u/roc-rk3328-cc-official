@@ -395,34 +395,17 @@ static struct rk_rtc_compat_reg rk808_creg = {
 	.seconds_reg = RK808_SECONDS_REG,
 };
 
-static struct rk_rtc_compat_reg rk817_creg = {
-	.ctrl_reg = RK817_RTC_CTRL_REG,
-	.status_reg = RK817_RTC_STATUS_REG,
-	.alarm_seconds_reg = RK817_ALARM_SECONDS_REG,
-	.int_reg = RK817_RTC_INT_REG,
-	.seconds_reg = RK817_SECONDS_REG,
-};
-
 static int rk808_rtc_probe(struct platform_device *pdev)
 {
 	struct rk808 *rk808 = dev_get_drvdata(pdev->dev.parent);
 	struct rk808_rtc *rk808_rtc;
 	struct rtc_time tm;
-	struct device_node *np;
 	int ret;
 
 	switch (rk808->variant) {
 	case RK805_ID:
 	case RK808_ID:
-	case RK809_ID:
 	case RK818_ID:
-	case RK817_ID:
-		np = of_get_child_by_name(pdev->dev.parent->of_node, "rtc");
-		if (np && !of_device_is_available(np)) {
-			dev_info(&pdev->dev, "device is disabled\n");
-			return -EINVAL;
-		}
-		break;
 	default:
 		break;
 	}
@@ -432,10 +415,6 @@ static int rk808_rtc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	switch (rk808->variant) {
-	case RK809_ID:
-	case RK817_ID:
-		rk808_rtc->creg = &rk817_creg;
-		break;
 	default:
 		rk808_rtc->creg = &rk808_creg;
 		break;
