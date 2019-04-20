@@ -100,6 +100,7 @@
 		.ops		= &rk808_switch_ops			\
 	}
 
+
 struct rk808_regulator_data {
 	struct gpio_desc *dvs_gpio[2];
 };
@@ -188,8 +189,6 @@ static int rk808_buck1_2_i2c_set_voltage_sel(struct regulator_dev *rdev,
 	return ret;
 }
 
-extern void rkclk_cpuclk_div_setting(int div);
-
 static int rk808_buck1_2_set_voltage_sel(struct regulator_dev *rdev,
 					 unsigned sel)
 {
@@ -229,8 +228,8 @@ static int rk808_buck1_2_set_voltage_sel(struct regulator_dev *rdev,
 }
 
 static int rk808_buck1_2_set_voltage_time_sel(struct regulator_dev *rdev,
-					      unsigned int old_selector,
-					      unsigned int new_selector)
+				       unsigned int old_selector,
+				       unsigned int new_selector)
 {
 	struct rk808_regulator_data *pdata = rdev_get_drvdata(rdev);
 	int id = rdev_get_id(rdev);
@@ -608,7 +607,7 @@ static const struct regulator_desc rk818_reg[] = {
 		RK818_LDO1_ON_VSEL_REG, RK818_LDO_VSEL_MASK, RK818_LDO_EN_REG,
 		BIT(0), 400),
 	RK8XX_DESC(RK818_ID_LDO2, "LDO_REG2", "vcc6", 1800, 3400, 100,
-		RK818_LDO2_ON_VSEL_REG, RK818_LDO_VSEL_MASK, RK818_LDO_EN_REG,
+		RK818_LDO1_ON_VSEL_REG, RK818_LDO_VSEL_MASK, RK818_LDO_EN_REG,
 		BIT(1), 400),
 	{
 		.name = "LDO_REG3",
@@ -654,13 +653,10 @@ static const struct regulator_desc rk818_reg[] = {
 		RK818_DCDC_EN_REG, BIT(7)),
 };
 
-#define ENABLE_MASK(id)			(BIT(id) | BIT(4 + (id)))
-#define DISABLE_VAL(id)			(BIT(4 + (id)))
-
 static int rk808_regulator_dt_parse_pdata(struct device *dev,
-					  struct device *client_dev,
-					  struct regmap *map,
-					  struct rk808_regulator_data *pdata)
+				   struct device *client_dev,
+				   struct regmap *map,
+				   struct rk808_regulator_data *pdata)
 {
 	struct device_node *np;
 	int tmp, ret = 0, i;

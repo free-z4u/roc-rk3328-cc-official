@@ -6,6 +6,10 @@
  * Author: Chris Zhong <zyw@rock-chips.com>
  * Author: Zhang Qing <zhangqing@rock-chips.com>
  *
+ * Copyright (C) 2016 PHYTEC Messtechnik GmbH
+ *
+ * Author: Wadim Egorov <w.egorov@phytec.de>
+ *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
  * version 2, as published by the Free Software Foundation.
@@ -45,36 +49,6 @@ enum rk808_reg {
 	RK808_ID_LDO8,
 	RK808_ID_SWITCH1,
 	RK808_ID_SWITCH2,
-};
-
-enum rk818_reg {
-	RK818_ID_DCDC1,
-	RK818_ID_DCDC2,
-	RK818_ID_DCDC3,
-	RK818_ID_DCDC4,
-	RK818_ID_BOOST,
-	RK818_ID_LDO1,
-	RK818_ID_LDO2,
-	RK818_ID_LDO3,
-	RK818_ID_LDO4,
-	RK818_ID_LDO5,
-	RK818_ID_LDO6,
-	RK818_ID_LDO7,
-	RK818_ID_LDO8,
-	RK818_ID_LDO9,
-	RK818_ID_SWITCH,
-	RK818_ID_HDMI_SWITCH,
-	RK818_ID_OTG_SWITCH,
-};
-
-enum rk805_reg {
-	RK805_ID_DCDC1,
-	RK805_ID_DCDC2,
-	RK805_ID_DCDC3,
-	RK805_ID_DCDC4,
-	RK805_ID_LDO1,
-	RK805_ID_LDO2,
-	RK805_ID_LDO3,
 };
 
 #define RK808_SECONDS_REG	0x00
@@ -147,6 +121,40 @@ enum rk805_reg {
 #define RK808_INT_STS_MSK_REG2	0x4f
 #define RK808_IO_POL_REG	0x50
 
+/* RK818 */
+#define RK818_DCDC1			0
+#define RK818_LDO1			4
+#define RK818_NUM_REGULATORS		17
+
+enum rk818_reg {
+	RK818_ID_DCDC1,
+	RK818_ID_DCDC2,
+	RK818_ID_DCDC3,
+	RK818_ID_DCDC4,
+	RK818_ID_BOOST,
+	RK818_ID_LDO1,
+	RK818_ID_LDO2,
+	RK818_ID_LDO3,
+	RK818_ID_LDO4,
+	RK818_ID_LDO5,
+	RK818_ID_LDO6,
+	RK818_ID_LDO7,
+	RK818_ID_LDO8,
+	RK818_ID_LDO9,
+	RK818_ID_SWITCH,
+	RK818_ID_HDMI_SWITCH,
+	RK818_ID_OTG_SWITCH,
+};
+
+enum rk805_reg {
+	RK805_ID_DCDC1,
+	RK805_ID_DCDC2,
+	RK805_ID_DCDC3,
+	RK805_ID_DCDC4,
+	RK805_ID_LDO1,
+	RK805_ID_LDO2,
+	RK805_ID_LDO3,
+};
 #define RK818_VB_MON_REG		0x21
 #define RK818_THERMAL_REG		0x22
 #define RK818_DCDC_EN_REG		0x23
@@ -187,6 +195,8 @@ enum rk805_reg {
 #define RK818_LDO7_SLP_VSEL_REG		0x48
 #define RK818_LDO8_ON_VSEL_REG		0x49
 #define RK818_LDO8_SLP_VSEL_REG		0x4a
+#define RK818_BOOST_LDO9_ON_VSEL_REG	0x54
+#define RK818_BOOST_LDO9_SLP_VSEL_REG	0x55
 #define RK818_DEVCTRL_REG		0x4b
 #define RK818_INT_STS_REG1		0X4c
 #define RK818_INT_STS_MSK_REG1		0x4d
@@ -300,6 +310,43 @@ enum rk805_reg {
 #define RK808_IRQ_RTC_PERIOD_MSK	BIT(6)
 #define RK808_IRQ_PLUG_IN_INT_MSK	BIT(0)
 #define RK808_IRQ_PLUG_OUT_INT_MSK	BIT(1)
+
+/* RK818 IRQ Definitions */
+#define RK818_IRQ_VOUT_LO	0
+#define RK818_IRQ_VB_LO		1
+#define RK818_IRQ_PWRON		2
+#define RK818_IRQ_PWRON_LP	3
+#define RK818_IRQ_HOTDIE	4
+#define RK818_IRQ_RTC_ALARM	5
+#define RK818_IRQ_RTC_PERIOD	6
+#define RK818_IRQ_USB_OV	7
+#define RK818_IRQ_PLUG_IN	8
+#define RK818_IRQ_PLUG_OUT	9
+#define RK818_IRQ_CHG_OK	10
+#define RK818_IRQ_CHG_TE	11
+#define RK818_IRQ_CHG_TS1	12
+#define RK818_IRQ_TS2		13
+#define RK818_IRQ_CHG_CVTLIM	14
+#define RK818_IRQ_DISCHG_ILIM	15
+
+#define RK818_IRQ_VOUT_LO_MSK		BIT(0)
+#define RK818_IRQ_VB_LO_MSK		BIT(1)
+#define RK818_IRQ_PWRON_MSK		BIT(2)
+#define RK818_IRQ_PWRON_LP_MSK		BIT(3)
+#define RK818_IRQ_HOTDIE_MSK		BIT(4)
+#define RK818_IRQ_RTC_ALARM_MSK		BIT(5)
+#define RK818_IRQ_RTC_PERIOD_MSK	BIT(6)
+#define RK818_IRQ_USB_OV_MSK		BIT(7)
+#define RK818_IRQ_PLUG_IN_MSK		BIT(0)
+#define RK818_IRQ_PLUG_OUT_MSK		BIT(1)
+#define RK818_IRQ_CHG_OK_MSK		BIT(2)
+#define RK818_IRQ_CHG_TE_MSK		BIT(3)
+#define RK818_IRQ_CHG_TS1_MSK		BIT(4)
+#define RK818_IRQ_TS2_MSK		BIT(5)
+#define RK818_IRQ_CHG_CVTLIM_MSK	BIT(6)
+#define RK818_IRQ_DISCHG_ILIM_MSK	BIT(7)
+
+#define RK818_NUM_IRQ		16
 
 #define RK808_VBAT_LOW_2V8	0x00
 #define RK808_VBAT_LOW_2V9	0x01
@@ -592,7 +639,7 @@ enum {
 enum {
 	RK805_ID = 0x8050,
 	RK808_ID = 0x0000,
-	RK818_ID = 0x8180,
+	RK818_ID = 0x8181,
 };
 
 struct rk808 {
@@ -600,6 +647,7 @@ struct rk808 {
 	struct regmap_irq_chip_data	*irq_data;
 	struct regmap			*regmap;
 	long				variant;
-	struct regmap_irq_chip_data	*battery_irq_data;
+	const struct regmap_config	*regmap_cfg;
+	const struct regmap_irq_chip	*regmap_irq_chip;
 };
 #endif /* __LINUX_REGULATOR_RK808_H */

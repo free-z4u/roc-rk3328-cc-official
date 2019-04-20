@@ -584,7 +584,7 @@ static int rk808_probe(struct i2c_client *client,
 	int (*pm_shutdown_prepare_fn)(struct regmap *regmap) = NULL;
 	const struct rk808_reg_data *pre_init_reg;
 	const struct regmap_config *regmap_config;
-	const struct regmap_irq_chip *irq_chip, *battery_irq_chip = NULL;
+	const struct regmap_irq_chip *irq_chip;
 	const struct mfd_cell *cell;
 	u8 on_source = 0, off_source = 0;
 	int msb, lsb, reg_num, cell_num;
@@ -621,6 +621,15 @@ static int rk808_probe(struct i2c_client *client,
 
 	/* set Chip platform init data*/
 	switch (rk808->variant) {
+	case RK808_ID:
+		cell = rk808s;
+		cell_num = ARRAY_SIZE(rk808s);
+		pre_init_reg = rk808_pre_init_reg;
+		reg_num = ARRAY_SIZE(rk808_pre_init_reg);
+		regmap_config = &rk808_regmap_config;
+		irq_chip = &rk808_irq_chip;
+		pm_shutdown_fn = rk808_shutdown;
+		break;
 	case RK818_ID:
 		cell = rk818s;
 		cell_num = ARRAY_SIZE(rk818s);
@@ -635,15 +644,6 @@ static int rk808_probe(struct i2c_client *client,
 		suspend_reg_num = ARRAY_SIZE(rk818_suspend_reg);
 		resume_reg = rk818_resume_reg;
 		resume_reg_num = ARRAY_SIZE(rk818_resume_reg);
-		break;
-	case RK808_ID:
-		cell = rk808s;
-		cell_num = ARRAY_SIZE(rk808s);
-		pre_init_reg = rk808_pre_init_reg;
-		reg_num = ARRAY_SIZE(rk808_pre_init_reg);
-		regmap_config = &rk808_regmap_config;
-		irq_chip = &rk808_irq_chip;
-		pm_shutdown_fn = rk808_shutdown;
 		break;
 	case RK805_ID:
 		cell = rk805s;
@@ -711,19 +711,6 @@ static int rk808_probe(struct i2c_client *client,
 		return ret;
 	}
 
-	if (battery_irq_chip) {
-		ret = regmap_add_irq_chip(rk808->regmap, client->irq,
-					  IRQF_ONESHOT | IRQF_SHARED, -1,
-					  battery_irq_chip,
-					  &rk808->battery_irq_data);
-		if (ret) {
-			dev_err(&client->dev,
-				"Failed to add batterry irq_chip %d\n", ret);
-			regmap_del_irq_chip(client->irq, rk808->irq_data);
-			return ret;
-		}
-	}
-
 	rk808->i2c = client;
 	rk808_i2c_client = client;
 	i2c_set_clientdata(client, rk808);
@@ -760,8 +747,6 @@ static int rk808_probe(struct i2c_client *client,
 
 err_irq:
 	regmap_del_irq_chip(client->irq, rk808->irq_data);
-	if (battery_irq_chip)
-		regmap_del_irq_chip(client->irq, rk808->battery_irq_data);
 	return ret;
 }
 
