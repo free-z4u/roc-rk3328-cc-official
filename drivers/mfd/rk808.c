@@ -1,10 +1,14 @@
 /*
- * MFD core driver for Rockchip RK808
+ * MFD core driver for Rockchip RK808/RK818
  *
  * Copyright (c) 2014, Fuzhou Rockchip Electronics Co., Ltd
  *
  * Author: Chris Zhong <zyw@rock-chips.com>
  * Author: Zhang Qing <zhangqing@rock-chips.com>
+ *
+ * Copyright (C) 2016 PHYTEC Messtechnik GmbH
+ *
+ * Author: Wadim Egorov <w.egorov@phytec.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -125,19 +129,19 @@ static bool rk818_is_volatile_reg(struct device *dev, unsigned int reg)
 	case RK808_INT_STS_REG2:
 	case RK808_INT_STS_MSK_REG1:
 	case RK808_INT_STS_MSK_REG2:
-	case RK818_SUP_STS_REG ... RK818_SAVE_DATA19:
+	case RK818_SUP_STS_REG ... RK818_USB_CTRL_REG:
 		return true;
 	}
 
 	return false;
 }
 
-static const struct regmap_config rk808_regmap_config = {
+static const struct regmap_config rk818_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
-	.max_register = RK808_IO_POL_REG,
+	.max_register = RK818_USB_CTRL_REG,
 	.cache_type = REGCACHE_RBTREE,
-	.volatile_reg = rk808_is_volatile_reg,
+	.volatile_reg = rk818_is_volatile_reg,
 };
 
 static const struct regmap_config rk805_regmap_config = {
@@ -148,12 +152,12 @@ static const struct regmap_config rk805_regmap_config = {
 	.volatile_reg = rk808_is_volatile_reg,
 };
 
-static const struct regmap_config rk818_regmap_config = {
+static const struct regmap_config rk808_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
-	.max_register = RK818_SAVE_DATA19,
+	.max_register = RK808_IO_POL_REG,
 	.cache_type = REGCACHE_RBTREE,
-	.volatile_reg = rk818_is_volatile_reg,
+	.volatile_reg = rk808_is_volatile_reg,
 };
 
 static struct resource rtc_resources[] = {
@@ -199,6 +203,51 @@ static const struct rk808_reg_data rk808_pre_init_reg[] = {
 						    VB_LO_SEL_3500MV },
 };
 
+static const struct rk808_reg_data rk818_pre_init_reg[] = {
+	{ RK818_H5V_EN_REG, REF_RDY_CTRL_ENABLE | H5V_EN_MASK,
+					REF_RDY_CTRL_ENABLE | H5V_EN_ENABLE },
+	{ RK818_DCDC_EN_REG, BOOST_EN_MASK | SWITCH_EN_MASK,
+					BOOST_EN_ENABLE | SWITCH_EN_ENABLE },
+	{ RK818_SLEEP_SET_OFF_REG1, OTG_SLP_SET_MASK, OTG_SLP_SET_OFF },
+	{ RK818_BUCK4_CONFIG_REG, BUCK_ILMIN_MASK,  BUCK_ILMIN_250MA },
+	{ RK808_RTC_CTRL_REG, RTC_STOP, RTC_STOP},
+};
+
+static const struct regmap_irq rk805_irqs[] = {
+	[RK805_IRQ_PWRON_RISE] = {
+		.mask = RK805_IRQ_PWRON_RISE_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_VB_LOW] = {
+		.mask = RK805_IRQ_VB_LOW_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_PWRON] = {
+		.mask = RK805_IRQ_PWRON_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_PWRON_LP] = {
+		.mask = RK805_IRQ_PWRON_LP_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_HOTDIE] = {
+		.mask = RK805_IRQ_HOTDIE_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_RTC_ALARM] = {
+		.mask = RK805_IRQ_RTC_ALARM_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_RTC_PERIOD] = {
+		.mask = RK805_IRQ_RTC_PERIOD_MSK,
+		.reg_offset = 0,
+	},
+	[RK805_IRQ_PWRON_FALL] = {
+		.mask = RK805_IRQ_PWRON_FALL_MSK,
+		.reg_offset = 0,
+	},
+};
+
 static const struct regmap_irq rk808_irqs[] = {
 	/* INT_STS */
 	[RK808_IRQ_VOUT_LO] = {
@@ -241,10 +290,115 @@ static const struct regmap_irq rk808_irqs[] = {
 	},
 };
 
-static struct regmap_irq_chip rk808_irq_chip = {
+static struct rk808_reg_data rk818_suspend_reg[] = {
+	/* set bat 3.4v low and act irq */
+	{ RK808_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
+	  RK808_VBAT_LOW_3V4 | EN_VBAT_LOW_IRQ },
+};
+
+static struct rk808_reg_data rk818_resume_reg[] = {
+	/* set bat 3.0v low and act shutdown*/
+	{ RK808_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
+	  RK808_VBAT_LOW_3V0 | EN_VABT_LOW_SHUT_DOWN },
+};
+
+static const struct regmap_irq rk818_irqs[] = {
+	/* INT_STS */
+	[RK818_IRQ_VOUT_LO] = {
+		.mask = RK818_IRQ_VOUT_LO_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_VB_LO] = {
+		.mask = RK818_IRQ_VB_LO_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_PWRON] = {
+		.mask = RK818_IRQ_PWRON_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_PWRON_LP] = {
+		.mask = RK818_IRQ_PWRON_LP_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_HOTDIE] = {
+		.mask = RK818_IRQ_HOTDIE_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_RTC_ALARM] = {
+		.mask = RK818_IRQ_RTC_ALARM_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_RTC_PERIOD] = {
+		.mask = RK818_IRQ_RTC_PERIOD_MSK,
+		.reg_offset = 0,
+	},
+	[RK818_IRQ_USB_OV] = {
+		.mask = RK818_IRQ_USB_OV_MSK,
+		.reg_offset = 0,
+	},
+
+	/* INT_STS2 */
+	[RK818_IRQ_PLUG_IN] = {
+		.mask = RK818_IRQ_PLUG_IN_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_PLUG_OUT] = {
+		.mask = RK818_IRQ_PLUG_OUT_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_CHG_OK] = {
+		.mask = RK818_IRQ_CHG_OK_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_CHG_TE] = {
+		.mask = RK818_IRQ_CHG_TE_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_CHG_TS1] = {
+		.mask = RK818_IRQ_CHG_TS1_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_TS2] = {
+		.mask = RK818_IRQ_TS2_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_CHG_CVTLIM] = {
+		.mask = RK818_IRQ_CHG_CVTLIM_MSK,
+		.reg_offset = 1,
+	},
+	[RK818_IRQ_DISCHG_ILIM] = {
+		.mask = RK818_IRQ_DISCHG_ILIM_MSK,
+		.reg_offset = 1,
+	},
+};
+
+static struct regmap_irq_chip rk805_irq_chip = {
+	.name = "rk805",
+	.irqs = rk805_irqs,
+	.num_irqs = ARRAY_SIZE(rk805_irqs),
+	.num_regs = 1,
+	.status_base = RK805_INT_STS_REG,
+	.mask_base = RK805_INT_STS_MSK_REG,
+	.ack_base = RK805_INT_STS_REG,
+	.init_ack_masked = true,
+};
+
+static const struct regmap_irq_chip rk808_irq_chip = {
 	.name = "rk808",
 	.irqs = rk808_irqs,
 	.num_irqs = ARRAY_SIZE(rk808_irqs),
+	.num_regs = 2,
+	.irq_reg_stride = 2,
+	.status_base = RK808_INT_STS_REG1,
+	.mask_base = RK808_INT_STS_MSK_REG1,
+	.ack_base = RK808_INT_STS_REG1,
+	.init_ack_masked = true,
+};
+
+static const struct regmap_irq_chip rk818_irq_chip = {
+	.name = "rk818",
+	.irqs = rk818_irqs,
+	.num_irqs = ARRAY_SIZE(rk818_irqs),
 	.num_regs = 2,
 	.irq_reg_stride = 2,
 	.status_base = RK808_INT_STS_REG1,
@@ -263,155 +417,6 @@ static const struct mfd_cell rk818s[] = {
 		.num_resources = ARRAY_SIZE(rtc_resources),
 		.resources = &rtc_resources[0],
 	},
-};
-
-static const struct rk808_reg_data rk818_pre_init_reg[] = {
-	{ RK818_H5V_EN_REG, REF_RDY_CTRL_ENABLE | H5V_EN_MASK,
-					REF_RDY_CTRL_ENABLE | H5V_EN_ENABLE },
-	{ RK818_DCDC_EN_REG, BOOST_EN_MASK | SWITCH_EN_MASK,
-					BOOST_EN_ENABLE | SWITCH_EN_ENABLE },
-	{ RK818_SLEEP_SET_OFF_REG1, OTG_SLP_SET_MASK, OTG_SLP_SET_OFF },
-	{ RK818_BUCK4_CONFIG_REG, BUCK_ILMIN_MASK,  BUCK_ILMIN_250MA },
-	{ RK808_RTC_CTRL_REG, RTC_STOP, RTC_STOP},
-};
-
-static struct rk808_reg_data rk818_suspend_reg[] = {
-	/* set bat 3.4v low and act irq */
-	{ RK808_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
-	  RK808_VBAT_LOW_3V4 | EN_VBAT_LOW_IRQ },
-};
-
-static struct rk808_reg_data rk818_resume_reg[] = {
-	/* set bat 3.0v low and act shutdown*/
-	{ RK808_VB_MON_REG, VBAT_LOW_VOL_MASK | VBAT_LOW_ACT_MASK,
-	  RK808_VBAT_LOW_3V0 | EN_VABT_LOW_SHUT_DOWN },
-};
-
-static const struct regmap_irq rk818_irqs[] = {
-	/* INT_STS */
-	[RK818_IRQ_VOUT_LO] = {
-		.mask = VOUT_LO_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_VB_LO] = {
-		.mask = VB_LO_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_PWRON] = {
-		.mask = PWRON_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_PWRON_LP] = {
-		.mask = PWRON_LP_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_HOTDIE] = {
-		.mask = HOTDIE_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_RTC_ALARM] = {
-		.mask = RTC_ALARM_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_RTC_PERIOD] = {
-		.mask = RTC_PERIOD_MASK,
-		.reg_offset = 0,
-	},
-	[RK818_IRQ_USB_OV] = {
-		.mask = USB_OV_MASK,
-		.reg_offset = 0,
-	},
-	/* INT_STS2 */
-	[RK818_IRQ_PLUG_IN] = {
-		.mask = PLUG_IN_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_PLUG_OUT] = {
-		.mask = PLUG_OUT_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_CHG_OK] = {
-		.mask = CHGOK_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_CHG_TE] = {
-		.mask = CHGTE_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_CHG_TS1] = {
-		.mask = CHGTS1_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_TS2] = {
-		.mask = TS2_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_CHG_CVTLIM] = {
-		.mask = CHG_CVTLIM_MASK,
-		.reg_offset = 1,
-	},
-	[RK818_IRQ_DISCHG_ILIM] = {
-		.mask = DISCHG_ILIM_MASK,
-		.reg_offset = 1,
-	},
-};
-
-static struct regmap_irq_chip rk818_irq_chip = {
-	.name = "rk818",
-	.irqs = rk818_irqs,
-	.num_irqs = ARRAY_SIZE(rk818_irqs),
-	.num_regs = 2,
-	.irq_reg_stride = 2,
-	.status_base = RK808_INT_STS_REG1,
-	.mask_base = RK808_INT_STS_MSK_REG1,
-	.ack_base = RK808_INT_STS_REG1,
-	.init_ack_masked = true,
-};
-
-static const struct regmap_irq rk805_irqs[] = {
-	[RK805_IRQ_PWRON_RISE] = {
-		.mask = RK805_IRQ_PWRON_RISE_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_VB_LOW] = {
-		.mask = RK805_IRQ_VB_LOW_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_PWRON] = {
-		.mask = RK805_IRQ_PWRON_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_PWRON_LP] = {
-		.mask = RK805_IRQ_PWRON_LP_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_HOTDIE] = {
-		.mask = RK805_IRQ_HOTDIE_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_RTC_ALARM] = {
-		.mask = RK805_IRQ_RTC_ALARM_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_RTC_PERIOD] = {
-		.mask = RK805_IRQ_RTC_PERIOD_MSK,
-		.reg_offset = 0,
-	},
-	[RK805_IRQ_PWRON_FALL] = {
-		.mask = RK805_IRQ_PWRON_FALL_MSK,
-		.reg_offset = 0,
-	},
-};
-
-static struct regmap_irq_chip rk805_irq_chip = {
-	.name = "rk805",
-	.irqs = rk805_irqs,
-	.num_irqs = ARRAY_SIZE(rk805_irqs),
-	.num_regs = 1,
-	.status_base = RK805_INT_STS_REG,
-	.mask_base = RK805_INT_STS_MSK_REG,
-	.ack_base = RK805_INT_STS_REG,
-	.init_ack_masked = true,
 };
 
 static const struct mfd_cell rk805s[] = {
@@ -572,7 +577,6 @@ static const struct of_device_id rk808_of_match[] = {
 	{ .compatible = "rockchip,rk818" },
 	{ },
 };
-
 MODULE_DEVICE_TABLE(of, rk808_of_match);
 
 static int rk808_probe(struct i2c_client *client,
@@ -590,7 +594,6 @@ static int rk808_probe(struct i2c_client *client,
 	int msb, lsb, reg_num, cell_num;
 	int ret, i, pm_off = 0;
 	unsigned int on, off;
-	u8 pmic_id_msb = RK808_ID_MSB, pmic_id_lsb = RK808_ID_LSB;
 
 	if (!client->irq) {
 		dev_err(&client->dev, "No interrupt support, no core IRQ\n");
@@ -601,15 +604,15 @@ static int rk808_probe(struct i2c_client *client,
 	if (!rk808)
 		return -ENOMEM;
 
-	/* read Chip variant */
-	msb = i2c_smbus_read_byte_data(client, pmic_id_msb);
+	/* Read chip variant */
+	msb = i2c_smbus_read_byte_data(client, RK808_ID_MSB);
 	if (msb < 0) {
 		dev_err(&client->dev, "failed to read the chip id at 0x%x\n",
 			RK808_ID_MSB);
 		return msb;
 	}
 
-	lsb = i2c_smbus_read_byte_data(client, pmic_id_lsb);
+	lsb = i2c_smbus_read_byte_data(client, RK808_ID_LSB);
 	if (lsb < 0) {
 		dev_err(&client->dev, "failed to read the chip id at 0x%x\n",
 			RK808_ID_LSB);
@@ -617,7 +620,7 @@ static int rk808_probe(struct i2c_client *client,
 	}
 
 	rk808->variant = ((msb << 8) | lsb) & RK8XX_ID_MSK;
-	dev_info(&client->dev, "Pmic Chip id: 0x%lx\n", rk808->variant);
+	dev_info(&client->dev, "chip id: 0x%x\n", (unsigned int)rk808->variant);
 
 	/* set Chip platform init data*/
 	switch (rk808->variant) {
@@ -834,4 +837,5 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Chris Zhong <zyw@rock-chips.com>");
 MODULE_AUTHOR("Zhang Qing <zhangqing@rock-chips.com>");
 MODULE_AUTHOR("Chen jianhong <chenjh@rock-chips.com>");
-MODULE_DESCRIPTION("RK808 PMIC driver");
+MODULE_AUTHOR("Wadim Egorov <w.egorov@phytec.de>");
+MODULE_DESCRIPTION("RK808/RK818 PMIC driver");
