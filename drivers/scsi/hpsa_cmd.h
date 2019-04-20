@@ -158,6 +158,7 @@
 /* VPD Inquiry types */
 #define HPSA_INQUIRY_FAILED		0x02
 #define HPSA_VPD_SUPPORTED_PAGES        0x00
+#define HPSA_VPD_LV_DEVICE_ID           0x83
 #define HPSA_VPD_LV_DEVICE_GEOMETRY     0xC1
 #define HPSA_VPD_LV_IOACCEL_STATUS      0xC2
 #define HPSA_VPD_LV_STATUS		0xC3
