@@ -161,7 +161,6 @@ enum rk3x_i2c_state {
 };
 
 /**
- * struct rk3x_i2c_soc_data:
  * @grf_offset: offset inside the grf regmap for setting the i2c type
  * @calc_timings: Callback function for i2c timing information calculated
  */
@@ -195,7 +194,7 @@ struct rk3x_i2c_soc_data {
 struct rk3x_i2c {
 	struct i2c_adapter adap;
 	struct device *dev;
-	const struct rk3x_i2c_soc_data *soc_data;
+	struct rk3x_i2c_soc_data *soc_data;
 
 	/* Hardware resources */
 	void __iomem *regs;
@@ -1325,6 +1324,8 @@ static int rk3x_i2c_probe(struct platform_device *pdev)
 	ret = i2c_add_adapter(&i2c->adap);
 	if (ret < 0)
 		goto err_clk_notifier;
+
+	dev_info(&pdev->dev, "Initialized RK3xxx I2C bus at %p\n", i2c->regs);
 
 	return 0;
 
