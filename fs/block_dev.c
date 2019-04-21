@@ -179,9 +179,6 @@ blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	struct file *file = iocb->ki_filp;
 	struct inode *inode = bdev_file_inode(file);
 
-	if (IS_DAX(inode))
-		return dax_do_io(iocb, inode, iter, blkdev_get_block,
-				NULL, DIO_SKIP_DIO_COUNT);
 	return __blockdev_direct_IO(iocb, inode, I_BDEV(inode), iter,
 				    blkdev_get_block, NULL, NULL,
 				    DIO_SKIP_DIO_COUNT);
@@ -301,14 +298,11 @@ int thaw_bdev(struct block_device *bdev, struct super_block *sb)
 		error = sb->s_op->thaw_super(sb);
 	else
 		error = thaw_super(sb);
-	if (error) {
+	if (error)
 		bdev->bd_fsfreeze_count++;
-		mutex_unlock(&bdev->bd_fsfreeze_mutex);
-		return error;
-	}
 out:
 	mutex_unlock(&bdev->bd_fsfreeze_mutex);
-	return 0;
+	return error;
 }
 EXPORT_SYMBOL(thaw_bdev);
 
@@ -1273,7 +1267,6 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, int for_part)
 		bdev->bd_disk = disk;
 		bdev->bd_queue = disk->queue;
 		bdev->bd_contains = bdev;
-		bdev->bd_inode->i_flags = 0;
 
 		if (!partno) {
 			ret = -ENXIO;
@@ -1301,11 +1294,8 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, int for_part)
 				}
 			}
 
-			if (!ret) {
+			if (!ret)
 				bd_set_size(bdev,(loff_t)get_capacity(disk)<<9);
-				if (!bdev_dax_capable(bdev))
-					bdev->bd_inode->i_flags &= ~S_DAX;
-			}
 
 			/*
 			 * If the device is invalidated, rescan partition
@@ -1340,8 +1330,6 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, int for_part)
 				goto out_clear;
 			}
 			bd_set_size(bdev, (loff_t)bdev->bd_part->nr_sects << 9);
-			if (!bdev_dax_capable(bdev))
-				bdev->bd_inode->i_flags &= ~S_DAX;
 		}
 	} else {
 		if (bdev->bd_contains == bdev) {
