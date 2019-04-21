@@ -825,6 +825,9 @@ static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
 #endif
 #endif
 
+struct file;
+int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
+			unsigned long size, pgprot_t *vma_prot);
 #endif /* !__ASSEMBLY__ */
 
 #ifndef io_remap_pfn_range
