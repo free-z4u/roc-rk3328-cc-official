@@ -14,6 +14,7 @@
 #include "jr.h"
 #include "desc_constr.h"
 #include "error.h"
+#include "ctrl.h"
 
 bool caam_little_end;
 EXPORT_SYMBOL(caam_little_end);
@@ -831,6 +832,8 @@ static int caam_probe(struct platform_device *pdev)
 
 caam_remove:
 	caam_remove(pdev);
+	return ret;
+
 iounmap_ctrl:
 	iounmap(ctrl);
 disable_caam_emi_slow:

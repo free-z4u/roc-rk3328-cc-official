@@ -45,7 +45,7 @@ static struct inode *debugfs_get_inode(struct super_block *sb)
 	if (inode) {
 		inode->i_ino = get_next_ino();
 		inode->i_atime = inode->i_mtime =
-			inode->i_ctime = current_fs_time(sb);
+			inode->i_ctime = current_time(inode);
 	}
 	return inode;
 }
@@ -784,7 +784,7 @@ struct dentry *debugfs_rename(struct dentry *old_dir, struct dentry *old_dentry,
 	take_dentry_name_snapshot(&old_name, old_dentry);
 
 	error = simple_rename(d_inode(old_dir), old_dentry, d_inode(new_dir),
-		dentry);
+			      dentry, 0);
 	if (error) {
 		release_dentry_name_snapshot(&old_name);
 		goto exit;

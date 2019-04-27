@@ -616,7 +616,7 @@ static int udf_add_nondir(struct dentry *dentry, struct inode *inode)
 	*(__le32 *)((struct allocDescImpUse *)cfi.icb.impUse)->impUse =
 		cpu_to_le32(iinfo->i_unique & 0x00000000FFFFFFFFUL);
 	udf_write_fi(dir, &cfi, fi, &fibh, NULL, NULL);
-	dir->i_ctime = dir->i_mtime = current_fs_time(dir->i_sb);
+	dir->i_ctime = dir->i_mtime = current_time(dir);
 	mark_inode_dirty(dir);
 	if (fibh.sbh != fibh.ebh)
 		brelse(fibh.ebh);
@@ -729,7 +729,7 @@ static int udf_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 	cfi.fileCharacteristics |= FID_FILE_CHAR_DIRECTORY;
 	udf_write_fi(dir, &cfi, fi, &fibh, NULL, NULL);
 	inc_nlink(dir);
-	dir->i_ctime = dir->i_mtime = current_fs_time(dir->i_sb);
+	dir->i_ctime = dir->i_mtime = current_time(dir);
 	mark_inode_dirty(dir);
 	d_instantiate_new(dentry, inode);
 	if (fibh.sbh != fibh.ebh)
@@ -843,7 +843,7 @@ static int udf_rmdir(struct inode *dir, struct dentry *dentry)
 	inode->i_size = 0;
 	inode_dec_link_count(dir);
 	inode->i_ctime = dir->i_ctime = dir->i_mtime =
-						current_fs_time(dir->i_sb);
+						current_time(inode);
 	mark_inode_dirty(dir);
 
 end_rmdir:
@@ -886,7 +886,7 @@ static int udf_unlink(struct inode *dir, struct dentry *dentry)
 	retval = udf_delete_entry(dir, fi, &fibh, &cfi);
 	if (retval)
 		goto end_unlink;
-	dir->i_ctime = dir->i_mtime = current_fs_time(dir->i_sb);
+	dir->i_ctime = dir->i_mtime = current_time(dir);
 	mark_inode_dirty(dir);
 	inode_dec_link_count(inode);
 	inode->i_ctime = dir->i_ctime;
@@ -1077,9 +1077,9 @@ static int udf_link(struct dentry *old_dentry, struct inode *dir,
 		brelse(fibh.ebh);
 	brelse(fibh.sbh);
 	inc_nlink(inode);
-	inode->i_ctime = current_fs_time(inode->i_sb);
+	inode->i_ctime = current_time(inode);
 	mark_inode_dirty(inode);
-	dir->i_ctime = dir->i_mtime = current_fs_time(dir->i_sb);
+	dir->i_ctime = dir->i_mtime = current_time(dir);
 	mark_inode_dirty(dir);
 	ihold(inode);
 	d_instantiate(dentry, inode);
@@ -1091,7 +1091,8 @@ static int udf_link(struct dentry *old_dentry, struct inode *dir,
  * higher-level routines.
  */
 static int udf_rename(struct inode *old_dir, struct dentry *old_dentry,
-		      struct inode *new_dir, struct dentry *new_dentry)
+		      struct inode *new_dir, struct dentry *new_dentry,
+		      unsigned int flags)
 {
 	struct inode *old_inode = d_inode(old_dentry);
 	struct inode *new_inode = d_inode(new_dentry);
@@ -1102,6 +1103,9 @@ static int udf_rename(struct inode *old_dir, struct dentry *old_dentry,
 	int retval = -ENOENT;
 	struct kernel_lb_addr tloc;
 	struct udf_inode_info *old_iinfo = UDF_I(old_inode);
+
+	if (flags & ~RENAME_NOREPLACE)
+		return -EINVAL;
 
 	ofi = udf_find_entry(old_dir, &old_dentry->d_name, &ofibh, &ocfi);
 	if (IS_ERR(ofi)) {
@@ -1170,7 +1174,7 @@ static int udf_rename(struct inode *old_dir, struct dentry *old_dentry,
 	 * Like most other Unix systems, set the ctime for inodes on a
 	 * rename.
 	 */
-	old_inode->i_ctime = current_fs_time(old_inode->i_sb);
+	old_inode->i_ctime = current_time(old_inode);
 	mark_inode_dirty(old_inode);
 
 	/*
@@ -1186,11 +1190,11 @@ static int udf_rename(struct inode *old_dir, struct dentry *old_dentry,
 	udf_delete_entry(old_dir, ofi, &ofibh, &ocfi);
 
 	if (new_inode) {
-		new_inode->i_ctime = current_fs_time(new_inode->i_sb);
+		new_inode->i_ctime = current_time(new_inode);
 		inode_dec_link_count(new_inode);
 	}
-	old_dir->i_ctime = old_dir->i_mtime = current_fs_time(old_dir->i_sb);
-	new_dir->i_ctime = new_dir->i_mtime = current_fs_time(new_dir->i_sb);
+	old_dir->i_ctime = old_dir->i_mtime = current_time(old_dir);
+	new_dir->i_ctime = new_dir->i_mtime = current_time(new_dir);
 	mark_inode_dirty(old_dir);
 	mark_inode_dirty(new_dir);
 

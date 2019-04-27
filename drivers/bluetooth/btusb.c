@@ -324,6 +324,7 @@ static const struct usb_device_id blacklist_table[] = {
 	/* Marvell Bluetooth devices */
 	{ USB_DEVICE(0x1286, 0x2044), .driver_info = BTUSB_MARVELL },
 	{ USB_DEVICE(0x1286, 0x2046), .driver_info = BTUSB_MARVELL },
+	{ USB_DEVICE(0x1286, 0x204e), .driver_info = BTUSB_MARVELL },
 
 	/* Intel Bluetooth devices */
 	{ USB_DEVICE(0x8087, 0x07da), .driver_info = BTUSB_CSR },
@@ -1062,6 +1063,10 @@ static int btusb_open(struct hci_dev *hdev)
 
 	BT_DBG("%s", hdev->name);
 
+	err = usb_autopm_get_interface(data->intf);
+	if (err < 0)
+		return err;
+
 	/* Patching USB firmware files prior to starting any URBs of HCI path
 	 * It is more safe to use USB bulk channel for downloading USB patch
 	 */
@@ -1070,10 +1075,6 @@ static int btusb_open(struct hci_dev *hdev)
 		if (err < 0)
 			return err;
 	}
-
-	err = usb_autopm_get_interface(data->intf);
-	if (err < 0)
-		return err;
 
 	data->intf->needs_remote_wakeup = 1;
 
