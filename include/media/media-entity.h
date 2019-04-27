@@ -486,7 +486,7 @@ media_entity_enum_test_and_set(struct media_entity_enum *ent_enum,
  *
  * @ent_enum: Entity enumeration
  *
- * Returns true if the entity was marked.
+ * Returns true if the entity was empty.
  */
 static inline bool media_entity_enum_empty(struct media_entity_enum *ent_enum)
 {
@@ -519,12 +519,6 @@ static inline bool media_entity_enum_intersects(
 
 #define gobj_to_link(gobj) \
 		container_of(gobj, struct media_link, graph_obj)
-
-#define gobj_to_link(gobj) \
-		container_of(gobj, struct media_link, graph_obj)
-
-#define gobj_to_pad(gobj) \
-		container_of(gobj, struct media_pad, graph_obj)
 
 #define gobj_to_intf(gobj) \
 		container_of(gobj, struct media_interface, graph_obj)

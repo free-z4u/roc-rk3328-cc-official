@@ -198,6 +198,7 @@ static int __vb2_buf_mem_alloc(struct vb2_buffer *vb)
 		q->is_output ? DMA_TO_DEVICE : DMA_FROM_DEVICE;
 	void *mem_priv;
 	int plane;
+	int ret = -ENOMEM;
 
 	/*
 	 * Allocate memory for all planes in this buffer
@@ -209,8 +210,11 @@ static int __vb2_buf_mem_alloc(struct vb2_buffer *vb)
 		mem_priv = call_ptr_memop(vb, alloc,
 				q->alloc_devs[plane] ? : q->dev,
 				q->dma_attrs, size, dma_dir, q->gfp_flags);
-		if (IS_ERR_OR_NULL(mem_priv))
+		if (IS_ERR(mem_priv)) {
+			if (mem_priv)
+				ret = PTR_ERR(mem_priv);
 			goto free;
+		}
 
 		/* Associate allocator private data with this plane */
 		vb->planes[plane].mem_priv = mem_priv;
@@ -224,7 +228,7 @@ free:
 		vb->planes[plane - 1].mem_priv = NULL;
 	}
 
-	return -ENOMEM;
+	return ret;
 }
 
 /**
@@ -1143,10 +1147,10 @@ static int __qbuf_userptr(struct vb2_buffer *vb, const void *pb)
 				q->alloc_devs[plane] ? : q->dev,
 				planes[plane].m.userptr,
 				planes[plane].length, dma_dir);
-		if (IS_ERR_OR_NULL(mem_priv)) {
+		if (IS_ERR(mem_priv)) {
 			dprintk(1, "failed acquiring userspace "
 						"memory for plane %d\n", plane);
-			ret = mem_priv ? PTR_ERR(mem_priv) : -EINVAL;
+			ret = PTR_ERR(mem_priv);
 			goto err;
 		}
 		vb->planes[plane].mem_priv = mem_priv;
@@ -1235,8 +1239,10 @@ static int __qbuf_dmabuf(struct vb2_buffer *vb, const void *pb)
 			planes[plane].length = dbuf->size;
 
 		if (planes[plane].length < vb->planes[plane].min_length) {
-			dprintk(1, "invalid dmabuf length for plane %d\n",
-				plane);
+			dprintk(1, "invalid dmabuf length %u for plane %d, "
+				"minimum length %u\n",
+				planes[plane].length, plane,
+				vb->planes[plane].min_length);
 			dma_buf_put(dbuf);
 			ret = -EINVAL;
 			goto err;
@@ -1278,9 +1284,10 @@ static int __qbuf_dmabuf(struct vb2_buffer *vb, const void *pb)
 		vb->planes[plane].mem_priv = mem_priv;
 	}
 
-	/* TODO: This pins the buffer(s) with  dma_buf_map_attachment()).. but
-	 * really we want to do this just before the DMA, not while queueing
-	 * the buffer(s)..
+	/*
+	 * This pins the buffer(s) with dma_buf_map_attachment()). It's done
+	 * here instead just before the DMA, while queueing the buffer(s) so
+	 * userspace knows sooner rather than later if the dma-buf map fails.
 	 */
 	for (plane = 0; plane < vb->num_planes; ++plane) {
 		ret = call_memop(vb, map_dmabuf, vb->planes[plane].mem_priv);
