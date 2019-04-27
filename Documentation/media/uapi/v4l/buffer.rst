@@ -11,14 +11,14 @@ the Streaming I/O methods. In the multi-planar API, the data is held in
 planes, while the buffer structure acts as a container for the planes.
 Only pointers to buffers (planes) are exchanged, the data itself is not
 copied. These pointers, together with meta-information like timestamps
-or field parity, are stored in a struct :c:type:`struct v4l2_buffer <v4l2_buffer>`,
+or field parity, are stored in a struct :c:type:`v4l2_buffer`,
 argument to the :ref:`VIDIOC_QUERYBUF`,
 :ref:`VIDIOC_QBUF` and
 :ref:`VIDIOC_DQBUF <VIDIOC_QBUF>` ioctl. In the multi-planar API,
-some plane-specific members of struct :c:type:`struct v4l2_buffer <v4l2_buffer>`,
+some plane-specific members of struct :c:type:`v4l2_buffer`,
 such as pointers and sizes for each plane, are stored in struct
-:c:type:`struct v4l2_plane <v4l2_plane>` instead. In that case, struct
-:c:type:`struct v4l2_buffer <v4l2_buffer>` contains an array of plane structures.
+struct :c:type:`v4l2_plane` instead. In that case, struct
+struct :c:type:`v4l2_buffer` contains an array of plane structures.
 
 Dequeued video buffers come with timestamps. The driver decides at which
 part of the frame and with which clock the timestamp is taken. Please
@@ -74,7 +74,7 @@ struct v4l2_buffer
        -  Type of the buffer, same as struct
 	  :c:type:`v4l2_format` ``type`` or struct
 	  :c:type:`v4l2_requestbuffers` ``type``, set
-	  by the application. See :ref:`v4l2-buf-type`
+	  by the application. See :c:type:`v4l2_buf_type`
 
     -  .. row 3
 
@@ -110,7 +110,7 @@ struct v4l2_buffer
 
        -
        -  Indicates the field order of the image in the buffer, see
-	  :ref:`v4l2-field`. This field is not used when the buffer
+	  :c:type:`v4l2_field`. This field is not used when the buffer
 	  contains VBI data. Drivers must set it when ``type`` refers to a
 	  capture stream, applications when it refers to an output stream.
 
@@ -142,7 +142,7 @@ struct v4l2_buffer
        -  When ``type`` is ``V4L2_BUF_TYPE_VIDEO_CAPTURE`` and the
 	  ``V4L2_BUF_FLAG_TIMECODE`` flag is set in ``flags``, this
 	  structure contains a frame timecode. In
-	  :ref:`V4L2_FIELD_ALTERNATE <v4l2-field>` mode the top and
+	  :c:type:`V4L2_FIELD_ALTERNATE <v4l2_field>` mode the top and
 	  bottom field contain the same timecode. Timecodes are intended to
 	  help video editing and are typically recorded on video tapes, but
 	  also embedded in compressed formats like MPEG. This field is
@@ -162,7 +162,7 @@ struct v4l2_buffer
 
        -  :cspan:`3`
 
-	  In :ref:`V4L2_FIELD_ALTERNATE <v4l2-field>` mode the top and
+	  In :c:type:`V4L2_FIELD_ALTERNATE <v4l2_field>` mode the top and
 	  bottom field have the same sequence number. The count starts at
 	  zero and includes dropped or repeated frames. A dropped frame was
 	  received by an input device but could not be stored due to lack of
@@ -187,7 +187,7 @@ struct v4l2_buffer
 
        -
        -  This field must be set by applications and/or drivers in
-	  accordance with the selected I/O method. See :ref:`v4l2-memory`
+	  accordance with the selected I/O method. See :c:type:`v4l2_memory`
 
     -  .. row 11
 
@@ -231,7 +231,7 @@ struct v4l2_buffer
        -  When using the multi-planar API, contains a userspace pointer to
 	  an array of struct :c:type:`v4l2_plane`. The size of
 	  the array should be put in the ``length`` field of this
-	  :c:type:`struct v4l2_buffer <v4l2_buffer>` structure.
+	  struct :c:type:`v4l2_buffer` structure.
 
     -  .. row 15
 
@@ -402,7 +402,7 @@ struct v4l2_plane
 
 
 
-.. _v4l2-buf-type:
+.. c:type:: v4l2_buf_type
 
 enum v4l2_buf_type
 ==================
@@ -712,7 +712,7 @@ Buffer Flags
 	  clock). Monotonic clock has been favoured in embedded systems
 	  whereas most of the drivers use the realtime clock. Either kinds
 	  of timestamps are available in user space via
-	  :c:func:`clock_gettime(2)` using clock IDs ``CLOCK_MONOTONIC``
+	  :c:func:`clock_gettime` using clock IDs ``CLOCK_MONOTONIC``
 	  and ``CLOCK_REALTIME``, respectively.
 
     -  .. _`V4L2-BUF-FLAG-TIMESTAMP-MONOTONIC`:
@@ -723,7 +723,7 @@ Buffer Flags
 
        -  The buffer timestamp has been taken from the ``CLOCK_MONOTONIC``
 	  clock. To access the same clock outside V4L2, use
-	  :c:func:`clock_gettime(2)`.
+	  :c:func:`clock_gettime`.
 
     -  .. _`V4L2-BUF-FLAG-TIMESTAMP-COPY`:
 
@@ -773,7 +773,7 @@ Buffer Flags
 
 
 
-.. _v4l2-memory:
+.. c:type:: v4l2_memory
 
 enum v4l2_memory
 ================
@@ -823,9 +823,9 @@ enum v4l2_memory
 Timecodes
 =========
 
-The :c:type:`struct v4l2_timecode <v4l2_timecode>` structure is designed to hold a
+The struct :c:type:`v4l2_timecode` structure is designed to hold a
 :ref:`smpte12m` or similar timecode. (struct
-:c:type:`struct timeval` timestamps are stored in struct
+struct :c:type:`timeval` timestamps are stored in struct
 :c:type:`v4l2_buffer` field ``timestamp``.)
 
 

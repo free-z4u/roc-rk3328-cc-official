@@ -152,7 +152,7 @@ call.
        -
        -  Event timestamp. The timestamp has been taken from the
 	  ``CLOCK_MONOTONIC`` clock. To access the same clock outside V4L2,
-	  use :c:func:`clock_gettime(2)`.
+	  use :c:func:`clock_gettime`.
 
     -  .. row 12
 
@@ -324,7 +324,7 @@ call.
 
        -  ``field``
 
-       -  The upcoming field. See enum :ref:`v4l2_field <v4l2-field>`.
+       -  The upcoming field. See enum :c:type:`v4l2_field`.
 
 
 

@@ -43,7 +43,7 @@ configures the driver into DMABUF I/O mode without performing any direct
 allocation.
 
 To allocate device buffers applications initialize all fields of the
-:c:type:`struct v4l2_requestbuffers <v4l2_requestbuffers>` structure. They set the ``type``
+struct :c:type:`v4l2_requestbuffers` structure. They set the ``type``
 field to the respective stream or buffer type, the ``count`` field to
 the desired number of buffers, ``memory`` must be set to the requested
 I/O method and the ``reserved`` array must be zeroed. When the ioctl is
@@ -91,7 +91,7 @@ any DMA in progress, an implicit
 
        -  Type of the stream or buffers, this is the same as the struct
 	  :c:type:`v4l2_format` ``type`` field. See
-	  :ref:`v4l2-buf-type` for valid values.
+	  :c:type:`v4l2_buf_type` for valid values.
 
     -  .. row 3
 
@@ -101,7 +101,7 @@ any DMA in progress, an implicit
 
        -  Applications set this field to ``V4L2_MEMORY_MMAP``,
 	  ``V4L2_MEMORY_DMABUF`` or ``V4L2_MEMORY_USERPTR``. See
-	  :ref:`v4l2-memory`.
+	  :c:type:`v4l2_memory`.
 
     -  .. row 4
 

@@ -15,7 +15,7 @@ CA_GET_MSG
 Synopsis
 --------
 
-.. c:function:: int ioctl(fd, CA_GET_MSG, ca_msg_t *msg)
+.. c:function:: int ioctl(fd, CA_GET_MSG, struct ca_msg *msg)
     :name: CA_GET_MSG
 
 
@@ -26,7 +26,38 @@ Arguments
   File descriptor returned by a previous call to :c:func:`open() <dvb-ca-open>`.
 
 ``msg``
-  Undocumented.
+  Pointer to struct :c:type:`ca_msg`.
+
+
+.. c:type:: struct ca_msg
+
+.. flat-table:: struct ca_msg
+    :header-rows:  1
+    :stub-columns: 0
+
+    -
+      - type
+      - name
+      - description
+    -
+       - unsigned int
+       - index
+       -
+
+    -
+       - unsigned int
+       - type
+       -
+
+    -
+       - unsigned int
+       - length
+       -
+
+    -
+       - unsigned char
+       - msg[256]
+       -
 
 
 Description

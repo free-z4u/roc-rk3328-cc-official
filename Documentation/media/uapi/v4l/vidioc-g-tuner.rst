@@ -96,7 +96,7 @@ To change the radio frequency the
 
        -  ``type``
 
-       -  :cspan:`1` Type of the tuner, see :ref:`v4l2-tuner-type`.
+       -  :cspan:`1` Type of the tuner, see :c:type:`v4l2_tuner_type`.
 
     -  .. row 4
 
@@ -226,7 +226,7 @@ To change the radio frequency the
 	  received audio programs do not match.
 
 	  Currently this is the only field of struct
-	  :c:type:`struct v4l2_tuner <v4l2_tuner>` applications can change.
+	  struct :c:type:`v4l2_tuner` applications can change.
 
     -  .. row 15
 
@@ -263,7 +263,7 @@ To change the radio frequency the
 
 .. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
-.. _v4l2-tuner-type:
+.. c:type:: v4l2_tuner_type
 
 .. flat-table:: enum v4l2_tuner_type
     :header-rows:  0
