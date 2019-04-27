@@ -452,15 +452,17 @@ static u32 rk_tsadcv2_temp_to_code(struct chip_tsadc_table table,
 				   int temp)
 {
 	int high, low, mid;
-	u32 error = table.data_mask;
+	u32 error = 0;
 
 	low = 0;
 	high = table.length - 1;
 	mid = (high + low) / 2;
 
 	/* Return mask code data when the temp is over table range */
-	if (temp < table.id[low].temp || temp > table.id[high].temp)
+	if (temp < table.id[low].temp || temp > table.id[high].temp) {
+		error = table.data_mask;
 		goto exit;
+	}
 
 	while (low <= high) {
 		if (temp == table.id[mid].temp)
@@ -473,9 +475,7 @@ static u32 rk_tsadcv2_temp_to_code(struct chip_tsadc_table table,
 	}
 
 exit:
-	pr_err("%s: Invalid conversion table: code=%d, temperature=%d\n",
-	       __func__, error, temp);
-
+	pr_err("Invalid the conversion, error=%d\n", error);
 	return error;
 }
 
@@ -526,8 +526,7 @@ static int rk_tsadcv2_code_to_temp(struct chip_tsadc_table table, u32 code,
 		}
 		break;
 	default:
-		pr_err("%s: Invalid the conversion table mode=%d\n",
-		       __func__, table.mode);
+		pr_err("Invalid the conversion table\n");
 	}
 
 	/*
@@ -576,6 +575,11 @@ static void rk_tsadcv2_initialize(struct regmap *grf, void __iomem *regs,
 		       regs + TSADCV2_AUTO_PERIOD_HT);
 	writel_relaxed(TSADCV2_HIGHT_TSHUT_DEBOUNCE_COUNT,
 		       regs + TSADCV2_HIGHT_TSHUT_DEBOUNCE);
+
+	if (IS_ERR(grf)) {
+		pr_warn("%s: Missing rockchip,grf property\n", __func__);
+		return;
+	}
 }
 
 /**
@@ -618,10 +622,10 @@ static void rk_tsadcv3_initialize(struct regmap *grf, void __iomem *regs,
 		regmap_write(grf, GRF_TSADC_TESTBIT_L, GRF_TSADC_VCM_EN_L);
 		regmap_write(grf, GRF_TSADC_TESTBIT_H, GRF_TSADC_VCM_EN_H);
 
-		udelay(100); /* The spec note says at least 15 us */
+		usleep_range(15, 100); /* The spec note says at least 15 us */
 		regmap_write(grf, GRF_SARADC_TESTBIT, GRF_SARADC_TESTBIT_ON);
 		regmap_write(grf, GRF_TSADC_TESTBIT_H, GRF_TSADC_TESTBIT_H_ON);
-		udelay(200); /* The spec note says at least 90 us */
+		usleep_range(90, 200); /* The spec note says at least 90 us */
 
 		writel_relaxed(TSADCV3_AUTO_PERIOD_TIME,
 			       regs + TSADCV2_AUTO_PERIOD);
@@ -1059,7 +1063,8 @@ static irqreturn_t rockchip_thermal_alarm_irq_thread(int irq, void *dev)
 	thermal->chip->irq_ack(thermal->regs);
 
 	for (i = 0; i < thermal->chip->chn_num; i++)
-		thermal_zone_device_update(thermal->sensors[i].tzd);
+		thermal_zone_device_update(thermal->sensors[i].tzd,
+					   THERMAL_EVENT_UNSPECIFIED);
 
 	return IRQ_HANDLED;
 }
