@@ -11,11 +11,12 @@ Name
 
 dvb video open()
 
+.. attention:: This ioctl is deprecated.
 
 Synopsis
 --------
 
-.. cpp:function:: int open(const char *deviceName, int flags)
+.. c:function:: int open(const char *deviceName, int flags)
 
 
 Arguments

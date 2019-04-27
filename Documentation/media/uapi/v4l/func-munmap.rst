@@ -21,8 +21,8 @@ Synopsis
     #include <sys/mman.h>
 
 
-.. cpp:function:: int munmap( void *start, size_t length )
-
+.. c:function:: int munmap( void *start, size_t length )
+    :name: v4l2-munmap
 
 Arguments
 =========

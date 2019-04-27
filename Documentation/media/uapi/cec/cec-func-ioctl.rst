@@ -19,17 +19,18 @@ Synopsis
     #include <sys/ioctl.h>
 
 
-.. cpp:function:: int ioctl( int fd, int request, void *argp )
+.. c:function:: int ioctl( int fd, int request, void *argp )
+   :name: cec-ioctl
 
 Arguments
 =========
 
 ``fd``
-    File descriptor returned by :ref:`open() <func-open>`.
+    File descriptor returned by :c:func:`open() <cec-open>`.
 
 ``request``
     CEC ioctl request code as defined in the cec.h header file, for
-    example :ref:`CEC_ADAP_G_CAPS`.
+    example :c:func:`CEC_ADAP_G_CAPS`.
 
 ``argp``
     Pointer to a request-specific structure.
