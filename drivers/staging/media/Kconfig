@@ -32,4 +32,6 @@ source "drivers/staging/media/pulse8-cec/Kconfig"
 # Keep LIRC at the end, as it has sub-menus
 source "drivers/staging/media/lirc/Kconfig"
 
+source "drivers/staging/media/st-cec/Kconfig"
+
 endif
