@@ -142,7 +142,7 @@ See also the examples in :ref:`control`.
        -  ``minimum``
 
        -  Minimum value, inclusive. This field gives a lower bound for the
-	  control. See enum :ref:`v4l2_ctrl_type <v4l2-ctrl-type>` how
+	  control. See enum :c:type:`v4l2_ctrl_type` how
 	  the minimum value is to be used for each possible control type.
 	  Note that this a signed 32-bit value.
 
@@ -153,7 +153,7 @@ See also the examples in :ref:`control`.
        -  ``maximum``
 
        -  Maximum value, inclusive. This field gives an upper bound for the
-	  control. See enum :ref:`v4l2_ctrl_type <v4l2-ctrl-type>` how
+	  control. See enum :c:type:`v4l2_ctrl_type` how
 	  the maximum value is to be used for each possible control type.
 	  Note that this a signed 32-bit value.
 
@@ -164,7 +164,7 @@ See also the examples in :ref:`control`.
        -  ``step``
 
        -  This field gives a step size for the control. See enum
-	  :ref:`v4l2_ctrl_type <v4l2-ctrl-type>` how the step value is
+	  :c:type:`v4l2_ctrl_type` how the step value is
 	  to be used for each possible control type. Note that this an
 	  unsigned 32-bit value.
 
@@ -269,7 +269,7 @@ See also the examples in :ref:`control`.
        -  ``minimum``
 
        -  Minimum value, inclusive. This field gives a lower bound for the
-	  control. See enum :ref:`v4l2_ctrl_type <v4l2-ctrl-type>` how
+	  control. See enum :c:type:`v4l2_ctrl_type` how
 	  the minimum value is to be used for each possible control type.
 	  Note that this a signed 64-bit value.
 
@@ -280,7 +280,7 @@ See also the examples in :ref:`control`.
        -  ``maximum``
 
        -  Maximum value, inclusive. This field gives an upper bound for the
-	  control. See enum :ref:`v4l2_ctrl_type <v4l2-ctrl-type>` how
+	  control. See enum :c:type:`v4l2_ctrl_type` how
 	  the maximum value is to be used for each possible control type.
 	  Note that this a signed 64-bit value.
 
@@ -291,7 +291,7 @@ See also the examples in :ref:`control`.
        -  ``step``
 
        -  This field gives a step size for the control. See enum
-	  :ref:`v4l2_ctrl_type <v4l2-ctrl-type>` how the step value is
+	  :c:type:`v4l2_ctrl_type` how the step value is
 	  to be used for each possible control type. Note that this an
 	  unsigned 64-bit value.
 
@@ -456,7 +456,7 @@ See also the examples in :ref:`control`.
 
 .. tabularcolumns:: |p{5.8cm}|p{1.4cm}|p{1.0cm}|p{1.4cm}|p{6.9cm}|
 
-.. _v4l2-ctrl-type:
+.. c:type:: v4l2_ctrl_type
 
 .. cssclass:: longtable
 
@@ -592,7 +592,7 @@ See also the examples in :ref:`control`.
 	  pass a string of length 8 to
 	  :ref:`VIDIOC_S_EXT_CTRLS <VIDIOC_G_EXT_CTRLS>` you need to
 	  set the ``size`` field of struct
-	  :ref:`v4l2_ext_control <v4l2-ext-control>` to 9. For
+	  :c:type:`v4l2_ext_control` to 9. For
 	  :ref:`VIDIOC_G_EXT_CTRLS <VIDIOC_G_EXT_CTRLS>` you can set
 	  the ``size`` field to ``maximum`` + 1. Which character encoding is
 	  used will depend on the string control itself and should be part
@@ -769,7 +769,7 @@ See also the examples in :ref:`control`.
 
        -  This control has a pointer type, so its value has to be accessed
 	  using one of the pointer fields of struct
-	  :ref:`v4l2_ext_control <v4l2-ext-control>`. This flag is set
+	  :c:type:`v4l2_ext_control`. This flag is set
 	  for controls that are an array, string, or have a compound type.
 	  In all cases you have to set a pointer to memory containing the
 	  payload of the control.

@@ -197,9 +197,10 @@ struct smiapp_sensor {
 	struct smiapp_subdev *binner;
 	struct smiapp_subdev *scaler;
 	struct smiapp_subdev *pixel_array;
-	struct smiapp_platform_data *platform_data;
+	struct smiapp_hwconfig *hwcfg;
 	struct regulator *vana;
 	struct clk *ext_clk;
+	struct gpio_desc *xshutdown;
 	u32 limits[SMIAPP_LIMIT_LAST];
 	u8 nbinning_subtypes;
 	struct smiapp_binning_subtype binning_subtypes[SMIAPP_BINNING_SUBTYPES];
