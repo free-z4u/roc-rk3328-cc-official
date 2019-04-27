@@ -31,7 +31,9 @@ Arguments
 Description
 ===========
 
-.. note:: This documents the proposed CEC API. This API is not yet finalized
+.. note::
+
+   This documents the proposed CEC API. This API is not yet finalized
    and is currently only available as a staging kernel module.
 
 All cec devices must support :ref:`ioctl CEC_ADAP_G_CAPS <CEC_ADAP_G_CAPS>`. To query
@@ -39,6 +41,7 @@ device information, applications call the ioctl with a pointer to a
 struct :ref:`cec_caps <cec-caps>`. The driver fills the structure and
 returns the information to the application. The ioctl never fails.
 
+.. tabularcolumns:: |p{1.2cm}|p{2.5cm}|p{13.8cm}|
 
 .. _cec-caps:
 
@@ -84,6 +87,7 @@ returns the information to the application. The ioctl never fails.
 	  macro.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{2.5cm}|p{10.6cm}|
 
 .. _cec-capabilities:
 

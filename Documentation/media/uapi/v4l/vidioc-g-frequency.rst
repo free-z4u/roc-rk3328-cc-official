@@ -52,6 +52,8 @@ assumes the closest possible value. However :ref:`VIDIOC_S_FREQUENCY <VIDIOC_G_F
 write-only ioctl, it does not return the actual new frequency.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-frequency:
 
 .. flat-table:: struct v4l2_frequency

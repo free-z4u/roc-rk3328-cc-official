@@ -6,7 +6,6 @@
 V4L2_PIX_FMT_SRGGB8 ('RGGB')
 ****************************
 
-*man V4L2_PIX_FMT_SRGGB8(2)*
 
 Bayer RGB format
 
@@ -26,10 +25,10 @@ Each cell is one byte.
 
 
 
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
-    :widths:       2 1 1 1 1
 
 
     -  .. row 1

@@ -75,6 +75,8 @@ format to match what the hardware can provide. The modified format
 should be as close as possible to the original request.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-subdev-format:
 
 .. flat-table:: struct v4l2_subdev_format
@@ -119,6 +121,8 @@ should be as close as possible to the original request.
 	  the array to zero.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _v4l2-subdev-format-whence:
 

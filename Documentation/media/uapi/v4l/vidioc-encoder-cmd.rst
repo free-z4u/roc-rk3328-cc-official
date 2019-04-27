@@ -64,6 +64,8 @@ These ioctls are optional, not all drivers may support them. They were
 introduced in Linux 2.6.21.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-encoder-cmd:
 
 .. flat-table:: struct v4l2_encoder_cmd
@@ -100,6 +102,8 @@ introduced in Linux 2.6.21.
 	  the array to zero.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _encoder-cmds:
 
@@ -161,6 +165,7 @@ introduced in Linux 2.6.21.
 	  flags are defined for this command.
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _encoder-flags:
 

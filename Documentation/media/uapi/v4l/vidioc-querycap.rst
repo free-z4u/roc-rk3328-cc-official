@@ -41,13 +41,14 @@ filled by the driver. When the driver is not compatible with this
 specification the ioctl returns an ``EINVAL`` error code.
 
 
+.. tabularcolumns:: |p{1.5cm}|p{2.5cm}|p{13cm}|
+
 .. _v4l2-capability:
 
 .. flat-table:: struct v4l2_capability
     :header-rows:  0
     :stub-columns: 0
-    :widths:       1 1 2
-
+    :widths:       3 4 20
 
     -  .. row 1
 
@@ -117,17 +118,13 @@ specification the ioctl returns an ``EINVAL`` error code.
 
        -  :cspan:`2`
 
+	  ``#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))``
 
-	  .. code-block:: c
+	  ``__u32 version = KERNEL_VERSION(0, 8, 1);``
 
-	      #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+	  ``printf ("Version: %u.%u.%u\\n",``
 
-	      __u32 version = KERNEL_VERSION(0, 8, 1);
-
-	      printf ("Version: %u.%u.%u\\n",
-		  (version >> 16) & 0xFF,
-		  (version >> 8) & 0xFF,
-		   version & 0xFF);
+	  ``(version >> 16) & 0xFF, (version >> 8) & 0xFF, version & 0xFF);``
 
     -  .. row 6
 
@@ -173,13 +170,16 @@ specification the ioctl returns an ``EINVAL`` error code.
 
 
 
+.. tabularcolumns:: |p{6cm}|p{2.2cm}|p{8.8cm}|
+
 .. _device-capabilities:
+
+.. cssclass:: longtable
 
 .. flat-table:: Device Capabilities Flags
     :header-rows:  0
     :stub-columns: 0
     :widths:       3 1 4
-
 
     -  .. row 1
 

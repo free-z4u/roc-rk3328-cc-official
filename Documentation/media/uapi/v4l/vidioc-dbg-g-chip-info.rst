@@ -78,6 +78,8 @@ is available from the LinuxTV v4l-dvb repository; see
 instructions.
 
 
+.. tabularcolumns:: |p{3.5cm}|p{3.5cm}|p{3.5cm}|p{7.0cm}|
+
 .. _name-v4l2-dbg-match:
 
 .. flat-table:: struct v4l2_dbg_match
@@ -121,6 +123,8 @@ instructions.
 	  field. Currently unused.
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-dbg-chip-info:
 
@@ -166,6 +170,8 @@ instructions.
        -  Reserved fields, both application and driver must set these to 0.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _name-chip-match-types:
 

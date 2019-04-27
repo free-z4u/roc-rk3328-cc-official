@@ -202,11 +202,18 @@ for the pipeline described in :ref:`pipeline-scaling` (table columns
 list entity names and pad numbers).
 
 
+.. raw:: latex
+
+    \begin{adjustbox}{width=\columnwidth}
+
+.. tabularcolumns:: |p{4.5cm}|p{4.5cm}|p{4.5cm}|p{4.5cm}|p{4.5cm}|p{4.5cm}|p{4.5cm}|
+
 .. _sample-pipeline-config:
 
 .. flat-table:: Sample Pipeline Configuration
     :header-rows:  1
     :stub-columns: 0
+    :widths: 5 5 5 5 5 5 5
 
 
     -  .. row 1
@@ -288,7 +295,9 @@ list entity names and pad numbers).
 
        -  *1280x960/SGRBG8_1X8*
 
+.. raw:: latex
 
+    \end{adjustbox}\newline\newline
 
 1. Initial state. The sensor source pad format is set to its native 3MP
    size and V4L2_MBUS_FMT_SGRBG8_1X8 media bus code. Formats on the

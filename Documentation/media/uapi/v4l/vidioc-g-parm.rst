@@ -50,6 +50,8 @@ pointer to a struct :ref:`struct v4l2_streamparm <v4l2-streamparm>` which contai
 union holding separate parameters for input and output devices.
 
 
+.. tabularcolumns:: |p{3.5cm}|p{3.5cm}|p{3.5cm}|p{7.0cm}|
+
 .. _v4l2-streamparm:
 
 .. flat-table:: struct v4l2_streamparm
@@ -108,6 +110,8 @@ union holding separate parameters for input and output devices.
        -  A place holder for future extensions.
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-captureparm:
 
@@ -189,6 +193,8 @@ union holding separate parameters for input and output devices.
 	  the array to zero.
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-outputparm:
 
@@ -278,6 +284,8 @@ union holding separate parameters for input and output devices.
 
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. _parm-caps:
 
 .. flat-table:: Streaming Parameters Capabilites
@@ -296,6 +304,8 @@ union holding separate parameters for input and output devices.
 	  field is supported.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _parm-flags:
 

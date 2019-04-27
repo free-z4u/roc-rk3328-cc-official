@@ -68,6 +68,8 @@ EBUSY
     The device is busy and therefore can not change the timings.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-bt-timings:
 
 .. flat-table:: struct v4l2_bt_timings
@@ -221,6 +223,8 @@ EBUSY
 
 
 
+.. tabularcolumns:: |p{3.5cm}|p{3.5cm}|p{7.0cm}|p{3.5cm}|
+
 .. _v4l2-dv-timings:
 
 .. flat-table:: struct v4l2_dv_timings
@@ -263,7 +267,7 @@ EBUSY
 
        -
 
-
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _dv-timing-types:
 
@@ -310,11 +314,6 @@ EBUSY
 
        -  Description
 
-    -  .. row 2
-
-       -
-       -
-
     -  .. row 3
 
        -  ``V4L2_DV_BT_STD_CEA861``
@@ -340,6 +339,7 @@ EBUSY
        -  The timings follow the VESA Generalized Timings Formula standard
 
 
+.. tabularcolumns:: |p{6.0cm}|p{11.5cm}|
 
 .. _dv-bt-flags:
 
@@ -353,11 +353,6 @@ EBUSY
        -  Flag
 
        -  Description
-
-    -  .. row 2
-
-       -
-       -
 
     -  .. row 3
 

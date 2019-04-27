@@ -105,6 +105,10 @@ which may return ``EBUSY`` can be the
 struct v4l2_sliced_vbi_format
 -----------------------------
 
+.. tabularcolumns:: |p{1.0cm}|p{4.5cm}|p{4.0cm}|p{4.0cm}|p{4.0cm}|
+
+.. cssclass:: longtable
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -153,8 +157,7 @@ struct v4l2_sliced_vbi_format
 	  service the driver chooses.
 
 	  Data services are defined in :ref:`vbi-services2`. Array indices
-	  map to ITU-R line numbers (see also :ref:`vbi-525` and
-	  :ref:`vbi-625`) as follows:
+	  map to ITU-R line numbers\ [#f2]_ as follows:
 
     -  .. row 3
 
@@ -241,14 +244,20 @@ struct v4l2_sliced_vbi_format
        -  ``reserved``\ [2]
 
        -  :cspan:`2` This array is reserved for future extensions.
-	  Applications and drivers must set it to zero.
 
+	  Applications and drivers must set it to zero.
 
 
 .. _vbi-services2:
 
 Sliced VBI services
 -------------------
+
+.. raw:: latex
+
+    \begin{adjustbox}{width=\columnwidth}
+
+.. tabularcolumns:: |p{5.0cm}|p{1.4cm}|p{3.0cm}|p{2.5cm}|p{9.0cm}|
 
 .. flat-table::
     :header-rows:  1
@@ -274,7 +283,9 @@ Sliced VBI services
 
        -  0x0001
 
-       -  :ref:`ets300706`, :ref:`itu653`
+       -  :ref:`ets300706`,
+
+	  :ref:`itu653`
 
        -  PAL/SECAM line 7-22, 320-335 (second field 7-22)
 
@@ -313,7 +324,9 @@ Sliced VBI services
 
        -  0x4000
 
-       -  :ref:`itu1119`, :ref:`en300294`
+       -  :ref:`itu1119`,
+
+	  :ref:`en300294`
 
        -  PAL/SECAM line 23
 
@@ -340,6 +353,10 @@ Sliced VBI services
        -  0x4401
 
        -  :cspan:`2` Set of services applicable to 625 line systems.
+
+.. raw:: latex
+
+    \end{adjustbox}\newline\newline
 
 
 Drivers may return an ``EINVAL`` error code when applications attempt to
@@ -370,6 +387,8 @@ of one video frame. The ``id`` of unused
 
 struct v4l2_sliced_vbi_data
 ---------------------------
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. flat-table::
     :header-rows:  0
@@ -556,6 +575,8 @@ number).
 struct v4l2_mpeg_vbi_fmt_ivtv
 -----------------------------
 
+.. tabularcolumns:: |p{1.0cm}|p{3.5cm}|p{1.0cm}|p{11.5cm}|
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -611,6 +632,8 @@ struct v4l2_mpeg_vbi_fmt_ivtv
 Magic Constants for struct v4l2_mpeg_vbi_fmt_ivtv magic field
 -------------------------------------------------------------
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. flat-table::
     :header-rows:  1
     :stub-columns: 0
@@ -652,6 +675,8 @@ Magic Constants for struct v4l2_mpeg_vbi_fmt_ivtv magic field
 struct v4l2_mpeg_vbi_itv0
 -------------------------
 
+.. tabularcolumns:: |p{4.4cm}|p{2.4cm}|p{10.7cm}|
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -676,9 +701,9 @@ struct v4l2_mpeg_vbi_itv0
 	  ::
 
 	      linemask[0] b0:     line  6     first field
-	      linemask[0] b17:        line 23     first field
-	      linemask[0] b18:        line  6     second field
-	      linemask[0] b31:        line 19     second field
+	      linemask[0] b17:    line 23     first field
+	      linemask[0] b18:    line  6     second field
+	      linemask[0] b31:    line 19     second field
 	      linemask[1] b0:     line 20     second field
 	      linemask[1] b3:     line 23     second field
 	      linemask[1] b4-b31: unused and set to 0
@@ -709,6 +734,8 @@ struct v4l2_mpeg_vbi_itv0
 struct v4l2_mpeg_vbi_ITV0
 -------------------------
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -733,6 +760,8 @@ struct v4l2_mpeg_vbi_ITV0
 
 struct v4l2_mpeg_vbi_itv0_line
 ------------------------------
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table::
     :header-rows:  0
@@ -764,6 +793,8 @@ struct v4l2_mpeg_vbi_itv0_line
 
 Line Identifiers for struct v4l2_mpeg_vbi_itv0_line id field
 ------------------------------------------------------------
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. flat-table::
     :header-rows:  1
@@ -820,3 +851,6 @@ Line Identifiers for struct v4l2_mpeg_vbi_itv0_line id field
 .. [#f1]
    According to :ref:`ETS 300 706 <ets300706>` lines 6-22 of the first
    field and lines 5-22 of the second field may carry Teletext data.
+
+.. [#f2]
+   See also :ref:`vbi-525` and :ref:`vbi-625`.

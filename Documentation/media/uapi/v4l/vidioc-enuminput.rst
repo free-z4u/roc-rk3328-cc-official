@@ -41,6 +41,8 @@ index is out of bounds. To enumerate all inputs applications shall begin
 at index zero, incrementing by one until the driver returns ``EINVAL``.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-input:
 
 .. flat-table:: struct v4l2_input
@@ -148,6 +150,8 @@ at index zero, incrementing by one until the driver returns ``EINVAL``.
 
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. _input-type:
 
 .. flat-table:: Input Types
@@ -174,6 +178,8 @@ at index zero, incrementing by one until the driver returns ``EINVAL``.
 	  S-Video, RGB.
 
 
+
+.. tabularcolumns:: |p{4.8cm}|p{2.6cm}|p{10.1cm}|
 
 .. _input-status:
 
@@ -317,6 +323,8 @@ at index zero, incrementing by one until the driver returns ``EINVAL``.
        -  VTR time constant. [?]
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _input-capabilities:
 

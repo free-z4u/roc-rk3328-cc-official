@@ -4,8 +4,11 @@
 Single-planar format structure
 ******************************
 
+.. tabularcolumns:: |p{4.0cm}|p{2.5cm}|p{11.0cm}|
 
 .. _v4l2-pix-format:
+
+.. cssclass:: longtable
 
 .. flat-table:: struct v4l2_pix_format
     :header-rows:  0

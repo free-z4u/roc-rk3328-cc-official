@@ -1005,10 +1005,9 @@ Possible values: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, -1 (AUTO)
 Note: Truth table for ``DTV_ISDBT_SOUND_BROADCASTING`` and
 ``DTV_ISDBT_PARTIAL_RECEPTION`` and ``LAYER[A-C]_SEGMENT_COUNT``
 
-
 .. _isdbt-layer_seg-cnt-table:
 
-.. flat-table::
+.. flat-table:: Truth table for ISDB-T Sound Broadcasting
     :header-rows:  0
     :stub-columns: 0
 
@@ -1101,7 +1100,7 @@ TMCC-structure, as shown in the table below.
 
 .. _isdbt-layer-interleaving-table:
 
-.. flat-table::
+.. flat-table:: ISDB-T time interleaving modes
     :header-rows:  0
     :stub-columns: 0
 
@@ -1234,6 +1233,7 @@ Reed Solomon (RS) frame mode.
 
 Possible values are:
 
+.. tabularcolumns:: |p{5.0cm}|p{12.5cm}|
 
 .. _atscmh-rs-frame-mode:
 
@@ -1395,6 +1395,7 @@ Series Concatenated Convolutional Code Block Mode.
 
 Possible values are:
 
+.. tabularcolumns:: |p{4.5cm}|p{13.0cm}|
 
 .. _atscmh-sccc-block-mode:
 
@@ -1687,6 +1688,7 @@ on OFTM-based standards, e. g. DVB-T/T2, ISDB-T, DTMB
 enum fe_transmit_mode: Number of carriers per channel
 -----------------------------------------------------
 
+.. tabularcolumns:: |p{5.0cm}|p{12.5cm}|
 
 .. _fe-transmit-mode:
 

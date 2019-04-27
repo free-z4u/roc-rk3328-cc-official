@@ -38,6 +38,8 @@ Subscribe or unsubscribe V4L2 event. Subscribed events are dequeued by
 using the :ref:`VIDIOC_DQEVENT` ioctl.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-event-subscription:
 
 .. flat-table:: struct v4l2_event_subscription
@@ -54,7 +56,9 @@ using the :ref:`VIDIOC_DQEVENT` ioctl.
 
        -  Type of the event, see :ref:`event-type`.
 
-	  .. note:: ``V4L2_EVENT_ALL`` can be used with
+	  .. note::
+
+	     ``V4L2_EVENT_ALL`` can be used with
 	     :ref:`VIDIOC_UNSUBSCRIBE_EVENT <VIDIOC_SUBSCRIBE_EVENT>` for
 	     unsubscribing all events at once.
 
@@ -86,6 +90,8 @@ using the :ref:`VIDIOC_DQEVENT` ioctl.
 	  the array to zero.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _event-flags:
 

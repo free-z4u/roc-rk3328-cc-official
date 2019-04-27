@@ -5,6 +5,7 @@
 Media Bus Formats
 =================
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-mbus-framefmt:
 
@@ -153,13 +154,25 @@ half of the green value) transferred first will be named
 
 The following tables list existing packed RGB formats.
 
+.. HACK: ideally, we would be using adjustbox here. However, Sphinx
+.. is a very bad behaviored guy: if the table has more than 30 cols,
+.. it switches to long table, and there's no way to override it.
+
+
+.. tabularcolumns:: |p{4.0cm}|p{0.7cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|
 
 .. _v4l2-mbus-pixelcode-rgb:
+
+.. raw:: latex
+
+    \begingroup
+    \tiny
+    \setlength{\tabcolsep}{2pt}
 
 .. flat-table:: RGB formats
     :header-rows:  2
     :stub-columns: 0
-
+    :widths: 36 7 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
 
     -  .. row 1
 
@@ -247,45 +260,45 @@ The following tables list existing packed RGB formats.
        -  0x1016
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`3`
 
@@ -318,53 +331,53 @@ The following tables list existing packed RGB formats.
        -  0x1001
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -387,53 +400,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`3`
 
@@ -458,53 +471,53 @@ The following tables list existing packed RGB formats.
        -  0x1002
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`3`
 
@@ -527,53 +540,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -598,53 +611,53 @@ The following tables list existing packed RGB formats.
        -  0x1003
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -667,53 +680,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`2`
 
@@ -738,53 +751,53 @@ The following tables list existing packed RGB formats.
        -  0x1004
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`2`
 
@@ -807,53 +820,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -878,37 +891,37 @@ The following tables list existing packed RGB formats.
        -  0x1017
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`4`
 
@@ -949,53 +962,53 @@ The following tables list existing packed RGB formats.
        -  0x1005
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`4`
 
@@ -1018,53 +1031,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`2`
 
@@ -1089,53 +1102,53 @@ The following tables list existing packed RGB formats.
        -  0x1006
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`2`
 
@@ -1158,53 +1171,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`4`
 
@@ -1229,53 +1242,53 @@ The following tables list existing packed RGB formats.
        -  0x1007
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`4`
 
@@ -1298,53 +1311,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`2`
 
@@ -1369,53 +1382,53 @@ The following tables list existing packed RGB formats.
        -  0x1008
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`2`
 
@@ -1438,53 +1451,53 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`4`
 
@@ -1509,33 +1522,33 @@ The following tables list existing packed RGB formats.
        -  0x1009
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`5`
 
@@ -1580,21 +1593,21 @@ The following tables list existing packed RGB formats.
        -  0x100e
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -1651,21 +1664,21 @@ The following tables list existing packed RGB formats.
        -  0x1015
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -1722,21 +1735,21 @@ The following tables list existing packed RGB formats.
        -  0x1013
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`7`
 
@@ -1793,21 +1806,21 @@ The following tables list existing packed RGB formats.
        -  0x1014
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -1864,21 +1877,21 @@ The following tables list existing packed RGB formats.
        -  0x100a
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -1935,45 +1948,45 @@ The following tables list existing packed RGB formats.
        -  0x100b
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -2004,45 +2017,45 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`3`
 
@@ -2075,45 +2088,45 @@ The following tables list existing packed RGB formats.
        -  0x100c
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`3`
 
@@ -2144,45 +2157,45 @@ The following tables list existing packed RGB formats.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -2350,6 +2363,9 @@ The following tables list existing packed RGB formats.
 
        -  b\ :sub:`0`
 
+.. raw:: latex
+
+    \endgroup
 
 On LVDS buses, usually each sample is transferred serialized in seven
 time slots per pixel clock, on three (18-bit) or four (24-bit)
@@ -2359,6 +2375,9 @@ for control signals as defined by SPWG/PSWG/VESA or JEIDA standards. The
 JEIDA defined bit mapping will be named
 ``MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA``, for example.
 
+.. raw:: latex
+
+    \begin{adjustbox}{width=\columnwidth}
 
 .. _v4l2-mbus-pixelcode-rgb-lvds:
 
@@ -2402,7 +2421,7 @@ JEIDA defined bit mapping will be named
        -  0
 
        -
-       -  -
+       -
 
        -  d
 
@@ -2417,7 +2436,7 @@ JEIDA defined bit mapping will be named
        -  1
 
        -
-       -  -
+       -
 
        -  d
 
@@ -2432,7 +2451,7 @@ JEIDA defined bit mapping will be named
        -  2
 
        -
-       -  -
+       -
 
        -  d
 
@@ -2447,7 +2466,7 @@ JEIDA defined bit mapping will be named
        -  3
 
        -
-       -  -
+       -
 
        -  b\ :sub:`5`
 
@@ -2462,7 +2481,7 @@ JEIDA defined bit mapping will be named
        -  4
 
        -
-       -  -
+       -
 
        -  b\ :sub:`4`
 
@@ -2477,7 +2496,7 @@ JEIDA defined bit mapping will be named
        -  5
 
        -
-       -  -
+       -
 
        -  b\ :sub:`3`
 
@@ -2492,7 +2511,7 @@ JEIDA defined bit mapping will be named
        -  6
 
        -
-       -  -
+       -
 
        -  b\ :sub:`2`
 
@@ -2714,6 +2733,9 @@ JEIDA defined bit mapping will be named
 
        -  r\ :sub:`2`
 
+.. raw:: latex
+
+    \end{adjustbox}\newline\newline
 
 
 Bayer Formats
@@ -2768,7 +2790,15 @@ The following table lists existing packed Bayer formats. The data
 organization is given as an example for the first pixel only.
 
 
+.. raw:: latex
+
+    \newline\newline\begin{adjustbox}{width=\columnwidth}
+
+.. tabularcolumns:: |p{7.6cm}|p{1.6cm}|p{0.7cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|
+
 .. _v4l2-mbus-pixelcode-bayer:
+
+.. cssclass: longtable
 
 .. flat-table:: Bayer Formats
     :header-rows:  2
@@ -2821,13 +2851,13 @@ organization is given as an example for the first pixel only.
        -  0x3001
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`7`
 
@@ -2852,13 +2882,13 @@ organization is given as an example for the first pixel only.
        -  0x3013
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -2883,13 +2913,13 @@ organization is given as an example for the first pixel only.
        -  0x3002
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -2914,13 +2944,13 @@ organization is given as an example for the first pixel only.
        -  0x3014
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -2945,13 +2975,13 @@ organization is given as an example for the first pixel only.
        -  0x3015
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`7`
 
@@ -2976,13 +3006,13 @@ organization is given as an example for the first pixel only.
        -  0x3016
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -3007,13 +3037,13 @@ organization is given as an example for the first pixel only.
        -  0x3017
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -3038,13 +3068,13 @@ organization is given as an example for the first pixel only.
        -  0x3018
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -3069,13 +3099,13 @@ organization is given as an example for the first pixel only.
        -  0x300b
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`7`
 
@@ -3100,13 +3130,13 @@ organization is given as an example for the first pixel only.
        -  0x300c
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -3131,13 +3161,13 @@ organization is given as an example for the first pixel only.
        -  0x3009
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`7`
 
@@ -3162,13 +3192,13 @@ organization is given as an example for the first pixel only.
        -  0x300d
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`7`
 
@@ -3193,13 +3223,13 @@ organization is given as an example for the first pixel only.
        -  0x3003
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -3222,13 +3252,13 @@ organization is given as an example for the first pixel only.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`7`
 
@@ -3253,13 +3283,13 @@ organization is given as an example for the first pixel only.
        -  0x3004
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`7`
 
@@ -3282,13 +3312,13 @@ organization is given as an example for the first pixel only.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  0
 
@@ -3313,13 +3343,13 @@ organization is given as an example for the first pixel only.
        -  0x3005
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`9`
 
@@ -3342,13 +3372,13 @@ organization is given as an example for the first pixel only.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`1`
 
@@ -3373,13 +3403,13 @@ organization is given as an example for the first pixel only.
        -  0x3006
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`1`
 
@@ -3402,13 +3432,13 @@ organization is given as an example for the first pixel only.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`9`
 
@@ -3433,9 +3463,9 @@ organization is given as an example for the first pixel only.
        -  0x3007
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
        -  b\ :sub:`9`
 
@@ -3464,9 +3494,9 @@ organization is given as an example for the first pixel only.
        -  0x300e
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`9`
 
@@ -3495,9 +3525,9 @@ organization is given as an example for the first pixel only.
        -  0x300a
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
        -  g\ :sub:`9`
 
@@ -3526,9 +3556,9 @@ organization is given as an example for the first pixel only.
        -  0x300f
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
        -  r\ :sub:`9`
 
@@ -3674,6 +3704,9 @@ organization is given as an example for the first pixel only.
 
        -  r\ :sub:`0`
 
+.. raw:: latex
+
+    \end{adjustbox}\newline\newline
 
 
 Packed YUV Formats
@@ -3726,17 +3759,31 @@ the following codes.
 
 -  a\ :sub:`x` for alpha component bit number x
 
--  - for non-available bits (for positions higher than the bus width)
+- for non-available bits (for positions higher than the bus width)
 
 -  d for dummy bits
 
 
+.. tabularcolumns:: |p{4.0cm}|p{0.7cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|p{0.22cm}|
+
 .. _v4l2-mbus-pixelcode-yuv8:
+
+
+.. HACK: ideally, we would be using adjustbox here. However, this
+.. will never work for this table, as, even with tiny font, it is
+.. to big for a single page. So, we need to manually adjust the
+.. size.
+
+.. raw:: latex
+
+    \begingroup
+    \tiny
+    \setlength{\tabcolsep}{2pt}
 
 .. flat-table:: YUV Formats
     :header-rows:  2
     :stub-columns: 0
-
+    :widths: 36 7 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
 
     -  .. row 1
 
@@ -3824,53 +3871,53 @@ the following codes.
        -  0x2001
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -3895,53 +3942,53 @@ the following codes.
        -  0x2015
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -3964,53 +4011,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -4035,53 +4082,53 @@ the following codes.
        -  0x2002
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -4104,53 +4151,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4173,53 +4220,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4242,53 +4289,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -4311,53 +4358,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4380,53 +4427,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4451,53 +4498,53 @@ the following codes.
        -  0x2003
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -4520,53 +4567,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4589,53 +4636,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4658,53 +4705,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -4727,53 +4774,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4796,53 +4843,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4867,53 +4914,53 @@ the following codes.
        -  0x2004
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -4936,53 +4983,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5005,53 +5052,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -5074,53 +5121,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5143,53 +5190,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5212,53 +5259,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -5283,53 +5330,53 @@ the following codes.
        -  0x2005
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5352,53 +5399,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5421,53 +5468,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -5490,53 +5537,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5559,53 +5606,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5628,53 +5675,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -5699,53 +5746,53 @@ the following codes.
        -  0x2006
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -5768,53 +5815,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5837,53 +5884,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -5906,53 +5953,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -5977,53 +6024,53 @@ the following codes.
        -  0x2007
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -6046,53 +6093,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -6115,53 +6162,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -6184,53 +6231,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -6255,53 +6302,53 @@ the following codes.
        -  0x2008
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -6324,53 +6371,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -6393,53 +6440,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -6462,53 +6509,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -6533,53 +6580,53 @@ the following codes.
        -  0x2009
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -6602,53 +6649,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -6671,53 +6718,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -6740,53 +6787,53 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -6811,49 +6858,49 @@ the following codes.
        -  0x200a
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -6882,49 +6929,49 @@ the following codes.
        -  0x2018
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`9`
 
@@ -6951,49 +6998,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7020,49 +7067,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`9`
 
@@ -7089,49 +7136,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7160,49 +7207,49 @@ the following codes.
        -  0x2019
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`9`
 
@@ -7229,49 +7276,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7298,49 +7345,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`9`
 
@@ -7367,49 +7414,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7438,49 +7485,49 @@ the following codes.
        -  0x200b
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7507,49 +7554,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`9`
 
@@ -7576,49 +7623,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7645,49 +7692,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`9`
 
@@ -7716,49 +7763,49 @@ the following codes.
        -  0x200c
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7785,49 +7832,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`9`
 
@@ -7854,49 +7901,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -7923,49 +7970,49 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`9`
 
@@ -7994,45 +8041,45 @@ the following codes.
        -  0x2013
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8065,45 +8112,45 @@ the following codes.
        -  0x201c
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`11`
 
@@ -8134,45 +8181,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8203,45 +8250,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`11`
 
@@ -8272,45 +8319,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8343,45 +8390,45 @@ the following codes.
        -  0x201d
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`11`
 
@@ -8412,45 +8459,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8481,45 +8528,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`11`
 
@@ -8550,45 +8597,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8621,45 +8668,45 @@ the following codes.
        -  0x201e
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8690,45 +8737,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`11`
 
@@ -8759,45 +8806,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8828,45 +8875,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`11`
 
@@ -8899,45 +8946,45 @@ the following codes.
        -  0x201f
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -8968,45 +9015,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`11`
 
@@ -9037,45 +9084,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -9106,45 +9153,45 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`11`
 
@@ -9177,37 +9224,37 @@ the following codes.
        -  0x200f
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -9246,37 +9293,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -9317,37 +9364,37 @@ the following codes.
        -  0x2010
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -9386,37 +9433,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`7`
 
@@ -9457,37 +9504,37 @@ the following codes.
        -  0x2011
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9526,37 +9573,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9597,37 +9644,37 @@ the following codes.
        -  0x2012
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9666,37 +9713,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9737,37 +9784,37 @@ the following codes.
        -  0x2014
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9806,37 +9853,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9875,37 +9922,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -9944,37 +9991,37 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -10015,29 +10062,29 @@ the following codes.
        -  0x201a
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`9`
 
@@ -10084,29 +10131,29 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`9`
 
@@ -10155,29 +10202,29 @@ the following codes.
        -  0x201b
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`9`
 
@@ -10224,29 +10271,29 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`9`
 
@@ -10295,29 +10342,29 @@ the following codes.
        -  0x200d
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -10364,29 +10411,29 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -10435,29 +10482,29 @@ the following codes.
        -  0x200e
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -10504,29 +10551,29 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -10575,21 +10622,21 @@ the following codes.
        -  0x201a
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`7`
 
@@ -10646,21 +10693,21 @@ the following codes.
        -  0x2025
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`7`
 
@@ -10717,21 +10764,21 @@ the following codes.
        -  0x2020
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`11`
 
@@ -10786,21 +10833,21 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`11`
 
@@ -10857,21 +10904,21 @@ the following codes.
        -  0x2021
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  v\ :sub:`11`
 
@@ -10926,21 +10973,21 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  u\ :sub:`11`
 
@@ -10997,21 +11044,21 @@ the following codes.
        -  0x2022
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -11066,21 +11113,21 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -11137,21 +11184,21 @@ the following codes.
        -  0x2023
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -11206,21 +11253,21 @@ the following codes.
        -
        -
        -
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`11`
 
@@ -11277,9 +11324,9 @@ the following codes.
        -  0x2016
 
        -
-       -  -
+       -
 
-       -  -
+       -
 
        -  y\ :sub:`9`
 
@@ -11413,6 +11460,9 @@ the following codes.
        -  v\ :sub:`0`
 
 
+.. raw:: latex
+
+	\endgroup
 
 HSV/HSL Formats
 ^^^^^^^^^^^^^^^
@@ -11447,13 +11497,18 @@ following information.
 
 The following table lists existing HSV/HSL formats.
 
+.. raw:: latex
+
+    \newline\newline\begin{adjustbox}{width=\columnwidth}
+
+.. tabularcolumns:: |p{6.2cm}|p{1.6cm}|p{0.7cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|p{0.5cm}|
 
 .. _v4l2-mbus-pixelcode-hsv:
 
 .. flat-table:: HSV/HSL formats
     :header-rows:  2
     :stub-columns: 0
-
+    :widths: 28 7 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
 
     -  .. row 1
 
@@ -11605,6 +11660,9 @@ The following table lists existing HSV/HSL formats.
 
        -  v\ :sub:`0`
 
+.. raw:: latex
+
+    \end{adjustbox}\newline\newline
 
 
 JPEG Compressed Formats
@@ -11625,6 +11683,8 @@ The following table lists existing JPEG compressed formats.
 
 
 .. _v4l2-mbus-pixelcode-jpeg:
+
+.. tabularcolumns:: |p{5.6cm}|p{1.2cm}|p{10.7cm}|
 
 .. flat-table:: JPEG Formats
     :header-rows:  1
@@ -11664,6 +11724,8 @@ formats.
 
 
 .. _v4l2-mbus-pixelcode-vendor-specific:
+
+.. tabularcolumns:: |p{6.6cm}|p{1.2cm}|p{9.7cm}|
 
 .. flat-table:: Vendor and device specific formats
     :header-rows:  1

@@ -47,6 +47,8 @@ returns an error.
 struct dvb_frontend_info
 ========================
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: struct dvb_frontend_info
     :header-rows:  0
     :stub-columns: 0
@@ -144,7 +146,9 @@ struct dvb_frontend_info
        -  Capabilities supported by the frontend
 
 
-.. note:: The frequencies are specified in Hz for Terrestrial and Cable
+.. note::
+
+   The frequencies are specified in Hz for Terrestrial and Cable
    systems. They're specified in kHz for Satellite systems
 
 
@@ -156,6 +160,7 @@ frontend capabilities
 Capabilities describe what a frontend can do. Some capabilities are
 supported only on some specific frontend types.
 
+.. tabularcolumns:: |p{6.5cm}|p{11.0cm}|
 
 .. _fe-caps:
 

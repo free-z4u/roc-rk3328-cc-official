@@ -48,6 +48,7 @@ other values untouched.
 If the ``topology_version`` remains the same, the ioctl should fill the
 desired arrays with the media graph elements.
 
+.. tabularcolumns:: |p{1.6cm}|p{3.2cm}|p{12.7cm}|
 
 .. _media-v2-topology:
 
@@ -142,6 +143,7 @@ desired arrays with the media graph elements.
 	  won't store the links. It will just update ``num_links``
 
 
+.. tabularcolumns:: |p{1.6cm}|p{3.2cm}|p{12.7cm}|
 
 .. _media-v2-entity:
 
@@ -185,6 +187,7 @@ desired arrays with the media graph elements.
 	  this array to zero.
 
 
+.. tabularcolumns:: |p{1.6cm}|p{3.2cm}|p{12.7cm}|
 
 .. _media-v2-interface:
 
@@ -236,6 +239,7 @@ desired arrays with the media graph elements.
 	  :ref:`media-v2-intf-devnode` for details..
 
 
+.. tabularcolumns:: |p{1.6cm}|p{3.2cm}|p{12.7cm}|
 
 .. _media-v2-intf-devnode:
 
@@ -262,6 +266,7 @@ desired arrays with the media graph elements.
        -  Device node minor number.
 
 
+.. tabularcolumns:: |p{1.6cm}|p{3.2cm}|p{12.7cm}|
 
 .. _media-v2-pad:
 
@@ -305,6 +310,7 @@ desired arrays with the media graph elements.
 	  this array to zero.
 
 
+.. tabularcolumns:: |p{1.6cm}|p{3.2cm}|p{12.7cm}|
 
 .. _media-v2-link:
 

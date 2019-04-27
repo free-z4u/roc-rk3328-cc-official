@@ -57,12 +57,14 @@ Currently this ioctl is only defined for MPEG-2 program streams and
 video elementary streams.
 
 
+.. tabularcolumns:: |p{3.5cm}|p{5.6cm}|p{8.4cm}|
+
 .. _v4l2-enc-idx:
 
 .. flat-table:: struct v4l2_enc_idx
     :header-rows:  0
     :stub-columns: 0
-    :widths:       1 1 2 1 1
+    :widths:       1 3 8
 
 
     -  .. row 1
@@ -88,7 +90,7 @@ video elementary streams.
 
        -  ``reserved``\ [4]
 
-       -  :cspan:`2` Reserved for future extensions. Drivers must set the
+       -  Reserved for future extensions. Drivers must set the
 	  array to zero.
 
     -  .. row 4
@@ -102,6 +104,8 @@ video elementary streams.
 	  their ``offset``.
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-enc-idx-entry:
 
@@ -159,6 +163,7 @@ video elementary streams.
 	  zero.
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _enc-idx-flags:
 

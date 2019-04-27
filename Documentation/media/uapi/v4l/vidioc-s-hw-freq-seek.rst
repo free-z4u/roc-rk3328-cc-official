@@ -61,6 +61,8 @@ If this ioctl is called from a non-blocking filehandle, then ``EAGAIN``
 error code is returned and no seek takes place.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-hw-freq-seek:
 
 .. flat-table:: struct v4l2_hw_freq_seek

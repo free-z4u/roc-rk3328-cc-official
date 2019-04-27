@@ -51,11 +51,15 @@ return the ``EINVAL`` error code when the index is out of bounds. This is a
 write-only ioctl, it does not return the current audio output attributes
 as ``VIDIOC_G_AUDOUT`` does.
 
-.. note:: Connectors on a TV card to loop back the received audio signal
+.. note::
+
+   Connectors on a TV card to loop back the received audio signal
    to a sound card are not audio outputs in this sense.
 
 
 .. _v4l2-audioout:
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table:: struct v4l2_audioout
     :header-rows:  0

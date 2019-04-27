@@ -55,6 +55,8 @@ encoded. If you omit them, applications assume you've used standard
 encoding. You usually do want to add them.
 
 
+.. tabularcolumns:: |p{1.2cm}|p{3.0cm}|p{13.3cm}|
+
 .. _v4l2-jpegcompression:
 
 .. flat-table:: struct v4l2_jpegcompression
@@ -126,6 +128,7 @@ encoding. You usually do want to add them.
 	  and ignore this field.
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _jpeg-markers:
 

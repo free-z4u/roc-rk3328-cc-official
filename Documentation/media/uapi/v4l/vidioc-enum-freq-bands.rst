@@ -43,6 +43,8 @@ This ioctl is supported if the ``V4L2_TUNER_CAP_FREQ_BANDS`` capability
 of the corresponding tuner/modulator is set.
 
 
+.. tabularcolumns:: |p{2.9cm}|p{2.9cm}|p{5.8cm}|p{2.9cm}|p{3.0cm}|
+
 .. _v4l2-frequency-band:
 
 .. flat-table:: struct v4l2_frequency_band
@@ -129,7 +131,9 @@ of the corresponding tuner/modulator is set.
        -  :cspan:`2` The supported modulation systems of this frequency
 	  band. See :ref:`band-modulation`.
 
-	  .. note:: Currently only one modulation system per frequency band
+	  .. note::
+
+	     Currently only one modulation system per frequency band
 	     is supported. More work will need to be done if multiple
 	     modulation systems are possible. Contact the linux-media
 	     mailing list
@@ -142,10 +146,13 @@ of the corresponding tuner/modulator is set.
 
        -  ``reserved``\ [9]
 
-       -  Reserved for future extensions. Applications and drivers must set
-	  the array to zero.
+       -  Reserved for future extensions.
+
+	  Applications and drivers must set the array to zero.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _band-modulation:
 

@@ -50,6 +50,8 @@ cannot be satisfied. However, this is a write-only ioctl, it does not
 return the actual new audio mode.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-audio:
 
 .. flat-table:: struct v4l2_audio
@@ -104,6 +106,8 @@ return the actual new audio mode.
 
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. _audio-capability:
 
 .. flat-table:: Audio Capability Flags
@@ -132,6 +136,8 @@ return the actual new audio mode.
        -  Automatic Volume Level mode is supported.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _audio-mode:
 

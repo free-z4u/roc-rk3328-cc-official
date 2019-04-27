@@ -14,7 +14,9 @@ at devices capable of receiving and/or transmitting RDS information.
 For more information see the core RDS standard :ref:`iec62106` and the
 RBDS standard :ref:`nrsc4`.
 
-.. note:: Note that the RBDS standard as is used in the USA is almost
+.. note::
+
+   Note that the RBDS standard as is used in the USA is almost
    identical to the RDS standard. Any RDS decoder/encoder can also handle
    RBDS. Only some of the fields have slightly different meanings. See the
    RBDS standard for more information.
@@ -93,6 +95,8 @@ RDS datastructures
 
 .. _v4l2-rds-data:
 
+.. tabularcolumns:: |p{2.5cm}|p{2.5cm}|p{12.5cm}|
+
 .. flat-table:: struct v4l2_rds_data
     :header-rows:  0
     :stub-columns: 0
@@ -126,6 +130,8 @@ RDS datastructures
 
 
 .. _v4l2-rds-block:
+
+.. tabularcolumns:: |p{2.9cm}|p{14.6cm}|
 
 .. flat-table:: Block description
     :header-rows:  0
@@ -163,6 +169,8 @@ RDS datastructures
 
 
 .. _v4l2-rds-block-codes:
+
+.. tabularcolumns:: |p{5.6cm}|p{2.0cm}|p{1.5cm}|p{7.0cm}|
 
 .. flat-table:: Block defines
     :header-rows:  0

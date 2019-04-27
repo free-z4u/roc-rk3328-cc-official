@@ -39,10 +39,14 @@ buffer.
 struct v4l2_buffer
 ==================
 
+.. tabularcolumns:: |p{2.8cm}|p{2.5cm}|p{1.3cm}|p{10.5cm}|
+
+.. cssclass:: longtable
+
 .. flat-table:: struct v4l2_buffer
     :header-rows:  0
     :stub-columns: 0
-    :widths:       1 1 1 2
+    :widths:       1 2 1 10
 
 
     -  .. row 1
@@ -166,11 +170,14 @@ struct v4l2_buffer
 	  output device because the application did not pass new data in
 	  time.
 
-	  .. note:: This may count the frames received e.g. over USB, without
+	  .. note::
+
+	     This may count the frames received e.g. over USB, without
 	     taking into account the frames dropped by the remote hardware due
 	     to limited compression throughput or bus bandwidth. These devices
 	     identify by not enumerating any video standards, see
 	     :ref:`standard`.
+
 
     -  .. row 10
 
@@ -279,6 +286,10 @@ struct v4l2_buffer
 struct v4l2_plane
 =================
 
+.. tabularcolumns:: |p{3.5cm}|p{3.5cm}|p{3.5cm}|p{7.0cm}|
+
+.. cssclass:: longtable
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -299,7 +310,9 @@ struct v4l2_plane
 	  ``bytesused`` will be set to the size of the plane (see the
 	  ``length`` field of this struct) by the driver.
 
-	  .. note:: Note that the actual image data starts at ``data_offset``
+	  .. note::
+
+	     Note that the actual image data starts at ``data_offset``
 	     which may not be 0.
 
     -  .. row 2
@@ -371,7 +384,9 @@ struct v4l2_plane
 	  field when ``type`` refers to a capture stream, applications when
 	  it refers to an output stream.
 
-	  .. note:: That data_offset is included  in ``bytesused``. So the
+	  .. note::
+
+	     That data_offset is included  in ``bytesused``. So the
 	     size of the image in the plane is ``bytesused``-``data_offset``
 	     at offset ``data_offset`` from the start of the plane.
 
@@ -392,10 +407,14 @@ struct v4l2_plane
 enum v4l2_buf_type
 ==================
 
+.. cssclass:: longtable
+
+.. tabularcolumns:: |p{7.2cm}|p{0.6cm}|p{9.7cm}|
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
-    :widths:       3 1 4
+    :widths:       4 1 9
 
 
     -  .. row 1
@@ -505,6 +524,10 @@ enum v4l2_buf_type
 
 Buffer Flags
 ============
+
+.. tabularcolumns:: |p{7.0cm}|p{2.2cm}|p{8.3cm}|
+
+.. cssclass:: longtable
 
 .. flat-table::
     :header-rows:  0
@@ -755,6 +778,8 @@ Buffer Flags
 enum v4l2_memory
 ================
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -808,6 +833,8 @@ The :ref:`struct v4l2_timecode <v4l2-timecode>` structure is designed to hold a
 
 struct v4l2_timecode
 --------------------
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table::
     :header-rows:  0
@@ -879,6 +906,8 @@ struct v4l2_timecode
 Timecode Types
 --------------
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. flat-table::
     :header-rows:  0
     :stub-columns: 0
@@ -931,6 +960,8 @@ Timecode Types
 
 Timecode Flags
 --------------
+
+.. tabularcolumns:: |p{6.6cm}|p{1.4cm}|p{9.5cm}|
 
 .. flat-table::
     :header-rows:  0

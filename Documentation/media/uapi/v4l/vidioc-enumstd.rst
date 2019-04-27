@@ -46,6 +46,8 @@ or output. [#f1]_
 
 .. _v4l2-standard:
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: struct v4l2_standard
     :header-rows:  0
     :stub-columns: 0
@@ -114,6 +116,8 @@ or output. [#f1]_
 
 .. _v4l2-fract:
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: struct v4l2_fract
     :header-rows:  0
     :stub-columns: 0
@@ -137,6 +141,7 @@ or output. [#f1]_
        -
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-std-id:
 
@@ -266,10 +271,16 @@ support digital TV. See also the Linux DVB API at
     #define V4L2_STD_ALL            (V4L2_STD_525_60        |
 		     V4L2_STD_625_50)
 
+.. raw:: latex
+
+    \begin{adjustbox}{width=\columnwidth}
+
+..                            NTSC/M   PAL/M    /N       /B       /D       /H       /I        SECAM/B    /D       /K1     /L
+.. tabularcolumns:: |p{2.7cm}|p{2.6cm}|p{3.0cm}|p{3.2cm}|p{3.2cm}|p{2.2cm}|p{1.2cm}|p{3.2cm}|p{3.0cm}|p{2.0cm}|p{2.0cm}|p{2.0cm}|
 
 .. _video-standards:
 
-.. flat-table:: Video Standards (based on [])
+.. flat-table:: Video Standards (based on :ref:`itu470`)
     :header-rows:  1
     :stub-columns: 0
 
@@ -306,7 +317,7 @@ support digital TV. See also the Linux DVB API at
 
        -  :cspan:`1` 525
 
-       -  :cspan:`9` 625
+       -  :cspan:`8` 625
 
     -  .. row 3
 
@@ -314,7 +325,7 @@ support digital TV. See also the Linux DVB API at
 
        -  :cspan:`1` 1001/30000
 
-       -  :cspan:`9` 1/25
+       -  :cspan:`8` 1/25
 
     -  .. row 4
 
@@ -324,14 +335,17 @@ support digital TV. See also the Linux DVB API at
 
        -  3579611.49 ± 10
 
-       -  4433618.75 ± 5 (3582056.25 ± 5)
+       -  4433618.75 ± 5
+
+          (3582056.25 ± 5)
 
        -  :cspan:`3` 4433618.75 ± 5
 
        -  4433618.75 ± 1
 
-       -  :cspan:`3` f\ :sub:`OR` = 4406250 ± 2000, f\ :sub:`OB` = 4250000
-	  ± 2000
+       -  :cspan:`2` f\ :sub:`OR` = 4406250 ± 2000,
+
+	  f\ :sub:`OB` = 4250000 ± 2000
 
     -  .. row 5
 
@@ -363,27 +377,32 @@ support digital TV. See also the Linux DVB API at
 
        -  Sound carrier relative to vision carrier (MHz)
 
-       -  + 4.5
+       -  4.5
 
-       -  + 4.5
+       -  4.5
 
-       -  + 4.5
+       -  4.5
 
-       -  + 5.5 ± 0.001  [#f4]_  [#f5]_  [#f6]_  [#f7]_
+       -  5.5 ± 0.001  [#f4]_  [#f5]_  [#f6]_  [#f7]_
 
-       -  + 6.5 ± 0.001
+       -  6.5 ± 0.001
 
-       -  + 5.5
+       -  5.5
 
-       -  + 5.9996 ± 0.0005
+       -  5.9996 ± 0.0005
 
-       -  + 5.5 ± 0.001
+       -  5.5 ± 0.001
 
-       -  + 6.5 ± 0.001
+       -  6.5 ± 0.001
 
-       -  + 6.5
+       -  6.5
 
-       -  + 6.5  [#f8]_
+       -  6.5 [#f8]_
+
+.. raw:: latex
+
+    \end{adjustbox}\newline\newline
+
 
 
 Return Value

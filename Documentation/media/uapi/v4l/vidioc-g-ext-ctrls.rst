@@ -95,7 +95,11 @@ were set/get. Only low-level errors (e. g. a failed i2c command) can
 still cause this situation.
 
 
+.. tabularcolumns:: |p{1.2cm}|p{3.0cm}|p{1.5cm}|p{11.8cm}|
+
 .. _v4l2-ext-control:
+
+.. cssclass: longtable
 
 .. flat-table:: struct v4l2_ext_control
     :header-rows:  0
@@ -127,7 +131,9 @@ still cause this situation.
 	  to a value large enough to store the payload result and ``ENOSPC`` is
 	  returned.
 
-	  .. note:: For string controls, this ``size`` field should
+	  .. note::
+
+	     For string controls, this ``size`` field should
 	     not be confused with the length of the string. This field refers
 	     to the size of the memory that contains the string. The actual
 	     *length* of the string may well be much smaller.
@@ -223,8 +229,11 @@ still cause this situation.
 	  ``V4L2_CTRL_FLAG_HAS_PAYLOAD`` is set for this control.
 
 
+.. tabularcolumns:: |p{4.0cm}|p{2.0cm}|p{2.0cm}|p{8.5cm}|
 
 .. _v4l2-ext-controls:
+
+.. cssclass:: longtable
 
 .. flat-table:: struct v4l2_ext_controls
     :header-rows:  0
@@ -265,7 +274,9 @@ still cause this situation.
 	  control and ``V4L2_CTRL_WHICH_DEF_VAL`` will return the default
 	  value of the control.
 
-	  .. note:: You can only get the default value of the control,
+	  .. note::
+
+	     You can only get the default value of the control,
 	     you cannot set or try it.
 
 	  For backwards compatibility you can also use a control class here
@@ -340,8 +351,9 @@ still cause this situation.
 
        -  ``reserved``\ [2]
 
-       -  Reserved for future extensions. Drivers and applications must set
-	  the array to zero.
+       -  Reserved for future extensions.
+
+	  Drivers and applications must set the array to zero.
 
     -  .. row 7
 
@@ -350,9 +362,11 @@ still cause this situation.
        -  ``controls``
 
        -  Pointer to an array of ``count`` v4l2_ext_control structures.
+
 	  Ignored if ``count`` equals zero.
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _ctrl-class:
 

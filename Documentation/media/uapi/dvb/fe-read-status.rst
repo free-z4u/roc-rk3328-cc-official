@@ -40,7 +40,9 @@ used to check about the locking status of the frontend after being
 tuned. The ioctl takes a pointer to an integer where the status will be
 written.
 
-.. note:: The size of status is actually sizeof(enum fe_status), with
+.. note::
+
+   The size of status is actually sizeof(enum fe_status), with
    varies according with the architecture. This needs to be fixed in the
    future.
 
@@ -54,6 +56,7 @@ The fe_status parameter is used to indicate the current state and/or
 state changes of the frontend hardware. It is produced using the enum
 :ref:`fe_status <fe-status>` values on a bitmask
 
+.. tabularcolumns:: |p{3.5cm}|p{14.0cm}|
 
 .. _fe-status:
 

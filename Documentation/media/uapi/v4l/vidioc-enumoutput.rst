@@ -42,6 +42,8 @@ shall begin at index zero, incrementing by one until the driver returns
 EINVAL.
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. _v4l2-output:
 
 .. flat-table:: struct v4l2_output
@@ -138,6 +140,8 @@ EINVAL.
 
 
 
+.. tabularcolumns:: |p{7.0cm}|p{1.8cm}|p{8.7cm}|
+
 .. _output-type:
 
 .. flat-table:: Output Type
@@ -172,6 +176,8 @@ EINVAL.
        -  [?]
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _output-capabilities:
 

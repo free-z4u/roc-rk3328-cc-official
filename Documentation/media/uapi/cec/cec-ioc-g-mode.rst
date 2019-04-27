@@ -30,7 +30,9 @@ Arguments
 Description
 ===========
 
-.. note:: This documents the proposed CEC API. This API is not yet finalized
+.. note::
+
+   This documents the proposed CEC API. This API is not yet finalized
    and is currently only available as a staging kernel module.
 
 By default any filehandle can use :ref:`CEC_TRANSMIT`, but in order to prevent
@@ -71,6 +73,7 @@ always call :ref:`ioctl CEC_TRANSMIT <CEC_TRANSMIT>`.
 
 Available initiator modes are:
 
+.. tabularcolumns:: |p{5.6cm}|p{0.9cm}|p{11.0cm}|
 
 .. _cec-mode-initiator_e:
 
@@ -114,6 +117,7 @@ Available initiator modes are:
 
 Available follower modes are:
 
+.. tabularcolumns:: |p{6.6cm}|p{0.9cm}|p{10.0cm}|
 
 .. _cec-mode-follower_e:
 
@@ -206,6 +210,7 @@ Available follower modes are:
 
 Core message processing details:
 
+.. tabularcolumns:: |p{6.6cm}|p{10.9cm}|
 
 .. _cec-core-processing:
 

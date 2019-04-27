@@ -19,6 +19,8 @@ are:
 
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: SMPTE 170M Chromaticities
     :header-rows:  1
     :stub-columns: 0
@@ -116,6 +118,8 @@ quantization is limited range. The chromaticities of the primary colors
 and the white reference are:
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table:: Rec. 709 Chromaticities
     :header-rows:  1
@@ -246,6 +250,8 @@ The chromaticities of the primary colors and the white reference are:
 
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: sRGB Chromaticities
     :header-rows:  1
     :stub-columns: 0
@@ -345,6 +351,8 @@ are:
 
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: Adobe RGB Chromaticities
     :header-rows:  1
     :stub-columns: 0
@@ -428,6 +436,8 @@ range (!), and so is the default Y'CbCr quantization. The chromaticities
 of the primary colors and the white reference are:
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table:: BT.2020 Chromaticities
     :header-rows:  1
@@ -538,13 +548,17 @@ projectors that use the DCI-P3 colorspace. The default transfer function
 is ``V4L2_XFER_FUNC_DCI_P3``. The default Y'CbCr encoding is
 ``V4L2_YCBCR_ENC_709``.
 
-.. note:: Note that this colorspace does not specify a
+.. note::
+
+   Note that this colorspace does not specify a
    Y'CbCr encoding since it is not meant to be encoded to Y'CbCr. So this
    default Y'CbCr encoding was picked because it is the HDTV encoding. The
    default Y'CbCr quantization is limited range. The chromaticities of the
    primary colors and the white reference are:
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table:: DCI-P3 Chromaticities
     :header-rows:  1
@@ -618,6 +632,8 @@ quantization is limited range. The chromaticities of the primary colors
 and the white reference are:
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table:: SMPTE 240M Chromaticities
     :header-rows:  1
@@ -707,6 +723,8 @@ reference are:
 
 
 
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
+
 .. flat-table:: NTSC 1953 Chromaticities
     :header-rows:  1
     :stub-columns: 0
@@ -754,7 +772,9 @@ reference are:
        -  0.316
 
 
-.. note:: This colorspace uses Illuminant C instead of D65 as the white
+.. note::
+
+   This colorspace uses Illuminant C instead of D65 as the white
    reference. To correctly convert an image in this colorspace to another
    that uses D65 you need to apply a chromatic adaptation algorithm such as
    the Bradford method.
@@ -800,6 +820,8 @@ range. The chromaticities of the primary colors and the white reference
 are:
 
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. flat-table:: EBU Tech. 3213 Chromaticities
     :header-rows:  1
@@ -888,7 +910,9 @@ reference are identical to sRGB. The transfer function use is
 with full range quantization where Y' is scaled to [0…255] and Cb/Cr are
 scaled to [-128…128] and then clipped to [-128…127].
 
-.. note:: The JPEG standard does not actually store colorspace
+.. note::
+
+   The JPEG standard does not actually store colorspace
    information. So if something other than sRGB is used, then the driver
    will have to set that information explicitly. Effectively
    ``V4L2_COLORSPACE_JPEG`` can be considered to be an abbreviation for

@@ -35,7 +35,9 @@ Arguments
 Description
 ===========
 
-.. note:: This documents the proposed CEC API. This API is not yet finalized
+.. note::
+
+   This documents the proposed CEC API. This API is not yet finalized
    and is currently only available as a staging kernel module.
 
 To query the current CEC logical addresses, applications call
@@ -64,8 +66,11 @@ logical addresses are claimed or cleared.
 Attempting to call :ref:`ioctl CEC_ADAP_S_LOG_ADDRS <CEC_ADAP_S_LOG_ADDRS>` when
 logical address types are already defined will return with error ``EBUSY``.
 
+.. tabularcolumns:: |p{1.0cm}|p{7.5cm}|p{8.0cm}|
 
 .. _cec-log-addrs:
+
+.. cssclass:: longtable
 
 .. flat-table:: struct cec_log_addrs
     :header-rows:  0
@@ -220,6 +225,8 @@ logical address types are already defined will return with error ``EBUSY``.
 	  fallback to the Unregistered logical address. Note that if the Unregistered
 	  logical address was explicitly requested, then this flag has no effect.
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
+
 .. _cec-versions:
 
 .. flat-table:: CEC Versions
@@ -253,6 +260,7 @@ logical address types are already defined will return with error ``EBUSY``.
        -  CEC version according to the HDMI 2.0 standard.
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _cec-prim-dev-types:
 
@@ -319,6 +327,7 @@ logical address types are already defined will return with error ``EBUSY``.
        -  Use for a video processor device.
 
 
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _cec-log-addr-types:
 
@@ -387,6 +396,8 @@ logical address types are already defined will return with error ``EBUSY``.
 	  Control).
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _cec-all-dev-types-flags:
 

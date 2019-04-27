@@ -40,9 +40,13 @@ fill the rest of the structure or return an ``EINVAL`` error code. All
 formats are enumerable by beginning at index zero and incrementing by
 one until ``EINVAL`` is returned.
 
-.. note:: After switching input or output the list of enumerated image
+.. note::
+
+   After switching input or output the list of enumerated image
    formats may be different.
 
+
+.. tabularcolumns:: |p{4.4cm}|p{4.4cm}|p{8.7cm}|
 
 .. _v4l2-fmtdesc:
 
@@ -50,7 +54,6 @@ one until ``EINVAL`` is returned.
     :header-rows:  0
     :stub-columns: 0
     :widths:       1 1 2
-
 
     -  .. row 1
 
@@ -104,16 +107,18 @@ one until ``EINVAL`` is returned.
 
        -  :cspan:`2`
 
-
 	  .. _v4l2-fourcc:
-	  .. code-block:: c
 
-	      #define v4l2_fourcc(a,b,c,d) (((__u32)(a)<<0)|((__u32)(b)<<8)|((__u32)(c)<<16)|((__u32)(d)<<24))
+	  ``#define v4l2_fourcc(a,b,c,d)``
+
+	  ``(((__u32)(a)<<0)|((__u32)(b)<<8)|((__u32)(c)<<16)|((__u32)(d)<<24))``
 
 	  Several image formats are already defined by this specification in
 	  :ref:`pixfmt`.
 
-	  .. attention:: These codes are not the same as those used
+	  .. attention::
+
+	     These codes are not the same as those used
 	     in the Windows world.
 
     -  .. row 7
@@ -126,6 +131,8 @@ one until ``EINVAL`` is returned.
 	  zero.
 
 
+
+.. tabularcolumns:: |p{6.6cm}|p{2.2cm}|p{8.7cm}|
 
 .. _fmtdesc-flags:
 

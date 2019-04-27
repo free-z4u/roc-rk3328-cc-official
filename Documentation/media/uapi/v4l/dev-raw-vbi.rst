@@ -99,8 +99,11 @@ VBI devices must implement both the :ref:`VIDIOC_G_FMT <VIDIOC_G_FMT>` and
 and always returns default parameters as :ref:`VIDIOC_G_FMT <VIDIOC_G_FMT>` does.
 :ref:`VIDIOC_TRY_FMT <VIDIOC_G_FMT>` is optional.
 
+.. tabularcolumns:: |p{2.4cm}|p{4.4cm}|p{10.7cm}|
 
 .. _v4l2-vbi-format:
+
+.. cssclass:: longtable
 
 .. flat-table:: struct v4l2_vbi_format
     :header-rows:  0
@@ -194,10 +197,9 @@ and always returns default parameters as :ref:`VIDIOC_G_FMT <VIDIOC_G_FMT>` does
 	  driver. Anyway, drivers may not support single field capturing and
 	  return both count values non-zero.
 
-	  Both ``count`` values set to zero, or line numbers outside the
-	  bounds depicted in :ref:`vbi-525` and :ref:`vbi-625`, or a
-	  field image covering lines of two fields, are invalid and shall
-	  not be returned by the driver.
+	  Both ``count`` values set to zero, or line numbers are outside the
+	  bounds depicted\ [#f4]_, or a field image covering lines of two
+	  fields, are invalid and shall not be returned by the driver.
 
 	  To initialize the ``start`` and ``count`` fields, applications
 	  must first determine the current video standard selection. The
@@ -224,6 +226,7 @@ and always returns default parameters as :ref:`VIDIOC_G_FMT <VIDIOC_G_FMT>` does
 	  applications must set it to zero.
 
 
+.. tabularcolumns:: |p{4.0cm}|p{1.5cm}|p{12.0cm}|
 
 .. _vbifmt-flags:
 
@@ -348,3 +351,6 @@ another process.
    Most VBI services transmit on both fields, but some have different
    semantics depending on the field number. These cannot be reliable
    decoded or encoded when ``V4L2_VBI_UNSYNC`` is set.
+
+.. [#f4]
+   The valid values ar shown at :ref:`vbi-525` and :ref:`vbi-625`.
