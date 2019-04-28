@@ -817,19 +817,6 @@ static void ade_disable_channel(struct ade_plane *aplane)
 	ade_compositor_routing_disable(base, ch);
 }
 
-static int ade_plane_prepare_fb(struct drm_plane *plane,
-				const struct drm_plane_state *new_state)
-{
-	/* do nothing */
-	return 0;
-}
-
-static void ade_plane_cleanup_fb(struct drm_plane *plane,
-				 const struct drm_plane_state *old_state)
-{
-	/* do nothing */
-}
-
 static int ade_plane_atomic_check(struct drm_plane *plane,
 				  struct drm_plane_state *state)
 {
@@ -897,8 +884,6 @@ static void ade_plane_atomic_disable(struct drm_plane *plane,
 }
 
 static const struct drm_plane_helper_funcs ade_plane_helper_funcs = {
-	.prepare_fb = ade_plane_prepare_fb,
-	.cleanup_fb = ade_plane_cleanup_fb,
 	.atomic_check = ade_plane_atomic_check,
 	.atomic_update = ade_plane_atomic_update,
 	.atomic_disable = ade_plane_atomic_disable,
@@ -989,9 +974,9 @@ static int ade_dts_parse(struct platform_device *pdev, struct ade_hw_ctx *ctx)
 	return 0;
 }
 
-static int ade_drm_init(struct platform_device *pdev)
+static int ade_drm_init(struct drm_device *dev)
 {
-	struct drm_device *drm_dev = platform_get_drvdata(dev);
+	struct platform_device *pdev = dev->platformdev;
 	struct ade_data *ade;
 	struct ade_hw_ctx *ctx;
 	struct ade_crtc *acrtc;
@@ -1050,9 +1035,9 @@ static int ade_drm_init(struct platform_device *pdev)
 	return 0;
 }
 
-static void ade_drm_cleanup(struct platform_device *pdev)
+static void ade_drm_cleanup(struct drm_device *dev)
 {
-	struct drm_device *drm_dev = platform_get_drvdata(dev);
+	struct platform_device *pdev = dev->platformdev;
 	struct ade_data *ade = platform_get_drvdata(pdev);
 	struct drm_crtc *crtc = &ade->acrtc.base;
 
@@ -1062,4 +1047,4 @@ static void ade_drm_cleanup(struct platform_device *pdev)
 const struct kirin_dc_ops ade_dc_ops = {
 	.init = ade_drm_init,
 	.cleanup = ade_drm_cleanup
-;
+};

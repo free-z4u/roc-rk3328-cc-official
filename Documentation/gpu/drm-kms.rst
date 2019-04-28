@@ -33,7 +33,7 @@ Atomic Mode Setting Function Reference
 .. kernel-doc:: drivers/gpu/drm/drm_atomic.c
    :export:
 
-.. kernel-doc:: drivers/gpu/drm/drm_atomic.c
+.. kernel-doc:: include/drm/drm_atomic.h
    :internal:
 
 Frame Buffer Abstraction
@@ -63,6 +63,15 @@ fbdev framebuffer when the struct :c:type:`struct drm_framebuffer
 <drm_framebuffer>` is embedded into the fbdev helper struct)
 drivers can manually clean up a framebuffer at module unload time with
 :c:func:`drm_framebuffer_unregister_private()`.
+
+Frame Buffer Functions Reference
+--------------------------------
+
+.. kernel-doc:: drivers/gpu/drm/drm_framebuffer.c
+   :export:
+
+.. kernel-doc:: include/drm/drm_framebuffer.h
+   :internal:
 
 DRM Format Handling
 ===================
