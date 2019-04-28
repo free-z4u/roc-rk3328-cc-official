@@ -624,6 +624,11 @@ static void scl_vop_cal_scl_fac(struct vop *vop, struct vop_win *win,
 	if (!win->phy->scl)
 		return;
 
+	if (dst_w > 3840) {
+		DRM_DEV_ERROR(vop->dev, "Maximum dst width (3840) exceeded\n");
+		return;
+	}
+
 	if (!win->phy->scl->ext) {
 		VOP_SCL_SET(vop, win, scale_yrgb_x,
 			    scl_cal_scale2(src_w, dst_w));
@@ -658,11 +663,11 @@ static void scl_vop_cal_scl_fac(struct vop *vop, struct vop_win *win,
 	VOP_SCL_SET_EXT(vop, win, lb_mode, lb_mode);
 	if (lb_mode == LB_RGB_3840X2) {
 		if (yrgb_ver_scl_mode != SCALE_NONE) {
-			DRM_ERROR("ERROR : not allow yrgb ver scale\n");
+			DRM_DEV_ERROR(vop->dev, "not allow yrgb ver scale\n");
 			return;
 		}
 		if (cbcr_ver_scl_mode != SCALE_NONE) {
-			DRM_ERROR("ERROR : not allow cbcr ver scale\n");
+			DRM_DEV_ERROR(vop->dev, "not allow cbcr ver scale\n");
 			return;
 		}
 		vsu_mode = SCALE_UP_BIL;
@@ -2468,7 +2473,8 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 		VOP_CTRL_SET(vop, dither_up, 1);
 		break;
 	default:
-		DRM_ERROR("unsupport connector_type[%d]\n", s->output_type);
+		DRM_DEV_ERROR(vop->dev, "unsupported connector_type [%d]\n",
+			      s->output_type);
 	}
 
 	vop_update_csc(crtc);
@@ -3558,7 +3564,8 @@ static irqreturn_t vop_isr(int irq, void *data)
 
 	/* Unhandled irqs are spurious. */
 	if (active_irqs)
-		DRM_ERROR("Unknown VOP IRQs: %#02x\n", active_irqs);
+		DRM_DEV_ERROR(vop->dev, "Unknown VOP IRQs: %#02x\n",
+			      active_irqs);
 
 	return ret;
 }
@@ -3758,8 +3765,8 @@ static int vop_create_crtc(struct vop *vop)
 
 	port = of_get_child_by_name(dev->of_node, "port");
 	if (!port) {
-		DRM_ERROR("no port node found in %s\n",
-			  dev->of_node->full_name);
+		DRM_DEV_ERROR(vop->dev, "no port node found in %s\n",
+			      dev->of_node->full_name);
 		ret = -ENOENT;
 		goto err_cleanup_crtc;
 	}
