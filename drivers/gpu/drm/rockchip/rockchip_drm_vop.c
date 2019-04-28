@@ -1960,8 +1960,6 @@ static int vop_crtc_debugfs_dump(struct drm_crtc *crtc, struct seq_file *s)
 	if (!crtc_state->active)
 		return 0;
 
-	DEBUG_PRINT("    Connector: %s\n",
-		    drm_get_connector_name(state->output_type));
 	DEBUG_PRINT("\toverlay_mode[%d] bus_format[%x] output_mode[%x]",
 		    state->yuv_overlay, state->bus_format, state->output_mode);
 	DEBUG_PRINT(" color_space[%d]\n",

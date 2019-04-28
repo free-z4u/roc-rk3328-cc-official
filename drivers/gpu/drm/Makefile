@@ -13,7 +13,7 @@ drm-y       :=	drm_auth.o drm_bufs.o drm_cache.o \
 		drm_trace_points.o drm_global.o drm_prime.o \
 		drm_rect.o drm_vma_manager.o drm_flip_work.o \
 		drm_modeset_lock.o drm_atomic.o drm_bridge.o \
-		drm_framebuffer.o drm_sync_helper.o drm_scdc_helper.o
+		drm_framebuffer.o drm_connector.o drm_sync_helper.o drm_scdc_helper.o
 
 drm-$(CONFIG_COMPAT) += drm_ioc32.o
 drm-$(CONFIG_DRM_GEM_CMA_HELPER) += drm_gem_cma_helper.o
@@ -47,7 +47,7 @@ obj-$(CONFIG_DRM_RADEON)+= radeon/
 obj-$(CONFIG_DRM_AMDGPU)+= amd/amdgpu/
 obj-$(CONFIG_DRM_MGA)	+= mga/
 obj-$(CONFIG_DRM_I810)	+= i810/
-obj-$(CONFIG_DRM_I915)  += i915/
+obj-$(CONFIG_DRM_I915)	+= i915/
 obj-$(CONFIG_DRM_MGAG200) += mgag200/
 obj-$(CONFIG_DRM_VC4)  += vc4/
 obj-$(CONFIG_DRM_CIRRUS_QEMU) += cirrus/
