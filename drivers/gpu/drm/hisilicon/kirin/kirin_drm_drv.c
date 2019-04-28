@@ -212,6 +212,8 @@ static int kirin_drm_bind(struct device *dev)
 
 	drm_dev->platformdev = to_platform_device(dev);
 
+	drm_dev->platformdev = to_platform_device(dev);
+
 	ret = kirin_drm_kms_init(drm_dev);
 	if (ret)
 		goto err_drm_dev_unref;
