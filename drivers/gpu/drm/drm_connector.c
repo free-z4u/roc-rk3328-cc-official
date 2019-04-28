@@ -27,6 +27,37 @@
 #include "drm_crtc_internal.h"
 #include "drm_internal.h"
 
+/**
+ * DOC: overview
+ *
+ * In DRM connectors are the general abstraction for display sinks, and include
+ * als fixed panels or anything else that can display pixels in some form. As
+ * opposed to all other KMS objects representing hardware (like CRTC, encoder or
+ * plane abstractions) connectors can be hotplugged and unplugged at runtime.
+ * Hence they are reference-counted using drm_connector_reference() and
+ * drm_connector_unreference().
+ *
+ * KMS driver must create, initialize, register and attach at a struct
+ * &drm_connector for each such sink. The instance is created as other KMS
+ * objects and initialized by setting the following fields.
+ *
+ * The connector is then registered with a call to drm_connector_init() with a
+ * pointer to the connector functions and a connector type, and exposed through
+ * sysfs with a call to drm_connector_register().
+ *
+ * Connectors must be attached to an encoder to be used. For devices that map
+ * connectors to encoders 1:1, the connector should be attached at
+ * initialization time with a call to drm_mode_connector_attach_encoder(). The
+ * driver must also set the struct &drm_connector encoder field to point to the
+ * attached encoder.
+ *
+ * For connectors which are not fixed (like built-in panels) the driver needs to
+ * support hotplug notifications. The simplest way to do that is by using the
+ * probe helpers, see drm_kms_helper_poll_init() for connectors which don't have
+ * hardware support for hotplug interrupts. Connectors with hardware hotplug
+ * support can instead use e.g. drm_helper_hpd_irq_event().
+ */
+
 struct drm_conn_prop_enum_list {
 	int type;
 	const char *name;
@@ -77,7 +108,7 @@ void drm_connector_ida_destroy(void)
  * drm_connector_get_cmdline_mode - reads the user's cmdline mode
  * @connector: connector to quwery
  *
- * The kernel supports per-connector configration of its consoles through
+ * The kernel supports per-connector configuration of its consoles through
  * use of the video= parameter. This function parses that option and
  * extracts the user's specified mode (or enable/disable status) for a
  * particular connector. This is typically only used during the early fbdev
@@ -474,6 +505,40 @@ static const struct drm_prop_enum_list drm_dpms_enum_list[] = {
 	{ DRM_MODE_DPMS_OFF, "Off" }
 };
 DRM_ENUM_NAME_FN(drm_get_dpms_name, drm_dpms_enum_list)
+
+/**
+ * drm_display_info_set_bus_formats - set the supported bus formats
+ * @info: display info to store bus formats in
+ * @formats: array containing the supported bus formats
+ * @num_formats: the number of entries in the fmts array
+ *
+ * Store the supported bus formats in display info structure.
+ * See MEDIA_BUS_FMT_* definitions in include/uapi/linux/media-bus-format.h for
+ * a full list of available formats.
+ */
+int drm_display_info_set_bus_formats(struct drm_display_info *info,
+				     const u32 *formats,
+				     unsigned int num_formats)
+{
+	u32 *fmts = NULL;
+
+	if (!formats && num_formats)
+		return -EINVAL;
+
+	if (formats && num_formats) {
+		fmts = kmemdup(formats, sizeof(*formats) * num_formats,
+			       GFP_KERNEL);
+		if (!fmts)
+			return -ENOMEM;
+	}
+
+	kfree(info->bus_formats);
+	info->bus_formats = fmts;
+	info->num_bus_formats = num_formats;
+
+	return 0;
+}
+EXPORT_SYMBOL(drm_display_info_set_bus_formats);
 
 /* Optional connector properties. */
 static const struct drm_prop_enum_list drm_scaling_mode_enum_list[] = {

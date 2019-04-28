@@ -2236,10 +2236,6 @@ extern void drm_mode_config_cleanup(struct drm_device *dev);
 int drm_mode_connector_update_hdr_property(struct drm_connector *connector,
 					   const struct hdr_static_metadata *data);
 
-extern int drm_display_info_set_bus_formats(struct drm_display_info *info,
-					    const u32 *formats,
-					    unsigned int num_formats);
-
 static inline bool drm_property_type_is(struct drm_property *property,
 		uint32_t type)
 {

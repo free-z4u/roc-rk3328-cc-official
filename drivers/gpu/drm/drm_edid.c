@@ -4630,7 +4630,9 @@ static int add_displayid_detailed_modes(struct drm_connector *connector,
  * @connector: connector we're probing
  * @edid: EDID data
  *
- * Add the specified modes to the connector's mode list.
+ * Add the specified modes to the connector's mode list. Also fills out the
+ * &drm_display_info structure in @connector with any information which can be
+ * derived from the edid.
  *
  * Return: The number of modes added or 0 if we couldn't find any.
  */

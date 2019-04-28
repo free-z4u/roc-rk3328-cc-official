@@ -42,9 +42,36 @@ enum drm_connector_force {
 	DRM_FORCE_ON_DIGITAL, /* for DVI-I use digital connector */
 };
 
+/**
+ * enum drm_connector_status - status for a &drm_connector
+ *
+ * This enum is used to track the connector status. There are no separate
+ * #defines for the uapi!
+ */
 enum drm_connector_status {
+	/**
+	 * @connector_status_connected: The connector is definitely connected to
+	 * a sink device, and can be enabled.
+	 */
 	connector_status_connected = 1,
+	/**
+	 * @connector_status_disconnected: The connector isn't connected to a
+	 * sink device which can be autodetect. For digital outputs like DP or
+	 * HDMI (which can be realiable probed) this means there's really
+	 * nothing there. It is driver-dependent whether a connector with this
+	 * status can be lit up or not.
+	 */
 	connector_status_disconnected = 2,
+	/**
+	 * @connector_status_unknown: The connector's status could not be
+	 * reliably detected. This happens when probing would either cause
+	 * flicker (like load-detection when the connector is in use), or when a
+	 * hardware resource isn't available (like when load-detection needs a
+	 * free CRTC). It should be possible to light up the connector with one
+	 * of the listed fallback modes. For default configuration userspace
+	 * should only try to light up connectors with unknown status when
+	 * there's not connector with @connector_status_connected.
+	 */
 	connector_status_unknown = 3,
 };
 
@@ -132,21 +159,45 @@ struct drm_hdmi_info {
 };
 
 /*
- * Describes a given display (e.g. CRT or flat panel) and its limitations.
+ * struct drm_display_info - runtime data about the connected sink
+ *
+ * Describes a given display (e.g. CRT or flat panel) and its limitations. For
+ * fixed display sinks like built-in panels there's not much difference between
+ * this and struct &drm_connector. But for sinks with a real cable this
+ * structure is meant to describe all the things at the other end of the cable.
+ *
+ * For sinks which provide an EDID this can be filled out by calling
+ * drm_add_edid_modes().
  */
 struct drm_display_info {
+	/**
+	 * @name: Name of the display.
+	 */
 	char name[DRM_DISPLAY_INFO_LEN];
 
-	/* Physical size */
+	/**
+	 * @width_mm: Physical width in mm.
+	 */
         unsigned int width_mm;
+	/**
+	 * @height_mm: Physical height in mm.
+	 */
 	unsigned int height_mm;
 
-	/* Clock limits FIXME: storage format */
-	unsigned int min_vfreq, max_vfreq;
-	unsigned int min_hfreq, max_hfreq;
+	/**
+	 * @pixel_clock: Maximum pixel clock supported by the sink, in units of
+	 * 100Hz. This mismatches the clok in &drm_display_mode (which is in
+	 * kHZ), because that's what the EDID uses as base unit.
+	 */
 	unsigned int pixel_clock;
+	/**
+	 * @bpc: Maximum bits per color channel. Used by HDMI and DP outputs.
+	 */
 	unsigned int bpc;
 
+	/**
+	 * @subpixel_order: Subpixel order of LCD panels.
+	 */
 	enum subpixel_order subpixel_order;
 
 #define DRM_COLOR_FORMAT_RGB444		(1<<0)
@@ -154,9 +205,23 @@ struct drm_display_info {
 #define DRM_COLOR_FORMAT_YCRCB422	(1<<2)
 #define DRM_COLOR_FORMAT_YCRCB420	(1<<3)
 
+	/**
+	 * @color_formats: HDMI Color formats, selects between RGB and YCrCb
+	 * modes. Used DRM_COLOR_FORMAT\_ defines, which are _not_ the same ones
+	 * as used to describe the pixel format in framebuffers, and also don't
+	 * match the formats in @bus_formats which are shared with v4l.
+	 */
 	u32 color_formats;
 
+	/**
+	 * @bus_formats: Pixel data format on the wire, somewhat redundant with
+	 * @color_formats. Array of size @num_bus_formats encoded using
+	 * MEDIA_BUS_FMT\_ defines shared with v4l and media drivers.
+	 */
 	const u32 *bus_formats;
+	/**
+	 * @num_bus_formats: Size of @bus_formats array.
+	 */
 	unsigned int num_bus_formats;
 
 	/**
@@ -177,11 +242,21 @@ struct drm_display_info {
 /* drive data on neg. edge */
 #define DRM_BUS_FLAG_PIXDATA_NEGEDGE	(1<<3)
 
+	/**
+	 * @bus_flags: Additional information (like pixel signal polarity) for
+	 * the pixel data on the bus, using DRM_BUS_FLAGS\_ defines.
+	 */
 	u32 bus_flags;
 
-	/* Mask of supported hdmi deep color modes */
+	/**
+	 * @edid_hdmi_dc_modes: Mask of supported hdmi deep color modes. Even
+	 * more stuff redundant with @bus_formats.
+	 */
 	u8 edid_hdmi_dc_modes;
 
+	/**
+	 * @cea_rev: CEA revision of the HDMI sink.
+	 */
 	u8 cea_rev;
 
 	/**
@@ -218,6 +293,10 @@ struct drm_tv_connector_state {
 	unsigned int saturation;
 	unsigned int hue;
 };
+
+int drm_display_info_set_bus_formats(struct drm_display_info *info,
+				     const u32 *formats,
+				     unsigned int num_formats);
 
 /**
  * struct drm_connector_state - mutable connector state
@@ -546,11 +625,9 @@ struct drm_cmdline_mode {
  * @modes: modes available on this connector (from fill_modes() + user)
  * @status: one of the drm_connector_status enums (connected, not, or unknown)
  * @probed_modes: list of modes derived directly from the display
- * @display_info: information about attached display (e.g. from EDID)
  * @funcs: connector control functions
  * @edid_blob_ptr: DRM property containing EDID if present
  * @properties: property tracking for this connector
- * @polled: a DRM_CONNECTOR_POLL_<foo> value for core driven polling
  * @dpms: current dpms state
  * @helper_private: mid-layer private data
  * @cmdline_mode: mode line parsed from the kernel cmdline for this connector
@@ -624,6 +701,13 @@ struct drm_connector {
 	/* these are modes added by probing with DDC or the BIOS */
 	struct list_head probed_modes;
 
+	/**
+	 * @display_info: Display information is filled from EDID information
+	 * when a display is detected. For non hot-pluggable displays such as
+	 * flat panels in embedded systems, the driver should initialize the
+	 * display_info.width_mm and display_info.height_mm fields with the
+	 * physical size of the display.
+	 */
 	struct drm_display_info display_info;
 	const struct drm_connector_funcs *funcs;
 
@@ -660,7 +744,26 @@ struct drm_connector {
 /* DACs should rarely do this without a lot of testing */
 #define DRM_CONNECTOR_POLL_DISCONNECT (1 << 2)
 
-	uint8_t polled; /* DRM_CONNECTOR_POLL_* */
+	/**
+	 * @polled:
+	 *
+	 * Connector polling mode, a combination of
+	 *
+	 * DRM_CONNECTOR_POLL_HPD
+	 *     The connector generates hotplug events and doesn't need to be
+	 *     periodically polled. The CONNECT and DISCONNECT flags must not
+	 *     be set together with the HPD flag.
+	 *
+	 * DRM_CONNECTOR_POLL_CONNECT
+	 *     Periodically poll the connector for connection.
+	 *
+	 * DRM_CONNECTOR_POLL_DISCONNECT
+	 *     Periodically poll the connector for disconnection.
+	 *
+	 * Set to 0 for connectors that don't support connection status
+	 * discovery.
+	 */
+	uint8_t polled;
 
 	/* requested DPMS state */
 	int dpms;
