@@ -512,7 +512,7 @@ static enum vop_data_format vop_convert_format(uint32_t format)
 	case DRM_FORMAT_NV24:
 		return VOP_FMT_YUV444SP;
 	default:
-		DRM_ERROR("unsupport format[%08x]\n", format);
+		DRM_ERROR("unsupported format[%08x]\n", format);
 		return -EINVAL;
 	}
 }
@@ -1057,6 +1057,9 @@ static void vop_dsp_hold_valid_irq_enable(struct vop *vop)
 {
 	unsigned long flags;
 
+	if (WARN_ON(!vop->is_enabled))
+		return;
+
 	spin_lock_irqsave(&vop->irq_lock, flags);
 
 	VOP_INTR_SET_TYPE(vop, clear, DSP_HOLD_VALID_INTR, 1);
@@ -1068,6 +1071,9 @@ static void vop_dsp_hold_valid_irq_enable(struct vop *vop)
 static void vop_dsp_hold_valid_irq_disable(struct vop *vop)
 {
 	unsigned long flags;
+
+	if (WARN_ON(!vop->is_enabled))
+		return;
 
 	spin_lock_irqsave(&vop->irq_lock, flags);
 
@@ -1224,34 +1230,28 @@ void rockchip_vop_crtc_fb_gamma_get(struct drm_crtc *crtc, u16 *red, u16 *green,
 	*blue = b * 0xffff / (lut_len - 1);
 }
 
-static void vop_power_enable(struct drm_crtc *crtc)
+static int vop_enable(struct drm_crtc *crtc)
 {
 	struct vop *vop = to_vop(crtc);
 	int ret;
 
-	ret = clk_prepare_enable(vop->hclk);
-	if (ret < 0) {
-		dev_err(vop->dev, "failed to enable hclk - %d\n", ret);
-		return;
-	}
-
-	ret = clk_prepare_enable(vop->dclk);
-	if (ret < 0) {
-		dev_err(vop->dev, "failed to enable dclk - %d\n", ret);
-		goto err_disable_hclk;
-	}
-
-	ret = clk_prepare_enable(vop->aclk);
-	if (ret < 0) {
-		dev_err(vop->dev, "failed to enable aclk - %d\n", ret);
-		goto err_disable_dclk;
-	}
-
 	ret = pm_runtime_get_sync(vop->dev);
 	if (ret < 0) {
 		dev_err(vop->dev, "failed to get pm runtime: %d\n", ret);
-		return;
+		goto err_put_pm_runtime;
 	}
+
+	ret = clk_prepare_enable(vop->hclk);
+	if (WARN_ON(ret < 0))
+		goto err_put_pm_runtime;
+
+	ret = clk_prepare_enable(vop->dclk);
+	if (WARN_ON(ret < 0))
+		goto err_disable_hclk;
+
+	ret = clk_prepare_enable(vop->aclk);
+	if (WARN_ON(ret < 0))
+		goto err_disable_dclk;
 
 	memcpy(vop->regsbak, vop->regs, vop->len);
 
@@ -1267,12 +1267,15 @@ static void vop_power_enable(struct drm_crtc *crtc)
 
 	vop->is_enabled = true;
 
-	return;
+	return 0;
 
 err_disable_dclk:
 	clk_disable_unprepare(vop->dclk);
 err_disable_hclk:
 	clk_disable_unprepare(vop->hclk);
+err_put_pm_runtime:
+	pm_runtime_put_sync(vop->dev);
+	return ret;
 }
 
 static void vop_initial(struct drm_crtc *crtc)
@@ -1280,8 +1283,13 @@ static void vop_initial(struct drm_crtc *crtc)
 	struct vop *vop = to_vop(crtc);
 	uint32_t irqs;
 	int i;
+	int ret;
 
-	vop_power_enable(crtc);
+	ret = vop_enable(crtc);
+	if (ret) {
+		DRM_DEV_ERROR(vop->dev, "Failed to enable vop (%d)\n", ret);
+		return;
+	}
 
 	VOP_CTRL_SET(vop, global_regdone_en, 1);
 	VOP_CTRL_SET(vop, dsp_blank, 0);
@@ -1883,7 +1891,7 @@ static int vop_crtc_loader_protect(struct drm_crtc *crtc, bool on)
 		}
 
 		rockchip_set_system_status(sys_status);
-		vop_power_enable(crtc);
+		vop_enable(crtc);
 		enable_irq(vop->irq);
 		drm_crtc_vblank_on(crtc);
 		vop->loader_protect = true;
