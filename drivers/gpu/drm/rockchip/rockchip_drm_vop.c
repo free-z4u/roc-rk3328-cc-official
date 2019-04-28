@@ -152,8 +152,6 @@ struct vop_plane_state {
 	int format;
 	int zpos;
 	unsigned int logo_ymirror;
-	struct drm_rect src;
-	struct drm_rect dest;
 	dma_addr_t yrgb_mst;
 	dma_addr_t uv_mst;
 	const uint32_t *y2r_table;
@@ -1409,10 +1407,7 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	struct vop_plane_state *vop_plane_state = to_vop_plane_state(state);
 	const struct vop_data *vop_data;
 	struct vop *vop;
-	bool visible;
 	int ret;
-	struct drm_rect *dest = &vop_plane_state->dest;
-	struct drm_rect *src = &vop_plane_state->src;
 	struct drm_rect clip;
 	int min_scale = win->phy->scl ? FRAC_16_16(1, 8) :
 					DRM_PLANE_HELPER_NO_SCALING;
@@ -1428,30 +1423,18 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	if (WARN_ON(!crtc_state))
 		return -EINVAL;
 
-	src->x1 = state->src_x;
-	src->y1 = state->src_y;
-	src->x2 = state->src_x + state->src_w;
-	src->y2 = state->src_y + state->src_h;
-	dest->x1 = state->crtc_x;
-	dest->y1 = state->crtc_y;
-	dest->x2 = state->crtc_x + state->crtc_w;
-	dest->y2 = state->crtc_y + state->crtc_h;
-
 	clip.x1 = 0;
 	clip.y1 = 0;
 	clip.x2 = crtc_state->adjusted_mode.hdisplay;
 	clip.y2 = crtc_state->adjusted_mode.vdisplay;
 
-	ret = drm_plane_helper_check_update(plane, crtc, state->fb,
-					    src, dest, &clip,
-					    state->rotation,
-					    min_scale,
-					    max_scale,
-					    true, true, &visible);
+	ret = drm_plane_helper_check_state(state, &clip,
+					   min_scale, max_scale,
+					   true, true);
 	if (ret)
 		return ret;
 
-	if (!visible)
+	if (!state->visible)
 		goto out_disable;
 
 	vop_plane_state->format = vop_convert_format(fb->pixel_format);
@@ -1461,11 +1444,11 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	vop = to_vop(crtc);
 	vop_data = vop->data;
 
-	if (drm_rect_width(src) >> 16 > vop_data->max_input.width ||
-	    drm_rect_height(src) >> 16 > vop_data->max_input.height) {
+	if (drm_rect_width(&state->src) >> 16 > vop_data->max_input.width ||
+	    drm_rect_height(&state->src) >> 16 > vop_data->max_input.height) {
 		DRM_ERROR("Invalid source: %dx%d. max input: %dx%d\n",
-			  drm_rect_width(src) >> 16,
-			  drm_rect_height(src) >> 16,
+			  drm_rect_width(&state->src) >> 16,
+			  drm_rect_height(&state->src) >> 16,
 			  vop_data->max_input.width,
 			  vop_data->max_input.height);
 		return -EINVAL;
@@ -1475,17 +1458,15 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	 * Src.x1 can be odd when do clip, but yuv plane start point
 	 * need align with 2 pixel.
 	 */
-	if (is_yuv_support(fb->pixel_format) && ((src->x1 >> 16) % 2)) {
-		DRM_ERROR("Invalid Source: Yuv format Can't support odd xpos\n");
+	if (is_yuv_support(fb->pixel_format) && ((state->src.x1 >> 16) % 2))
 		return -EINVAL;
-	}
 
-	offset = (src->x1 >> 16) * drm_format_plane_bpp(fb->pixel_format, 0) / 8;
+	offset = (state->src.x1 >> 16) * drm_format_plane_bpp(fb->pixel_format, 0) / 8;
 	if (state->rotation & BIT(DRM_REFLECT_Y) ||
 	    (rockchip_fb_is_logo(fb) && vop_plane_state->logo_ymirror))
-		offset += ((src->y2 >> 16) - 1) * fb->pitches[0];
+		offset += ((state->src.y2 >> 16) - 1) * fb->pitches[0];
 	else
-		offset += (src->y1 >> 16) * fb->pitches[0];
+		offset += (state->src.y1 >> 16) * fb->pitches[0];
 
 	dma_addr = rockchip_fb_get_dma_addr(fb, 0);
 	vop_plane_state->yrgb_mst = dma_addr + offset + fb->offsets[0];
@@ -1494,8 +1475,8 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 		int vsub = drm_format_vert_chroma_subsampling(fb->pixel_format);
 		int bpp = drm_format_plane_bpp(fb->pixel_format, 1);
 
-		offset = (src->x1 >> 16) * bpp / hsub / 8;
-		offset += (src->y1 >> 16) * fb->pitches[1] / vsub;
+		offset = (state->src.x1 >> 16) * bpp / hsub / 8;
+		offset += (state->src.y1 >> 16) * fb->pitches[1] / vsub;
 
 		dma_addr = rockchip_fb_get_dma_addr(fb, 1);
 		dma_addr += offset + fb->offsets[1];
@@ -1561,8 +1542,8 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 	unsigned int actual_w, actual_h;
 	unsigned int dsp_stx, dsp_sty;
 	uint32_t act_info, dsp_info, dsp_st;
-	struct drm_rect *src = &vop_plane_state->src;
-	struct drm_rect *dest = &vop_plane_state->dest;
+	struct drm_rect *src = &state->src;
+	struct drm_rect *dest = &state->dst;
 	const uint32_t *y2r_table = vop_plane_state->y2r_table;
 	const uint32_t *r2r_table = vop_plane_state->r2r_table;
 	const uint32_t *r2y_table = vop_plane_state->r2y_table;
@@ -1936,8 +1917,8 @@ static int vop_plane_info_dump(struct seq_file *s, struct drm_plane *plane)
 	if (!fb)
 		return 0;
 
-	src = &pstate->src;
-	dest = &pstate->dest;
+	src = &state->src;
+	dest = &state->dst;
 
 	DEBUG_PRINT("\tformat: %s%s%s[%d] color_space[%d]\n",
 		    drm_get_format_name(fb->pixel_format),
@@ -2142,13 +2123,12 @@ static int vop_bandwidth_cmp(const void *a, const void *b)
 
 static size_t vop_plane_line_bandwidth(struct drm_plane_state *pstate)
 {
-	struct vop_plane_state *vop_plane_state = to_vop_plane_state(pstate);
 	struct vop_win *win = to_vop_win(pstate->plane);
 	struct drm_crtc *crtc = pstate->crtc;
 	struct vop *vop = to_vop(crtc);
 	struct drm_framebuffer *fb = pstate->fb;
-	struct drm_rect *dest = &vop_plane_state->dest;
-	struct drm_rect *src = &vop_plane_state->src;
+	struct drm_rect *dest = &pstate->dst;
+	struct drm_rect *src = &pstate->src;
 	int bpp = drm_format_plane_bpp(fb->pixel_format, 0);
 	int src_width = drm_rect_width(src) >> 16;
 	int src_height = drm_rect_height(src) >> 16;
@@ -2225,8 +2205,8 @@ static size_t vop_crtc_bandwidth(struct drm_crtc *crtc,
 			continue;
 
 		vop_plane_state = to_vop_plane_state(pstate);
-		pbandwidth[cnt].y1 = vop_plane_state->dest.y1;
-		pbandwidth[cnt].y2 = vop_plane_state->dest.y2;
+		pbandwidth[cnt].y1 = pstate->dst.y1;
+		pbandwidth[cnt].y2 = pstate->dst.y2;
 		pbandwidth[cnt++].bandwidth = vop_plane_line_bandwidth(pstate);
 	}
 
@@ -2628,7 +2608,7 @@ static int vop_afbdc_atomic_check(struct drm_crtc *crtc,
 		}
 
 		win = to_vop_win(plane);
-		src = &plane_state->src;
+		src = &pstate->src;
 		if (!(win->feature & WIN_FEATURE_AFBDC)) {
 			DRM_ERROR("win[%d] feature:0x%llx, not support afbdc\n",
 				  win->win_id, win->feature);
