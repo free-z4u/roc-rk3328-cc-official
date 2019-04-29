@@ -292,7 +292,8 @@ rockchip_atomic_commit_complete(struct rockchip_atomic_commit *commit)
 	if (prv->devfreq)
 		rockchip_dmcfreq_vop_bandwidth_update(prv->devfreq, bandwidth);
 
-	drm_atomic_helper_commit_planes(dev, state, true);
+	drm_atomic_helper_commit_planes(dev, state,
+					DRM_PLANE_COMMIT_ACTIVE_ONLY);
 
 	drm_atomic_helper_commit_hw_done(state);
 

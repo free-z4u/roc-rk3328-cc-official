@@ -770,6 +770,8 @@ disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 		/* Right function depends upon target state. */
 		if (crtc->state->enable && funcs->prepare)
 			funcs->prepare(crtc);
+		else if (funcs->atomic_disable)
+			funcs->atomic_disable(crtc, old_crtc_state);
 		else if (funcs->disable)
 			funcs->disable(crtc);
 		else
@@ -1167,7 +1169,8 @@ EXPORT_SYMBOL(drm_atomic_helper_wait_for_vblanks);
  *
  *     drm_atomic_helper_commit_modeset_enables(dev, state);
  *
- *     drm_atomic_helper_commit_planes(dev, state, true);
+ *     drm_atomic_helper_commit_planes(dev, state,
+ *                                     DRM_PLANE_COMMIT_ACTIVE_ONLY);
  *
  * for committing the atomic update to hardware.  See the kerneldoc entries for
  * these three functions for more details.
@@ -1178,7 +1181,7 @@ void drm_atomic_helper_commit_tail(struct drm_atomic_state *state)
 
 	drm_atomic_helper_commit_modeset_disables(dev, state);
 
-	drm_atomic_helper_commit_planes(dev, state, false);
+	drm_atomic_helper_commit_planes(dev, state, 0);
 
 	drm_atomic_helper_commit_modeset_enables(dev, state);
 
@@ -1696,7 +1699,7 @@ bool plane_crtc_active(struct drm_plane_state *state)
  * drm_atomic_helper_commit_planes - commit plane state
  * @dev: DRM device
  * @old_state: atomic state object with old state structures
- * @active_only: Only commit on active CRTC if set
+ * @flags: flags for committing plane state
  *
  * This function commits the new plane state using the plane and atomic helper
  * functions for planes and crtcs. It assumes that the atomic state has already
@@ -1716,19 +1719,26 @@ bool plane_crtc_active(struct drm_plane_state *state)
  * most drivers don't need to be immediately notified of plane updates for a
  * disabled CRTC.
  *
- * Unless otherwise needed, drivers are advised to set the @active_only
- * parameters to true in order not to receive plane update notifications related
- * to a disabled CRTC. This avoids the need to manually ignore plane updates in
+ * Unless otherwise needed, drivers are advised to set the ACTIVE_ONLY flag in
+ * @flags in order not to receive plane update notifications related to a
+ * disabled CRTC. This avoids the need to manually ignore plane updates in
  * driver code when the driver and/or hardware can't or just don't need to deal
  * with updates on disabled CRTCs, for example when supporting runtime PM.
  *
- * The drm_atomic_helper_commit() default implementation only sets @active_only
- * to false to most closely match the behaviour of the legacy helpers. This should
- * not be copied blindly by drivers.
+ * Drivers may set the NO_DISABLE_AFTER_MODESET flag in @flags if the relevant
+ * display controllers require to disable a CRTC's planes when the CRTC is
+ * disabled. This function would skip the ->atomic_disable call for a plane if
+ * the CRTC of the old plane state needs a modesetting operation. Of course,
+ * the drivers need to disable the planes in their CRTC disable callbacks
+ * since no one else would do that.
+ *
+ * The drm_atomic_helper_commit() default implementation doesn't set the
+ * ACTIVE_ONLY flag to most closely match the behaviour of the legacy helpers.
+ * This should not be copied blindly by drivers.
  */
 void drm_atomic_helper_commit_planes(struct drm_device *dev,
 				     struct drm_atomic_state *old_state,
-				     bool active_only)
+				     uint32_t flags)
 {
 	struct drm_crtc *crtc;
 	struct drm_crtc_state *old_crtc_state;
@@ -1737,6 +1747,8 @@ void drm_atomic_helper_commit_planes(struct drm_device *dev,
 	struct drm_connector *connector;
 	struct drm_connector_state *old_conn_state;
 	int i;
+	bool active_only = flags & DRM_PLANE_COMMIT_ACTIVE_ONLY;
+	bool no_disable = flags & DRM_PLANE_COMMIT_NO_DISABLE_AFTER_MODESET;
 
 	for_each_connector_in_state(old_state, connector, old_conn_state, i) {
 		const struct drm_connector_helper_funcs *funcs;
@@ -1800,10 +1812,19 @@ void drm_atomic_helper_commit_planes(struct drm_device *dev,
 		/*
 		 * Special-case disabling the plane if drivers support it.
 		 */
-		if (disabling && funcs->atomic_disable)
+		if (disabling && funcs->atomic_disable) {
+			struct drm_crtc_state *crtc_state;
+
+			crtc_state = old_plane_state->crtc->state;
+
+			if (drm_atomic_crtc_needs_modeset(crtc_state) &&
+			    no_disable)
+				continue;
+
 			funcs->atomic_disable(plane, old_plane_state);
-		else if (plane->state->crtc || disabling)
+		} else if (plane->state->crtc || disabling) {
 			funcs->atomic_update(plane, old_plane_state);
+		}
 	}
 
 	for_each_crtc_in_state(old_state, crtc, old_crtc_state, i) {
@@ -1902,12 +1923,12 @@ EXPORT_SYMBOL(drm_atomic_helper_commit_planes_on_crtc);
 
 /**
  * drm_atomic_helper_disable_planes_on_crtc - helper to disable CRTC's planes
- * @crtc: CRTC
+ * @old_crtc_state: atomic state object with the old CRTC state
  * @atomic: if set, synchronize with CRTC's atomic_begin/flush hooks
  *
  * Disables all planes associated with the given CRTC. This can be
- * used for instance in the CRTC helper disable callback to disable
- * all planes before shutting down the display pipeline.
+ * used for instance in the CRTC helper atomic_disable callback to disable
+ * all planes.
  *
  * If the atomic-parameter is set the function calls the CRTC's
  * atomic_begin hook before and atomic_flush hook after disabling the
@@ -1916,9 +1937,11 @@ EXPORT_SYMBOL(drm_atomic_helper_commit_planes_on_crtc);
  * It is a bug to call this function without having implemented the
  * ->atomic_disable() plane hook.
  */
-void drm_atomic_helper_disable_planes_on_crtc(struct drm_crtc *crtc,
-					      bool atomic)
+void
+drm_atomic_helper_disable_planes_on_crtc(struct drm_crtc_state *old_crtc_state,
+					 bool atomic)
 {
+	struct drm_crtc *crtc = old_crtc_state->crtc;
 	const struct drm_crtc_helper_funcs *crtc_funcs =
 		crtc->helper_private;
 	struct drm_plane *plane;
@@ -1926,11 +1949,11 @@ void drm_atomic_helper_disable_planes_on_crtc(struct drm_crtc *crtc,
 	if (atomic && crtc_funcs && crtc_funcs->atomic_begin)
 		crtc_funcs->atomic_begin(crtc, NULL);
 
-	drm_for_each_plane(plane, crtc->dev) {
+	drm_atomic_crtc_state_for_each_plane(plane, old_crtc_state) {
 		const struct drm_plane_helper_funcs *plane_funcs =
 			plane->helper_private;
 
-		if (plane->state->crtc != crtc || !plane_funcs)
+		if (!plane_funcs)
 			continue;
 
 		WARN_ON(!plane_funcs->atomic_disable);
