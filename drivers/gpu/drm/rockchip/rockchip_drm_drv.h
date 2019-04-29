@@ -183,6 +183,9 @@ struct rockchip_drm_private {
 	const struct rockchip_crtc_funcs *crtc_funcs[ROCKCHIP_MAX_CRTC];
 	struct drm_atomic_state *state;
 
+	struct list_head psr_list;
+	struct mutex psr_list_mutex;
+
 	struct rockchip_atomic_commit *commit;
 	/* protect async commit */
 	struct mutex commit_lock;

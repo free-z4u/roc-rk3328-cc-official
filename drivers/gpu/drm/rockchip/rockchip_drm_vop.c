@@ -45,6 +45,7 @@
 #include "rockchip_drm_drv.h"
 #include "rockchip_drm_gem.h"
 #include "rockchip_drm_fb.h"
+#include "rockchip_drm_psr.h"
 #include "rockchip_drm_vop.h"
 
 #define MAX_VOPS	2
@@ -1847,6 +1848,8 @@ static int vop_crtc_enable_vblank(struct drm_crtc *crtc)
 
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
 
+	rockchip_drm_psr_disable(&vop->crtc);
+
 	return 0;
 }
 
@@ -1863,6 +1866,8 @@ static void vop_crtc_disable_vblank(struct drm_crtc *crtc)
 	VOP_INTR_SET_TYPE(vop, enable, FS_INTR, 0);
 
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
+
+	rockchip_drm_psr_enable(&vop->crtc);
 }
 
 static int vop_crtc_loader_protect(struct drm_crtc *crtc, bool on)
