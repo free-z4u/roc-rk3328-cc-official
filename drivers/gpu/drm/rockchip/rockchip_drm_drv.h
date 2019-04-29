@@ -184,7 +184,7 @@ struct rockchip_drm_private {
 	struct drm_atomic_state *state;
 
 	struct list_head psr_list;
-	struct mutex psr_list_mutex;
+	spinlock_t psr_list_lock;
 
 	struct rockchip_atomic_commit *commit;
 	/* protect async commit */
