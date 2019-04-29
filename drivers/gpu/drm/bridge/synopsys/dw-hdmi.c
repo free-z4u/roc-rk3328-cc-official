@@ -3744,8 +3744,6 @@ void dw_hdmi_unbind(struct device *dev, struct device *master, void *data)
 	switch_dev_unregister(&hdmi->switchdev);
 #endif
 	dw_hdmi_destroy_properties(hdmi);
-	hdmi->connector.funcs->destroy(&hdmi->connector);
-	hdmi->encoder->funcs->destroy(hdmi->encoder);
 
 	clk_disable_unprepare(hdmi->iahb_clk);
 	clk_disable_unprepare(hdmi->isfr_clk);
