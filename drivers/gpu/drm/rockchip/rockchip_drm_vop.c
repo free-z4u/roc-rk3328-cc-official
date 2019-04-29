@@ -3610,7 +3610,8 @@ static int vop_plane_init(struct vop *vop, struct vop_win *win,
 				   possible_crtcs, &vop_plane_funcs,
 				   win->data_formats, win->nformats, win->type);
 	if (ret) {
-		DRM_ERROR("failed to initialize plane\n");
+		DRM_DEV_ERROR(vop->dev, "failed to init plane %d\n",
+			      ret);
 		return ret;
 	}
 	drm_plane_helper_add(&win->base, &plane_helper_funcs);
