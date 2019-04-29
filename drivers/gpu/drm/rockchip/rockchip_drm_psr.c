@@ -19,7 +19,6 @@
 #include "rockchip_drm_psr.h"
 
 #define PSR_FLUSH_TIMEOUT	msecs_to_jiffies(3000) /* 3 seconds */
-#define PSR_SET_DELAY_TIME	msecs_to_jiffies(10)
 
 enum psr_state {
 	PSR_FLUSH,
@@ -31,10 +30,8 @@ struct psr_drv {
 	struct list_head	list;
 	struct drm_encoder	*encoder;
 
-	enum psr_state		request_state;
+	spinlock_t		lock;
 	enum psr_state		state;
-
-	struct delayed_work	state_work;
 
 	struct timer_list	flush_timer;
 
@@ -59,40 +56,32 @@ out:
 	return psr;
 }
 
-static void psr_state_work(struct work_struct *work)
+static void psr_set_state_locked(struct psr_drv *psr, enum psr_state state)
 {
-	struct psr_drv *psr = container_of(work, typeof(*psr), state_work.work);
-	enum psr_state request_state = psr->request_state;
-
 	/*
 	 * Allowed finite state machine:
 	 *
 	 *   PSR_ENABLE  < = = = = = >  PSR_FLUSH
-	  *      | ^                        |
-	  *      | |                        |
-	  *      v |                        |
+	 *       | ^                        |
+	 *       | |                        |
+	 *       v |                        |
 	 *   PSR_DISABLE < - - - - - - - - -
 	 */
-
-	/* Forbid no state change */
-	if (request_state == psr->state)
+	if (state == psr->state)
 		return;
 
-	/* Forbid DISABLE change to FLUSH */
-	if (request_state == PSR_FLUSH && psr->state == PSR_DISABLE)
+	/* Requesting a flush when disabled is a noop */
+	if (state == PSR_FLUSH && psr->state == PSR_DISABLE)
 		return;
 
-	/* Allow but no need hardware change, just need assign the state */
-	if (request_state == PSR_DISABLE && psr->state == PSR_FLUSH) {
-		psr->state = request_state;
+	psr->state = state;
+
+	/* Already disabled in flush, change the state, but not the hardware */
+	if (state == PSR_DISABLE && psr->state == PSR_FLUSH)
 		return;
-	}
 
-	/* Only wrote in this work, no need lock protection */
-	psr->state = request_state;
-
-	/* Refact to hardware state change */
-	switch (request_state) {
+	/* Actually commit the state change to hardware */
+	switch (psr->state) {
 	case PSR_ENABLE:
 		psr->set(psr->encoder, true);
 		break;
@@ -106,23 +95,23 @@ static void psr_state_work(struct work_struct *work)
 
 static void psr_set_state(struct psr_drv *psr, enum psr_state state)
 {
-	psr->request_state = state;
+	unsigned long flags;
 
-	schedule_delayed_work(&psr->state_work, PSR_SET_DELAY_TIME);
+	spin_lock_irqsave(&psr->lock, flags);
+	psr_set_state_locked(psr, state);
+	spin_unlock_irqrestore(&psr->lock, flags);
 }
 
 static void psr_flush_handler(unsigned long data)
 {
 	struct psr_drv *psr = (struct psr_drv *)data;
+	unsigned long flags;
 
-	if (!psr)
-		return;
-
-	/* State changed between flush time, then keep it */
-	if (psr->request_state != PSR_FLUSH)
-		return;
-
-	psr_set_state(psr, PSR_ENABLE);
+	/* If the state has changed since we initiated the flush, do nothing */
+	spin_lock_irqsave(&psr->lock, flags);
+	if (psr->state == PSR_FLUSH)
+		psr_set_state_locked(psr, PSR_ENABLE);
+	spin_unlock_irqrestore(&psr->lock, flags);
 }
 
 /**
@@ -183,9 +172,6 @@ void rockchip_drm_psr_flush(struct drm_device *dev)
 
 	spin_lock_irqsave(&drm_drv->psr_list_lock, flags);
 	list_for_each_entry(psr, &drm_drv->psr_list, list) {
-		if (psr->request_state == PSR_DISABLE)
-			continue;
-
 		mod_timer(&psr->flush_timer,
 			  round_jiffies_up(jiffies + PSR_FLUSH_TIMEOUT));
 
@@ -218,8 +204,7 @@ int rockchip_drm_psr_register(struct drm_encoder *encoder,
 		return -ENOMEM;
 
 	setup_timer(&psr->flush_timer, psr_flush_handler, (unsigned long)psr);
-
-	INIT_DELAYED_WORK(&psr->state_work, psr_state_work);
+	spin_lock_init(&psr->lock);
 
 	psr->state = PSR_DISABLE;
 	psr->encoder = encoder;
