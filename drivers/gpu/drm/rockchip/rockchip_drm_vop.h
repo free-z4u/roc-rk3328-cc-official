@@ -93,18 +93,32 @@ struct vop_csc {
 };
 
 struct vop_ctrl {
-	struct vop_reg version;
 	struct vop_reg standby;
-	struct vop_reg axi_outstanding_max_num;
-	struct vop_reg axi_max_outstanding_en;
+	struct vop_reg rgb_en;
+	struct vop_reg lvds_en;
+	struct vop_reg edp_en;
+	struct vop_reg hdmi_en;
+	struct vop_reg mipi_en;
+	struct vop_reg dither_down;
+	struct vop_reg dither_up;
+	struct vop_reg pin_pol;
+	struct vop_reg rgb_pin_pol;
+	struct vop_reg hdmi_pin_pol;
+	struct vop_reg edp_pin_pol;
+	struct vop_reg mipi_pin_pol;
+
 	struct vop_reg htotal_pw;
 	struct vop_reg hact_st_end;
 	struct vop_reg vtotal_pw;
 	struct vop_reg vact_st_end;
-	struct vop_reg vact_st_end_f1;
-	struct vop_reg vs_st_end_f1;
 	struct vop_reg hpost_st_end;
 	struct vop_reg vpost_st_end;
+
+	struct vop_reg vact_st_end_f1;
+	struct vop_reg vs_st_end_f1;
+	struct vop_reg version;
+	struct vop_reg axi_outstanding_max_num;
+	struct vop_reg axi_max_outstanding_en;
 	struct vop_reg vpost_st_end_f1;
 	struct vop_reg post_scl_factor;
 	struct vop_reg post_scl_ctrl;
@@ -118,30 +132,18 @@ struct vop_ctrl {
 	struct vop_reg dclk_ddr;
 	struct vop_reg p2i_en;
 	struct vop_reg hdmi_dclk_out_en;
-	struct vop_reg rgb_en;
-	struct vop_reg lvds_en;
-	struct vop_reg edp_en;
-	struct vop_reg hdmi_en;
-	struct vop_reg mipi_en;
 	struct vop_reg data01_swap;
 	struct vop_reg mipi_dual_channel_en;
 	struct vop_reg dp_en;
 	struct vop_reg dclk_pol;
-	struct vop_reg pin_pol;
 	struct vop_reg rgb_dclk_pol;
-	struct vop_reg rgb_pin_pol;
 	struct vop_reg lvds_dclk_pol;
 	struct vop_reg lvds_pin_pol;
 	struct vop_reg hdmi_dclk_pol;
-	struct vop_reg hdmi_pin_pol;
 	struct vop_reg edp_dclk_pol;
-	struct vop_reg edp_pin_pol;
 	struct vop_reg mipi_dclk_pol;
-	struct vop_reg mipi_pin_pol;
 	struct vop_reg dp_dclk_pol;
 	struct vop_reg dp_pin_pol;
-	struct vop_reg dither_up;
-	struct vop_reg dither_down;
 
 	struct vop_reg sw_dac_sel;
 	struct vop_reg tve_sw_mode;

@@ -2413,7 +2413,7 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 	u16 vact_end = vact_st + vdisplay;
 	int sys_status = drm_crtc_index(crtc) ?
 				SYS_STATUS_LCDC1 : SYS_STATUS_LCDC0;
-	uint32_t val;
+	uint32_t pin_pol, val;
 	int act_end;
 
 	rockchip_set_system_status(sys_status);
@@ -2421,11 +2421,11 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 	vop_initial(crtc);
 
 	VOP_CTRL_SET(vop, dclk_pol, 1);
-	val = (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC) ?
+	pin_pol = (adjusted_mode->flags & DRM_MODE_FLAG_NHSYNC) ? 
 		   0 : BIT(HSYNC_POSITIVE);
-	val |= (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC) ?
+	pin_pol |= (adjusted_mode->flags & DRM_MODE_FLAG_NVSYNC) ?
 		   0 : BIT(VSYNC_POSITIVE);
-	VOP_CTRL_SET(vop, pin_pol, val);
+	VOP_CTRL_SET(vop, pin_pol, pin_pol);
 
 	if (vop->dclk_source && vop->pll && vop->pll->pll) {
 		if (clk_set_parent(vop->dclk_source, vop->pll->pll))
@@ -2436,7 +2436,7 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 	switch (s->output_type) {
 	case DRM_MODE_CONNECTOR_LVDS:
 		VOP_CTRL_SET(vop, rgb_en, 1);
-		VOP_CTRL_SET(vop, rgb_pin_pol, val);
+		VOP_CTRL_SET(vop, rgb_pin_pol, pin_pol);
 		VOP_CTRL_SET(vop, rgb_dclk_pol, 1);
 		VOP_CTRL_SET(vop, lvds_en, 1);
 		VOP_CTRL_SET(vop, lvds_pin_pol, val);
@@ -2444,17 +2444,17 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 		break;
 	case DRM_MODE_CONNECTOR_eDP:
 		VOP_CTRL_SET(vop, edp_en, 1);
-		VOP_CTRL_SET(vop, edp_pin_pol, val);
+		VOP_CTRL_SET(vop, edp_pin_pol, pin_pol);
 		VOP_CTRL_SET(vop, edp_dclk_pol, 1);
 		break;
 	case DRM_MODE_CONNECTOR_HDMIA:
 		VOP_CTRL_SET(vop, hdmi_en, 1);
-		VOP_CTRL_SET(vop, hdmi_pin_pol, val);
+		VOP_CTRL_SET(vop, hdmi_pin_pol, pin_pol);
 		VOP_CTRL_SET(vop, hdmi_dclk_pol, 1);
 		break;
 	case DRM_MODE_CONNECTOR_DSI:
 		VOP_CTRL_SET(vop, mipi_en, 1);
-		VOP_CTRL_SET(vop, mipi_pin_pol, val);
+		VOP_CTRL_SET(vop, mipi_pin_pol, pin_pol);
 		VOP_CTRL_SET(vop, mipi_dclk_pol, 1);
 		VOP_CTRL_SET(vop, mipi_dual_channel_en,
 			!!(s->output_flags & ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL));
@@ -2463,7 +2463,7 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 		break;
 	case DRM_MODE_CONNECTOR_DisplayPort:
 		VOP_CTRL_SET(vop, dp_dclk_pol, 0);
-		VOP_CTRL_SET(vop, dp_pin_pol, val);
+		VOP_CTRL_SET(vop, dp_pin_pol, pin_pol);
 		VOP_CTRL_SET(vop, dp_en, 1);
 		break;
 	case DRM_MODE_CONNECTOR_TV:
@@ -2475,7 +2475,7 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 		VOP_CTRL_SET(vop, tve_dclk_pol, 1);
 		VOP_CTRL_SET(vop, tve_dclk_en, 1);
 		/* use the same pol reg with hdmi */
-		VOP_CTRL_SET(vop, hdmi_pin_pol, val);
+		VOP_CTRL_SET(vop, hdmi_pin_pol, pin_pol);
 		VOP_CTRL_SET(vop, sw_genlock, 1);
 		VOP_CTRL_SET(vop, sw_uv_offset_en, 1);
 		VOP_CTRL_SET(vop, dither_up, 1);
