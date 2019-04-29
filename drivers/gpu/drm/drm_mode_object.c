@@ -97,7 +97,7 @@ void drm_mode_object_register(struct drm_device *dev,
  * for reference counted modeset objects like framebuffers.
  */
 void drm_mode_object_unregister(struct drm_device *dev,
-			 struct drm_mode_object *object)
+				struct drm_mode_object *object)
 {
 	mutex_lock(&dev->mode_config.idr_mutex);
 	if (object->id) {
@@ -152,7 +152,7 @@ EXPORT_SYMBOL(drm_mode_object_find);
  * drm_mode_object_unreference - decr the object refcnt
  * @obj: mode_object
  *
- * This functions decrements the object's refcount if it is a refcounted modeset
+ * This function decrements the object's refcount if it is a refcounted modeset
  * object. It is a no-op on any other object. This is used to drop references
  * acquired with drm_mode_object_reference().
  */
@@ -169,7 +169,7 @@ EXPORT_SYMBOL(drm_mode_object_unreference);
  * drm_mode_object_reference - incr the object refcnt
  * @obj: mode_object
  *
- * This functions increments the object's refcount if it is a refcounted modeset
+ * This function increments the object's refcount if it is a refcounted modeset
  * object. It is a no-op on any other object. References should be dropped again
  * by calling drm_mode_object_unreference().
  */
@@ -209,8 +209,6 @@ void drm_object_attach_property(struct drm_mode_object *obj,
 	obj->properties->properties[count] = property;
 	obj->properties->values[count] = init_val;
 	obj->properties->count++;
-	if (property->flags & DRM_MODE_PROP_ATOMIC)
-		obj->properties->atomic_count++;
 }
 EXPORT_SYMBOL(drm_object_attach_property);
 
@@ -220,9 +218,15 @@ EXPORT_SYMBOL(drm_object_attach_property);
  * @property: property to set
  * @val: value the property should be set to
  *
- * This functions sets a given property on a given object. This function only
+ * This function sets a given property on a given object. This function only
  * changes the software state of the property, it does not call into the
  * driver's ->set_property callback.
+ *
+ * Note that atomic drivers should not have any need to call this, the core will
+ * ensure consistency of values reported back to userspace through the
+ * appropriate ->atomic_get_property callback. Only legacy drivers should call
+ * this function to update the tracked value (after clamping and other
+ * restrictions have been applied).
  *
  * Returns:
  * Zero on success, error code on failure.
@@ -253,6 +257,9 @@ EXPORT_SYMBOL(drm_object_property_set_value);
  * property. Since there is no driver callback to retrieve the current property
  * value this might be out of sync with the hardware, depending upon the driver
  * and property.
+ *
+ * Atomic drivers should never call this function directly, the core will read
+ * out property values through the various ->atomic_get_property callbacks.
  *
  * Returns:
  * Zero on success, error code on failure.
@@ -288,35 +295,30 @@ int drm_mode_object_get_properties(struct drm_mode_object *obj, bool atomic,
 				   uint64_t __user *prop_values,
 				   uint32_t *arg_count_props)
 {
-	int props_count;
-	int i, ret, copied;
+	int i, ret, count;
 
-	props_count = obj->properties->count;
-	if (!atomic)
-		props_count -= obj->properties->atomic_count;
+	for (i = 0, count = 0; i < obj->properties->count; i++) {
+		struct drm_property *prop = obj->properties->properties[i];
+		uint64_t val;
 
-	if ((*arg_count_props >= props_count) && props_count) {
-		for (i = 0, copied = 0; copied < props_count; i++) {
-			struct drm_property *prop = obj->properties->properties[i];
-			uint64_t val;
+		if ((prop->flags & DRM_MODE_PROP_ATOMIC) && !atomic)
+			continue;
 
-			if ((prop->flags & DRM_MODE_PROP_ATOMIC) && !atomic)
-				continue;
-
+		if (*arg_count_props > count) {
 			ret = drm_object_property_get_value(obj, prop, &val);
 			if (ret)
 				return ret;
 
-			if (put_user(prop->base.id, prop_ptr + copied))
+			if (put_user(prop->base.id, prop_ptr + count))
 				return -EFAULT;
 
-			if (put_user(val, prop_values + copied))
+			if (put_user(val, prop_values + count))
 				return -EFAULT;
-
-			copied++;
 		}
+
+		count++;
 	}
-	*arg_count_props = props_count;
+	*arg_count_props = count;
 
 	return 0;
 }
