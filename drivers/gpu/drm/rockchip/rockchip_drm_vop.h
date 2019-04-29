@@ -95,7 +95,6 @@ struct vop_csc {
 struct vop_ctrl {
 	struct vop_reg standby;
 	struct vop_reg rgb_en;
-	struct vop_reg lvds_en;
 	struct vop_reg edp_en;
 	struct vop_reg hdmi_en;
 	struct vop_reg mipi_en;
@@ -114,6 +113,11 @@ struct vop_ctrl {
 	struct vop_reg hpost_st_end;
 	struct vop_reg vpost_st_end;
 
+	struct vop_reg line_flag_num[2];
+
+	struct vop_reg cfg_done;
+
+	struct vop_reg lvds_en;
 	struct vop_reg vact_st_end_f1;
 	struct vop_reg vs_st_end_f1;
 	struct vop_reg version;
@@ -231,7 +235,6 @@ struct vop_ctrl {
 	struct vop_reg win_csc_mode_sel;
 
 	struct vop_reg reg_done_frm;
-	struct vop_reg cfg_done;
 };
 
 struct vop_intr {
