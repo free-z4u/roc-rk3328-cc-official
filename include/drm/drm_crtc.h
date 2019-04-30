@@ -158,6 +158,46 @@ struct drm_crtc_state {
 	struct drm_property_blob *ctm;
 	struct drm_property_blob *gamma_lut;
 
+	/**
+	 * @event:
+	 *
+	 * Optional pointer to a DRM event to signal upon completion of the
+	 * state update. The driver must send out the event when the atomic
+	 * commit operation completes. There are two cases:
+	 *
+	 *  - The event is for a CRTC which is being disabled through this
+	 *    atomic commit. In that case the event can be send out any time
+	 *    after the hardware has stopped scanning out the current
+	 *    framebuffers. It should contain the timestamp and counter for the
+	 *    last vblank before the display pipeline was shut off.
+	 *
+	 *  - For a CRTC which is enabled at the end of the commit (even when it
+	 *    undergoes an full modeset) the vblank timestamp and counter must
+	 *    be for the vblank right before the first frame that scans out the
+	 *    new set of buffers. Again the event can only be sent out after the
+	 *    hardware has stopped scanning out the old buffers.
+	 *
+	 *  - Events for disabled CRTCs are not allowed, and drivers can ignore
+	 *    that case.
+	 *
+	 * This can be handled by the drm_crtc_send_vblank_event() function,
+	 * which the driver should call on the provided event upon completion of
+	 * the atomic commit. Note that if the driver supports vblank signalling
+	 * and timestamping the vblank counters and timestamps must agree with
+	 * the ones returned from page flip events. With the current vblank
+	 * helper infrastructure this can be achieved by holding a vblank
+	 * reference while the page flip is pending, acquired through
+	 * drm_crtc_vblank_get() and released with drm_crtc_vblank_put().
+	 * Drivers are free to implement their own vblank counter and timestamp
+	 * tracking though, e.g. if they have accurate timestamp registers in
+	 * hardware.
+	 *
+	 * For hardware which supports some means to synchronize vblank
+	 * interrupt delivery with committing display state there's also
+	 * drm_crtc_arm_vblank_event(). See the documentation of that function
+	 * for a detailed discussion of the constraints it needs to be used
+	 * safely.
+	 */
 	struct drm_pending_vblank_event *event;
 
 	struct drm_atomic_state *state;
@@ -835,17 +875,9 @@ struct drm_mode_config_funcs {
 	 * CRTC index supplied in &drm_event to userspace.
 	 *
 	 * The drm core will supply a struct &drm_event in the event
-	 * member of each CRTC's &drm_crtc_state structure. This can be handled by the
-	 * drm_crtc_send_vblank_event() function, which the driver should call on
-	 * the provided event upon completion of the atomic commit. Note that if
-	 * the driver supports vblank signalling and timestamping the vblank
-	 * counters and timestamps must agree with the ones returned from page
-	 * flip events. With the current vblank helper infrastructure this can
-	 * be achieved by holding a vblank reference while the page flip is
-	 * pending, acquired through drm_crtc_vblank_get() and released with
-	 * drm_crtc_vblank_put(). Drivers are free to implement their own vblank
-	 * counter and timestamp tracking though, e.g. if they have accurate
-	 * timestamp registers in hardware.
+	 * member of each CRTC's &drm_crtc_state structure. See the
+	 * documentation for &drm_crtc_state for more details about the precise
+	 * semantics of this event.
 	 *
 	 * NOTE:
 	 *
@@ -1324,7 +1356,7 @@ extern void drm_crtc_cleanup(struct drm_crtc *crtc);
  * Given a registered CRTC, return the index of that CRTC within a DRM
  * device's list of CRTCs.
  */
-static inline unsigned int drm_crtc_index(struct drm_crtc *crtc)
+static inline unsigned int drm_crtc_index(const struct drm_crtc *crtc)
 {
 	return crtc->index;
 }
@@ -1365,6 +1397,10 @@ extern struct drm_tile_group *drm_mode_get_tile_group(struct drm_device *dev,
 extern void drm_mode_put_tile_group(struct drm_device *dev,
 				   struct drm_tile_group *tg);
 
+struct drm_display_mode *
+drm_display_mode_from_vic_index(struct drm_connector *connector,
+				const u8 *video_db, u8 video_len,
+				u8 video_index);
 extern void drm_crtc_enable_color_mgmt(struct drm_crtc *crtc,
 				       uint degamma_lut_size,
 				       bool has_ctm,
