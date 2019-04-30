@@ -1299,6 +1299,8 @@ static void vop_initial(struct drm_crtc *crtc)
 	VOP_CTRL_SET(vop, axi_max_outstanding_en, 1);
 	VOP_CTRL_SET(vop, reg_done_frm, 1);
 
+	rockchip_drm_psr_deactivate(&vop->crtc);
+
 	/*
 	 * restore the lut table.
 	 */
@@ -1852,8 +1854,6 @@ static int vop_crtc_enable_vblank(struct drm_crtc *crtc)
 
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
 
-	rockchip_drm_psr_disable(&vop->crtc);
-
 	return 0;
 }
 
@@ -1870,8 +1870,6 @@ static void vop_crtc_disable_vblank(struct drm_crtc *crtc)
 	VOP_INTR_SET_TYPE(vop, enable, FS_INTR, 0);
 
 	spin_unlock_irqrestore(&vop->irq_lock, flags);
-
-	rockchip_drm_psr_enable(&vop->crtc);
 }
 
 static int vop_crtc_loader_protect(struct drm_crtc *crtc, bool on)
@@ -2556,6 +2554,8 @@ static void vop_crtc_enable(struct drm_crtc *crtc)
 	 * enable vop, all the register would take effect when vop exit standby
 	 */
 	VOP_CTRL_SET(vop, standby, 0);
+
+	rockchip_drm_psr_activate(&vop->crtc);
 
 	enable_irq(vop->irq);
 	drm_crtc_vblank_on(crtc);
@@ -3242,6 +3242,8 @@ static void vop_crtc_atomic_begin(struct drm_crtc *crtc,
 				  struct drm_crtc_state *old_crtc_state)
 {
 	struct vop *vop = to_vop(crtc);
+
+	rockchip_drm_psr_flush(crtc);
 
 	vop->vblank_active = true;
 }
