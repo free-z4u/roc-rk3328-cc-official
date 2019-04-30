@@ -360,6 +360,9 @@ struct drm_device *drm_device_get_by_name(const char *name)
 
 static int drm_dev_set_unique(struct drm_device *dev, const char *name)
 {
+	if (!name)
+		return -EINVAL;
+
 	kfree(dev->unique);
 	dev->unique = kstrdup(name, GFP_KERNEL);
 
@@ -610,7 +613,7 @@ EXPORT_SYMBOL(drm_dev_init);
  * own struct should look at using drm_dev_init() instead.
  *
  * RETURNS:
- * Pointer to new DRM device, or NULL if out of memory.
+ * Pointer to new DRM device, or ERR_PTR on failure.
  */
 struct drm_device *drm_dev_alloc(struct drm_driver *driver,
 				 struct device *parent)
@@ -620,12 +623,12 @@ struct drm_device *drm_dev_alloc(struct drm_driver *driver,
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (!dev)
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 
 	ret = drm_dev_init(dev, driver, parent);
 	if (ret) {
 		kfree(dev);
-		return NULL;
+		return ERR_PTR(ret);
 	}
 
 	return dev;
