@@ -202,7 +202,6 @@ struct vop {
 	bool is_iommu_enabled;
 	bool is_iommu_needed;
 	bool is_enabled;
-	bool vblank_active;
 	bool mode_update;
 
 	u32 version;
@@ -1333,8 +1332,6 @@ static void vop_initial(struct drm_crtc *crtc)
 		POST_BUF_EMPTY_INTR;
 	VOP_INTR_SET_TYPE(vop, clear, irqs, 1);
 	VOP_INTR_SET_TYPE(vop, enable, irqs, 1);
-	
-	vop->vblank_active = false;
 }
 
 static void vop_crtc_disable(struct drm_crtc *crtc)
@@ -1370,7 +1367,6 @@ static void vop_crtc_disable(struct drm_crtc *crtc)
 	disable_irq(vop->irq);
 
 	vop->is_enabled = false;
-	vop->vblank_active = false;
 	if (vop->is_iommu_enabled) {
 		/*
 		 * vop standby complete, so iommu detach is safe.
@@ -3223,11 +3219,7 @@ static void vop_crtc_atomic_flush(struct drm_crtc *crtc,
 static void vop_crtc_atomic_begin(struct drm_crtc *crtc,
 				  struct drm_crtc_state *old_crtc_state)
 {
-	struct vop *vop = to_vop(crtc);
-
 	rockchip_drm_psr_flush(crtc);
-
-	vop->vblank_active = true;
 }
 
 static const struct drm_crtc_helper_funcs vop_crtc_helper_funcs = {
@@ -3488,11 +3480,8 @@ static void vop_handle_vblank(struct vop *vop)
 	spin_lock_irqsave(&drm->event_lock, flags);
 	if (vop->event) {
 		drm_crtc_send_vblank_event(crtc, vop->event);
-		vop->event = NULL;
-	}
-	if (vop->vblank_active) {
-		vop->vblank_active = false;
 		drm_crtc_vblank_put(crtc);
+		vop->event = NULL;
 	}
 	spin_unlock_irqrestore(&drm->event_lock, flags);
 
