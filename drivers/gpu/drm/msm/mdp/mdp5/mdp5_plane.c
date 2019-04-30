@@ -78,12 +78,12 @@ static void mdp5_plane_install_rotation_property(struct drm_device *dev,
 	if (!dev->mode_config.rotation_property)
 		dev->mode_config.rotation_property =
 			drm_mode_create_rotation_property(dev,
-			DRM_REFLECT_X | DRM_REFLECT_Y);
+				DRM_ROTATE_0 | DRM_REFLECT_X | DRM_REFLECT_Y);
 
 	if (dev->mode_config.rotation_property)
 		drm_object_attach_property(&plane->base,
 			dev->mode_config.rotation_property,
-			0);
+			DRM_ROTATE_0);
 }
 
 /* helper to install properties which are common to planes and crtcs */
@@ -292,8 +292,7 @@ static int mdp5_plane_atomic_check(struct drm_plane *plane,
 		format = to_mdp_format(msm_framebuffer_format(state->fb));
 		if (MDP_FORMAT_IS_YUV(format) &&
 			!pipe_supports_yuv(mdp5_plane->caps)) {
-			dev_err(plane->dev->dev,
-				"Pipe doesn't support YUV\n");
+			DBG("Pipe doesn't support YUV\n");
 
 			return -EINVAL;
 		}
@@ -301,8 +300,7 @@ static int mdp5_plane_atomic_check(struct drm_plane *plane,
 		if (!(mdp5_plane->caps & MDP_PIPE_CAP_SCALE) &&
 			(((state->src_w >> 16) != state->crtc_w) ||
 			((state->src_h >> 16) != state->crtc_h))) {
-			dev_err(plane->dev->dev,
-				"Pipe doesn't support scaling (%dx%d -> %dx%d)\n",
+			DBG("Pipe doesn't support scaling (%dx%d -> %dx%d)\n",
 				state->src_w >> 16, state->src_h >> 16,
 				state->crtc_w, state->crtc_h);
 
@@ -313,8 +311,7 @@ static int mdp5_plane_atomic_check(struct drm_plane *plane,
 		vflip = !!(state->rotation & DRM_REFLECT_Y);
 		if ((vflip && !(mdp5_plane->caps & MDP_PIPE_CAP_VFLIP)) ||
 			(hflip && !(mdp5_plane->caps & MDP_PIPE_CAP_HFLIP))) {
-			dev_err(plane->dev->dev,
-				"Pipe doesn't support flip\n");
+			DBG("Pipe doesn't support flip\n");
 
 			return -EINVAL;
 		}
