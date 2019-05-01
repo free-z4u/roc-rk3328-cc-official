@@ -305,11 +305,6 @@ __drm_atomic_get_current_plane_state(struct drm_atomic_state *state,
 	return plane->state;
 }
 
-int drm_atomic_replace_property_blob_from_id(struct drm_device *dev,
-					     struct drm_property_blob **blob,
-					     uint64_t blob_id,
-					     ssize_t expected_size,
-					     bool *replaced);
 int __must_check
 drm_atomic_set_mode_for_crtc(struct drm_crtc_state *state,
 			     struct drm_display_mode *mode);
