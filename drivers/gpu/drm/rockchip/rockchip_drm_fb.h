@@ -15,7 +15,6 @@
 #ifndef _ROCKCHIP_DRM_FB_H
 #define _ROCKCHIP_DRM_FB_H
 
-bool rockchip_fb_is_logo(struct drm_framebuffer *fb);
 struct drm_framebuffer *
 rockchip_drm_framebuffer_init(struct drm_device *dev,
 			      const struct drm_mode_fb_cmd2 *mode_cmd,
@@ -23,6 +22,9 @@ rockchip_drm_framebuffer_init(struct drm_device *dev,
 void rockchip_drm_framebuffer_fini(struct drm_framebuffer *fb);
 
 void rockchip_drm_mode_config_init(struct drm_device *dev);
+
+struct drm_gem_object *rockchip_fb_get_gem_obj(struct drm_framebuffer *fb,
+					       unsigned int plane);
 
 struct drm_framebuffer *
 rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cmd,

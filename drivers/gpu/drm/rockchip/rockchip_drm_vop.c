@@ -1458,8 +1458,7 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 		return -EINVAL;
 
 	offset = (state->src.x1 >> 16) * drm_format_plane_bpp(fb->pixel_format, 0) / 8;
-	if (state->rotation & BIT(DRM_REFLECT_Y) ||
-	    (rockchip_fb_is_logo(fb) && vop_plane_state->logo_ymirror))
+	if (state->rotation & BIT(DRM_REFLECT_Y))
 		offset += ((state->src.y2 >> 16) - 1) * fb->pitches[0];
 	else
 		offset += (state->src.y1 >> 16) * fb->pitches[0];
@@ -1565,8 +1564,7 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 	dsp_sty = dest->y1 + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
 
-	ymirror = state->rotation & BIT(DRM_REFLECT_Y) ||
-		  (rockchip_fb_is_logo(fb) && vop_plane_state->logo_ymirror);
+	ymirror = state->rotation & BIT(DRM_REFLECT_Y);
 	xmirror = !!(state->rotation & BIT(DRM_REFLECT_X));
 
 	vop = to_vop(state->crtc);
@@ -1715,12 +1713,6 @@ static int vop_atomic_plane_set_property(struct drm_plane *plane,
 
 	if (property == win->rotation_prop) {
 		state->rotation = val;
-		return 0;
-	}
-
-	if (property == private->logo_ymirror_prop) {
-		WARN_ON(!rockchip_fb_is_logo(state->fb));
-		plane_state->logo_ymirror = val;
 		return 0;
 	}
 

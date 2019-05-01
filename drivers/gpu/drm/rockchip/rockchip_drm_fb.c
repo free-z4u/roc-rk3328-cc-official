@@ -33,14 +33,17 @@ struct rockchip_drm_fb {
 	struct drm_framebuffer fb;
 	dma_addr_t dma_addr[ROCKCHIP_MAX_FB_BUFFER];
 	struct drm_gem_object *obj[ROCKCHIP_MAX_FB_BUFFER];
-	struct rockchip_logo *logo;
 };
 
-bool rockchip_fb_is_logo(struct drm_framebuffer *fb)
+struct drm_gem_object *rockchip_fb_get_gem_obj(struct drm_framebuffer *fb,
+					       unsigned int plane)
 {
 	struct rockchip_drm_fb *rk_fb = to_rockchip_fb(fb);
 
-	return rk_fb && rk_fb->logo;
+	if (plane >= ROCKCHIP_MAX_FB_BUFFER)
+		return NULL;
+
+	return rk_fb->obj[plane];
 }
 
 dma_addr_t rockchip_fb_get_dma_addr(struct drm_framebuffer *fb,
@@ -61,13 +64,6 @@ static void rockchip_drm_fb_destroy(struct drm_framebuffer *fb)
 
 	for (i = 0; i < ROCKCHIP_MAX_FB_BUFFER; i++)
 		drm_gem_object_unreference_unlocked(rockchip_fb->obj[i]);
-
-#ifndef MODULE
-	if (rockchip_fb->logo)
-		rockchip_free_loader_memory(fb->dev);
-#else
-	WARN_ON(rockchip_fb->logo);
-#endif
 
 	drm_framebuffer_cleanup(fb);
 	kfree(rockchip_fb);
@@ -131,12 +127,6 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 			rk_obj = to_rockchip_obj(obj[i]);
 			rockchip_fb->dma_addr[i] = rk_obj->dma_addr;
 		}
-#ifndef MODULE
-	} else if (logo) {
-		rockchip_fb->dma_addr[0] = logo->dma_addr;
-		rockchip_fb->logo = logo;
-		logo->count++;
-#endif
 	} else {
 		ret = -EINVAL;
 		dev_err(dev->dev, "Failed to find available buffer\n");
