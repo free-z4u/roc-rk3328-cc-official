@@ -1277,10 +1277,10 @@ static int mmc_select_hs400es(struct mmc_card *card)
 		goto out_err;
 	}
 
-	if (card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS200_1_2V)
+	if (card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS400_1_2V)
 		err = __mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_120);
 
-	if (err && card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS200_1_8V)
+	if (err && card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS400_1_8V)
 		err = __mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_180);
 
 	/* If fails try again during next card power cycle */
