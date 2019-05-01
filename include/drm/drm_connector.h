@@ -228,17 +228,6 @@ struct drm_display_info {
 	 */
 	unsigned int num_bus_formats;
 
-	/**
-	 * @max_tmds_clock: Maximum TMDS clock rate supported by the
-	 * sink in kHz. 0 means undefined.
-	 */
-	int max_tmds_clock;
-
-	/**
-	 * @dvi_dual: Dual-link DVI sink?
-	 */
-	bool dvi_dual;
-
 #define DRM_BUS_FLAG_DE_LOW		(1<<0)
 #define DRM_BUS_FLAG_DE_HIGH		(1<<1)
 /* drive data on pos. edge */
@@ -251,6 +240,17 @@ struct drm_display_info {
 	 * the pixel data on the bus, using DRM_BUS_FLAGS\_ defines.
 	 */
 	u32 bus_flags;
+
+	/**
+	 * @max_tmds_clock: Maximum TMDS clock rate supported by the
+	 * sink in kHz. 0 means undefined.
+	 */
+	int max_tmds_clock;
+
+	/**
+	 * @dvi_dual: Dual-link DVI sink?
+	 */
+	bool dvi_dual;
 
 	/**
 	 * @edid_hdmi_dc_modes: Mask of supported hdmi deep color modes. Even
@@ -475,7 +475,7 @@ struct drm_connector_funcs {
 	 *
 	 * This optional hook should be used to unregister the additional
 	 * userspace interfaces attached to the connector from
-	 * late_unregister(). It is called from drm_connector_unregister(),
+	 * late_register(). It is called from drm_connector_unregister(),
 	 * early in the driver unload sequence to disable userspace access
 	 * before data structures are torndown.
 	 */
@@ -495,7 +495,7 @@ struct drm_connector_funcs {
 	 * @atomic_duplicate_state:
 	 *
 	 * Duplicate the current atomic state for this connector and return it.
-	 * The core and helpers gurantee that any atomic state duplicated with
+	 * The core and helpers guarantee that any atomic state duplicated with
 	 * this hook and still owned by the caller (i.e. not transferred to the
 	 * driver by calling ->atomic_commit() from struct
 	 * &drm_mode_config_funcs) will be cleaned up by calling the
@@ -645,8 +645,6 @@ struct drm_cmdline_mode {
  * @encoder_ids: valid encoders for this connector
  * @encoder: encoder driving this connector, if any
  * @eld: EDID-like data, if present
- * @dvi_dual: dual link DVI, if found
- * @max_tmds_clock: max clock rate, if found
  * @latency_present: AV delay info from ELD, if found
  * @video_latency: video latency info from ELD, if found
  * @audio_latency: audio latency info from ELD, if found
@@ -792,8 +790,6 @@ struct drm_connector {
 #define MAX_ELD_BYTES	128
 	/* EDID bits */
 	uint8_t eld[MAX_ELD_BYTES];
-	bool dvi_dual;
-	int max_tmds_clock;	/* in MHz */
 	bool latency_present[2];
 	int video_latency[2];	/* [0]: progressive, [1]: interlaced */
 	int audio_latency[2];

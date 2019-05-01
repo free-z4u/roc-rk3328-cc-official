@@ -109,8 +109,6 @@ struct drm_plane_helper_funcs;
  * @ctm: Transformation matrix
  * @gamma_lut: Lookup table for converting pixel data after the
  *	conversion matrix
- * @event: optional pointer to a DRM event to signal upon completion of the
- * 	state update
  * @state: backpointer to global drm_atomic_state
  *
  * Note that the distinction between @enable and @active is rather subtile:

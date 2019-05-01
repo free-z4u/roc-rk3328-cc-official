@@ -3305,7 +3305,6 @@ static int add_3d_struct_modes(struct drm_connector *connector, u16 structure,
 	return modes;
 }
 
-
 /*
  * do_hdmi_vsdb_modes - Parse the HDMI Vendor Specific data block
  * @connector: connector corresponding to the HDMI sink

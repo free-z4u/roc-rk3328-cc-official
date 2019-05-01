@@ -2535,12 +2535,6 @@ dw_hdmi_connector_mode_valid(struct drm_connector *connector,
 	return mode_status;
 }
 
-static void dw_hdmi_connector_destroy(struct drm_connector *connector)
-{
-	drm_connector_unregister(connector);
-	drm_connector_cleanup(connector);
-}
-
 static void
 dw_hdmi_connector_atomic_begin(struct drm_connector *connector,
 			       struct drm_connector_state *conn_state)
@@ -2722,7 +2716,7 @@ static const struct drm_connector_funcs dw_hdmi_connector_funcs = {
 	.dpms = drm_atomic_helper_connector_dpms,
 	.fill_modes = drm_helper_probe_single_connector_modes,
 	.detect = dw_hdmi_connector_detect,
-	.destroy = dw_hdmi_connector_destroy,
+	.destroy = drm_connector_cleanup,
 	.force = dw_hdmi_connector_force,
 	.reset = drm_atomic_helper_connector_reset,
 	.set_property = dw_hdmi_connector_set_property,
