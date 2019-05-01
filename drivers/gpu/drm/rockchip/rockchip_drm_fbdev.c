@@ -23,6 +23,8 @@
 #include "rockchip_drm_fbdev.h"
 
 #define PREFERRED_BPP		32
+#define to_drm_private(x) \
+		container_of(x, struct rockchip_drm_private, fbdev_helper)
 
 static int rockchip_fbdev_mmap(struct fb_info *info,
 			       struct vm_area_struct *vma)
@@ -141,8 +143,6 @@ err_rockchip_gem_free_object:
 }
 
 static const struct drm_fb_helper_funcs rockchip_drm_fb_helper_funcs = {
-	.gamma_set = rockchip_vop_crtc_fb_gamma_set,
-	.gamma_get = rockchip_vop_crtc_fb_gamma_get,
 	.fb_probe = rockchip_drm_fbdev_create,
 };
 

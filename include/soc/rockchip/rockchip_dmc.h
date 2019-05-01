@@ -24,13 +24,4 @@ static inline int rockchip_pm_register_notify_to_dmc(struct devfreq *devfreq)
 }
 #endif
 
-#ifdef CONFIG_DRM_ROCKCHIP
-int rockchip_drm_register_notifier_to_dmc(struct devfreq *devfreq);
-#else
-static inline int rockchip_drm_register_notifier_to_dmc(struct devfreq *devfreq)
-{
-	return 0;
-}
-#endif
-
 #endif
