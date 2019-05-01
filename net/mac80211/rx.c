@@ -1548,12 +1548,9 @@ ieee80211_rx_h_sta_process(struct ieee80211_rx_data *rx)
 	    !(status->rx_flags & IEEE80211_RX_DEFERRED_RELEASE) &&
 	    (rx->sdata->vif.type == NL80211_IFTYPE_AP ||
 	     rx->sdata->vif.type == NL80211_IFTYPE_AP_VLAN) &&
-	    /*
-	     * PM bit is only checked in frames where it isn't reserved,
+	    /* PM bit is only checked in frames where it isn't reserved,
 	     * in AP mode it's reserved in non-bufferable management frames
 	     * (cf. IEEE 802.11-2012 8.2.4.1.7 Power Management field)
-	     * BAR frames should be ignored as specified in
-	     * IEEE 802.11-2012 10.2.1.2.
 	     */
 	    (!ieee80211_is_mgmt(hdr->frame_control) ||
 	     ieee80211_is_bufferable_mmpdu(hdr->frame_control))) {
@@ -2302,6 +2299,8 @@ ieee80211_rx_h_amsdu(struct ieee80211_rx_data *rx)
 	__le16 fc = hdr->frame_control;
 	struct sk_buff_head frame_list;
 	struct ieee80211_rx_status *status = IEEE80211_SKB_RXCB(rx->skb);
+	struct ethhdr ethhdr;
+	const u8 *check_da = ethhdr.h_dest, *check_sa = ethhdr.h_source;
 
 	if (unlikely(!ieee80211_is_data(fc)))
 		return RX_CONTINUE;
@@ -2325,6 +2324,23 @@ ieee80211_rx_h_amsdu(struct ieee80211_rx_data *rx)
 		default:
 			return RX_DROP_UNUSABLE;
 		}
+		check_da = NULL;
+		check_sa = NULL;
+	} else switch (rx->sdata->vif.type) {
+		case NL80211_IFTYPE_AP:
+		case NL80211_IFTYPE_AP_VLAN:
+			check_da = NULL;
+			break;
+		case NL80211_IFTYPE_STATION:
+			if (!rx->sta ||
+			    !test_sta_flag(rx->sta, WLAN_STA_TDLS_PEER))
+				check_sa = NULL;
+			break;
+		case NL80211_IFTYPE_MESH_POINT:
+			check_sa = NULL;
+			break;
+		default:
+			break;
 	}
 
 	if (is_multicast_ether_addr(hdr->addr1))
@@ -2333,9 +2349,15 @@ ieee80211_rx_h_amsdu(struct ieee80211_rx_data *rx)
 	skb->dev = dev;
 	__skb_queue_head_init(&frame_list);
 
+	if (ieee80211_data_to_8023_exthdr(skb, &ethhdr,
+					  rx->sdata->vif.addr,
+					  rx->sdata->vif.type))
+		return RX_DROP_UNUSABLE;
+
 	ieee80211_amsdu_to_8023s(skb, &frame_list, dev->dev_addr,
 				 rx->sdata->vif.type,
-				 rx->local->hw.extra_tx_headroom, true);
+				 rx->local->hw.extra_tx_headroom,
+				 check_da, check_sa);
 
 	while (!skb_queue_empty(&frame_list)) {
 		rx->skb = __skb_dequeue(&frame_list);

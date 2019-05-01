@@ -1349,7 +1349,7 @@ csum_copy_err:
 	goto try_again;
 }
 
-int udp_disconnect(struct sock *sk, int flags)
+int __udp_disconnect(struct sock *sk, int flags)
 {
 	struct inet_sock *inet = inet_sk(sk);
 	/*
@@ -1369,6 +1369,15 @@ int udp_disconnect(struct sock *sk, int flags)
 		inet->inet_sport = 0;
 	}
 	sk_dst_reset(sk);
+	return 0;
+}
+EXPORT_SYMBOL(__udp_disconnect);
+
+int udp_disconnect(struct sock *sk, int flags)
+{
+	lock_sock(sk);
+	__udp_disconnect(sk, flags);
+	release_sock(sk);
 	return 0;
 }
 EXPORT_SYMBOL(udp_disconnect);
@@ -2202,7 +2211,7 @@ int udp_abort(struct sock *sk, int err)
 
 	sk->sk_err = err;
 	sk->sk_error_report(sk);
-	udp_disconnect(sk, 0);
+	__udp_disconnect(sk, 0);
 
 	release_sock(sk);
 
