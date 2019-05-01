@@ -1444,7 +1444,6 @@ int xhci_bus_resume(struct usb_hcd *hcd)
 			xhci_dbg(xhci, "reset stuck port %d\n", port_index);
 			continue;
 		}
-
 		if (DEV_SUPERSPEED_ANY(temp))
 			temp &= ~(PORT_RWC_BITS | PORT_CEC | PORT_WAKE_BITS);
 		else
