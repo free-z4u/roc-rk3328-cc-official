@@ -485,7 +485,6 @@ static int amdgpu_atpx_power_state(enum vga_switcheroo_client_id id,
  */
 static bool amdgpu_atpx_pci_probe_handle(struct pci_dev *pdev)
 {
-	struct pci_dev *parent_pdev = pci_upstream_bridge(pdev);
 	acpi_handle dhandle, atpx_handle;
 	acpi_status status;
 
@@ -500,7 +499,6 @@ static bool amdgpu_atpx_pci_probe_handle(struct pci_dev *pdev)
 	}
 	amdgpu_atpx_priv.dhandle = dhandle;
 	amdgpu_atpx_priv.atpx.handle = atpx_handle;
-	amdgpu_atpx_priv.bridge_pm_usable = parent_pdev && parent_pdev->bridge_d3;
 	return true;
 }
 
