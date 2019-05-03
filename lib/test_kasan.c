@@ -26,6 +26,11 @@
  * reports.
  */
 
+/*
+ * Note: test functions are marked noinline so that their names appear in
+ * reports.
+ */
+
 static noinline void __init kmalloc_oob_right(void)
 {
 	char *ptr;
