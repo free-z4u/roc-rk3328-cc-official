@@ -254,24 +254,6 @@ static int fl_hw_replace_filter(struct tcf_proto *tp,
 	return 0;
 }
 
-static void fl_destroy_sleepable(struct work_struct *work)
-{
-	struct cls_fl_head *head = container_of(work, struct cls_fl_head,
-						work);
-	if (head->mask_assigned)
-		rhashtable_destroy(&head->ht);
-	kfree(head);
-	module_put(THIS_MODULE);
-}
-
-static void fl_destroy_rcu(struct rcu_head *rcu)
-{
-	struct cls_fl_head *head = container_of(rcu, struct cls_fl_head, rcu);
-
-	INIT_WORK(&head->work, fl_destroy_sleepable);
-	schedule_work(&head->work);
-}
-
 static void fl_hw_update_stats(struct tcf_proto *tp, struct cls_fl_filter *f)
 {
 	struct net_device *dev = tp->q->dev_queue->dev;
