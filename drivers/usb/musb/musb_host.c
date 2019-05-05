@@ -139,7 +139,6 @@ static void musb_h_tx_flush_fifo(struct musb_hw_ep *ep)
 				"Could not flush host TX%d fifo: csr: %04x\n",
 				ep->epnum, csr))
 			return;
-		mdelay(1);
 	}
 }
 
@@ -1029,9 +1028,7 @@ static void musb_bulk_nak_timeout(struct musb *musb, struct musb_hw_ep *ep,
 			/* set tx_reinit and schedule the next qh */
 			ep->tx_reinit = 1;
 		}
-
-		if (next_qh)
-			musb_start_urb(musb, is_in, next_qh);
+		musb_start_urb(musb, is_in, next_qh);
 	}
 }
 
@@ -2377,11 +2374,12 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh)
 	int			is_in = usb_pipein(urb->pipe);
 	int			status = 0;
 	u16			csr;
-	struct dma_channel	*dma = NULL;
 
 	musb_ep_select(regs, hw_end);
 
 	if (is_dma_capable()) {
+		struct dma_channel	*dma;
+
 		dma = is_in ? ep->rx_channel : ep->tx_channel;
 		if (dma) {
 			status = ep->musb->dma_controller->channel_abort(dma);
@@ -2397,9 +2395,10 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh)
 		/* giveback saves bulk toggle */
 		csr = musb_h_flush_rxfifo(ep, 0);
 
-		/* clear the endpoint's irq status here to avoid bogus irqs */
-		if (is_dma_capable() && dma)
-			musb_platform_clear_ep_rxintr(musb, ep->epnum);
+		/* REVISIT we still get an irq; should likely clear the
+		 * endpoint's irq status here to avoid bogus irqs.
+		 * clearing that status is platform-specific...
+		 */
 	} else if (ep->epnum) {
 		musb_h_tx_flush_fifo(ep);
 		csr = musb_readw(epio, MUSB_TXCSR);
@@ -2560,11 +2559,8 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 {
 	struct musb	*musb = hcd_to_musb(hcd);
 	u8		devctl;
-	int		ret;
 
-	ret = musb_port_suspend(musb, true);
-	if (ret)
-		return ret;
+	musb_port_suspend(musb, true);
 
 	if (!is_host_active(musb))
 		return 0;

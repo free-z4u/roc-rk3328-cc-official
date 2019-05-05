@@ -1380,7 +1380,7 @@ static int usbtmc_probe(struct usb_interface *intf,
 
 	dev_dbg(&intf->dev, "%s called\n", __func__);
 
-	data = kzalloc(sizeof(*data), GFP_KERNEL);
+	data = kmalloc(sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
 
@@ -1458,12 +1458,6 @@ static int usbtmc_probe(struct usb_interface *intf,
 		}
 	}
 
-	if (!data->bulk_out || !data->bulk_in) {
-		dev_err(&intf->dev, "bulk endpoints not found\n");
-		retcode = -ENODEV;
-		goto err_put;
-	}
-
 	retcode = get_capabilities(data);
 	if (retcode)
 		dev_err(&intf->dev, "can't read capabilities\n");
@@ -1517,7 +1511,6 @@ error_register:
 	sysfs_remove_group(&intf->dev.kobj, &capability_attr_grp);
 	sysfs_remove_group(&intf->dev.kobj, &data_attr_grp);
 	usbtmc_free_int(data);
-err_put:
 	kref_put(&data->kref, usbtmc_delete);
 	return retcode;
 }
