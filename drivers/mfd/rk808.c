@@ -380,6 +380,21 @@ static void rk805_device_shutdown(void)
 		return;
 	}
 
+	/* close rtc int when power off */
+	regmap_update_bits(rk808->regmap,
+			   RK808_INT_STS_MSK_REG1,
+			   (0x3 << 5), (0x3 << 5));
+	regmap_update_bits(rk808->regmap,
+			   RK808_RTC_INT_REG,
+			   (0x3 << 2), (0x0 << 2));
+
+	/* pmic sleep shutdown function */
+	ret = regmap_update_bits(rk808->regmap,
+				 RK805_GPIO_IO_POL_REG,
+				 SLP_SD_MSK, SHUTDOWN_FUN);
+	if (ret)
+		dev_err(&rk808_i2c_client->dev, "shutdown io!\n");
+
 	ret = regmap_update_bits(rk808->regmap,
 				 RK805_DEV_CTRL_REG,
 				 DEV_OFF, DEV_OFF);
