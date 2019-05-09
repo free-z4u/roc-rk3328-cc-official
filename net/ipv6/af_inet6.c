@@ -61,6 +61,7 @@
 #include <net/ip6_tunnel.h>
 #endif
 #include <net/calipso.h>
+#include <net/seg6.h>
 
 #include <asm/uaccess.h>
 #include <linux/mroute6.h>
@@ -250,6 +251,14 @@ lookup_protocol:
 	}
 	if (sk->sk_prot->init) {
 		err = sk->sk_prot->init(sk);
+		if (err) {
+			sk_common_release(sk);
+			goto out;
+		}
+	}
+
+	if (!kern) {
+		err = BPF_CGROUP_RUN_PROG_INET_SOCK(sk);
 		if (err) {
 			sk_common_release(sk);
 			goto out;
@@ -989,6 +998,10 @@ static int __init inet6_init(void)
 	if (err)
 		goto calipso_fail;
 
+	err = seg6_init();
+	if (err)
+		goto seg6_fail;
+
 #ifdef CONFIG_SYSCTL
 	err = ipv6_sysctl_register();
 	if (err)
@@ -999,8 +1012,10 @@ out:
 
 #ifdef CONFIG_SYSCTL
 sysctl_fail:
-	calipso_exit();
+	seg6_exit();
 #endif
+seg6_fail:
+	calipso_exit();
 calipso_fail:
 	pingv6_exit();
 pingv6_fail:

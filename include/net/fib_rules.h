@@ -101,7 +101,6 @@ struct fib_rules_ops {
 	[FRA_L3MDEV]	= { .type = NLA_U8 }, \
 	[FRA_UID_RANGE]	= { .len = sizeof(struct fib_rule_uid_range) }
 
-
 static inline void fib_rule_get(struct fib_rule *rule)
 {
 	atomic_inc(&rule->refcnt);
