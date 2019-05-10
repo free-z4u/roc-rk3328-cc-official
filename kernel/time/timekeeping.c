@@ -280,7 +280,7 @@ static void tk_setup_internals(struct timekeeper *tk, struct clocksource *clock)
 	tk->cycle_interval = interval;
 
 	/* Go back from cycles -> shifted ns */
-	tk->xtime_interval = (u64) interval * clock->mult;
+	tk->xtime_interval = interval * clock->mult;
 	tk->xtime_remainder = ntpinterval - tk->xtime_interval;
 	tk->raw_interval = interval * clock->mult;
 
@@ -334,7 +334,7 @@ static inline u64 timekeeping_delta_to_ns(struct tk_read_base *tkr,
 	return nsec + arch_gettimeoffset();
 }
 
-static inline s64 timekeeping_get_ns(struct tk_read_base *tkr)
+static inline u64 timekeeping_get_ns(struct tk_read_base *tkr)
 {
 	cycle_t delta;
 
@@ -342,8 +342,8 @@ static inline s64 timekeeping_get_ns(struct tk_read_base *tkr)
 	return timekeeping_delta_to_ns(tkr, delta);
 }
 
-static inline s64 timekeeping_cycles_to_ns(struct tk_read_base *tkr,
-					    cycle_t cycles)
+static inline u64 timekeeping_cycles_to_ns(struct tk_read_base *tkr,
+					   cycle_t cycles)
 {
 	cycle_t delta;
 
@@ -709,7 +709,7 @@ int __getnstimeofday64(struct timespec64 *ts)
 {
 	struct timekeeper *tk = &tk_core.timekeeper;
 	unsigned long seq;
-	s64 nsecs = 0;
+	u64 nsecs;
 
 	do {
 		seq = read_seqcount_begin(&tk_core.seq);
@@ -749,7 +749,7 @@ ktime_t ktime_get(void)
 	struct timekeeper *tk = &tk_core.timekeeper;
 	unsigned int seq;
 	ktime_t base;
-	s64 nsecs;
+	u64 nsecs;
 
 	WARN_ON(timekeeping_suspended);
 
@@ -792,7 +792,7 @@ ktime_t ktime_get_with_offset(enum tk_offsets offs)
 	struct timekeeper *tk = &tk_core.timekeeper;
 	unsigned int seq;
 	ktime_t base, *offset = offsets[offs];
-	s64 nsecs;
+	u64 nsecs;
 
 	WARN_ON(timekeeping_suspended);
 
@@ -836,7 +836,7 @@ ktime_t ktime_get_raw(void)
 	struct timekeeper *tk = &tk_core.timekeeper;
 	unsigned int seq;
 	ktime_t base;
-	s64 nsecs;
+	u64 nsecs;
 
 	do {
 		seq = read_seqcount_begin(&tk_core.seq);
@@ -861,8 +861,8 @@ void ktime_get_ts64(struct timespec64 *ts)
 {
 	struct timekeeper *tk = &tk_core.timekeeper;
 	struct timespec64 tomono;
-	s64 nsec;
 	unsigned int seq;
+	u64 nsec;
 
 	WARN_ON(timekeeping_suspended);
 
@@ -1420,7 +1420,7 @@ void getrawmonotonic64(struct timespec64 *ts)
 {
 	struct timekeeper *tk = &tk_core.timekeeper;
 	unsigned long seq;
-	s64 nsecs;
+	u64 nsecs;
 
 	do {
 		seq = read_seqcount_begin(&tk_core.seq);
@@ -1670,7 +1670,7 @@ void timekeeping_resume(void)
 	struct clocksource *clock = tk->tkr_mono.clock;
 	unsigned long flags;
 	struct timespec64 ts_new, ts_delta;
-	cycle_t cycle_now, cycle_delta;
+	cycle_t cycle_now;
 
 	sleeptime_injected = false;
 	read_persistent_clock64(&ts_new);
@@ -1696,27 +1696,11 @@ void timekeeping_resume(void)
 	cycle_now = tk_clock_read(&tk->tkr_mono);
 	if ((clock->flags & CLOCK_SOURCE_SUSPEND_NONSTOP) &&
 		cycle_now > tk->tkr_mono.cycle_last) {
-		u64 num, max = ULLONG_MAX;
-		u32 mult = clock->mult;
-		u32 shift = clock->shift;
-		s64 nsec = 0;
+		u64 nsec, cyc_delta;
 
-		cycle_delta = clocksource_delta(cycle_now, tk->tkr_mono.cycle_last,
-						tk->tkr_mono.mask);
-
-		/*
-		 * "cycle_delta * mutl" may cause 64 bits overflow, if the
-		 * suspended time is too long. In that case we need do the
-		 * 64 bits math carefully
-		 */
-		do_div(max, mult);
-		if (cycle_delta > max) {
-			num = div64_u64(cycle_delta, max);
-			nsec = (((u64) max * mult) >> shift) * num;
-			cycle_delta -= num * max;
-		}
-		nsec += ((u64) cycle_delta * mult) >> shift;
-
+		cyc_delta = clocksource_delta(cycle_now, tk->tkr_mono.cycle_last,
+					      tk->tkr_mono.mask);
+		nsec = mul_u64_u32_shr(cyc_delta, clock->mult, clock->shift);
 		ts_delta = ns_to_timespec64(nsec);
 		sleeptime_injected = true;
 	} else if (timespec64_compare(&ts_new, &timekeeping_suspend_time) > 0) {
