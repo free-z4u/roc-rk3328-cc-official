@@ -3576,11 +3576,12 @@ static int skl_compute_plane_wm(const struct drm_i915_private *dev_priv,
 		case 2:
 			y_min_scanlines = 8;
 			break;
-		default:
-			WARN(1, "Unsupported pixel depth for rotation");
 		case 4:
 			y_min_scanlines = 4;
 			break;
+		default:
+			MISSING_CASE(cpp);
+			return -EINVAL;
 		}
 	} else {
 		y_min_scanlines = 4;
@@ -3611,7 +3612,10 @@ static int skl_compute_plane_wm(const struct drm_i915_private *dev_priv,
 	    fb->modifier[0] == I915_FORMAT_MOD_Yf_TILED) {
 		selected_result = max(method2, y_tile_minimum);
 	} else {
-		if ((ddb_allocation / plane_blocks_per_line) >= 1)
+		if ((cpp * cstate->base.adjusted_mode.crtc_htotal / 512 < 1) &&
+		    (plane_bytes_per_line / 512 < 1))
+			selected_result = method2;
+		else if ((ddb_allocation / plane_blocks_per_line) >= 1)
 			selected_result = min(method1, method2);
 		else
 			selected_result = method1;
@@ -3958,7 +3962,7 @@ pipes_modified(struct drm_atomic_state *state)
 	return ret;
 }
 
-int
+static int
 skl_ddb_add_affected_planes(struct intel_crtc_state *cstate)
 {
 	struct drm_atomic_state *state = cstate->base.state;
@@ -5394,9 +5398,8 @@ static void gen9_enable_rc6(struct drm_i915_private *dev_priv)
 	if (intel_enable_rc6() & INTEL_RC6_ENABLE)
 		rc6_mask = GEN6_RC_CTL_RC6_ENABLE;
 	DRM_INFO("RC6 %s\n", onoff(rc6_mask & GEN6_RC_CTL_RC6_ENABLE));
-	/* WaRsUseTimeoutMode */
-	if (IS_SKL_REVID(dev_priv, 0, SKL_REVID_D0) ||
-	    IS_BXT_REVID(dev_priv, 0, BXT_REVID_A1)) {
+	/* WaRsUseTimeoutMode:bxt */
+	if (IS_BXT_REVID(dev_priv, 0, BXT_REVID_A1)) {
 		I915_WRITE(GEN6_RC6_THRESHOLD, 625); /* 800us */
 		I915_WRITE(GEN6_RC_CONTROL, GEN6_RC_CTL_HW_ENABLE |
 			   GEN7_RC_CTL_TO_MODE |
