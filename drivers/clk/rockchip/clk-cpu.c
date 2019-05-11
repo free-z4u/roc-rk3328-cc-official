@@ -137,8 +137,6 @@ static int rockchip_cpuclk_pre_rate_change(struct rockchip_cpuclk *cpuclk,
 		return -EINVAL;
 	}
 
-	rockchip_boost_enable_recovery_sw_low(pphw);
-
 	alt_prate = clk_get_rate(cpuclk->alt_parent);
 
 	spin_lock_irqsave(cpuclk->lock, flags);
@@ -210,8 +208,6 @@ static int rockchip_cpuclk_post_rate_change(struct rockchip_cpuclk *cpuclk,
 
 	if (ndata->old_rate > ndata->new_rate)
 		rockchip_cpuclk_set_dividers(cpuclk, rate);
-
-	rockchip_boost_disable_recovery_sw(pphw);
 
 	spin_unlock_irqrestore(cpuclk->lock, flags);
 	return 0;

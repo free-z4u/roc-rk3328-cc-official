@@ -46,7 +46,6 @@
 		container_of(c, struct rockchip_lvds, encoder)
 
 enum chip_type {
-	PX30,
 	RK3126,
 	RK3288,
 	RK3366,
@@ -731,84 +730,6 @@ static int innov1_lvds_probe(struct rockchip_lvds *lvds)
 	return 0;
 }
 
-static int px30_lvds_probe(struct rockchip_lvds *lvds)
-{
-	struct device *dev = lvds->dev;
-	int ret;
-
-	ret = innov1_lvds_probe(lvds);
-	if (ret)
-		return ret;
-
-	lvds->pinctrl = devm_pinctrl_get(dev);
-	if (IS_ERR_OR_NULL(lvds->pinctrl)) {
-		dev_info(dev, "no pinctrl handle\n");
-		lvds->pinctrl = NULL;
-	} else {
-		lvds->pins_m0 = pinctrl_lookup_state(lvds->pinctrl, "m0");
-		if (IS_ERR(lvds->pins_m0)) {
-			dev_info(dev, "no m0 pinctrl state\n");
-			lvds->pins_m0 = NULL;
-		}
-
-		lvds->pins_m1 = pinctrl_lookup_state(lvds->pinctrl, "m1");
-		if (IS_ERR(lvds->pins_m1)) {
-			dev_info(dev, "no m1 pinctrl state\n");
-			lvds->pins_m1 = NULL;
-		}
-	}
-
-	return 0;
-}
-
-static int px30_lvds_power_on(struct rockchip_lvds *lvds)
-{
-	int pipe;
-
-	pipe = drm_of_encoder_active_endpoint_id(lvds->dev->of_node,
-						 &lvds->encoder);
-
-	if (lvds->output == DISPLAY_OUTPUT_RGB) {
-		regmap_write(lvds->grf, PX30_GRF_PD_VO_CON1,
-			     PX30_RGB_VOP_SEL(pipe));
-		if (lvds->pins_m0) {
-			pinctrl_select_state(lvds->pinctrl, lvds->pins_m0);
-			return 0;
-		} else if (lvds->pins_m1) {
-			pinctrl_select_state(lvds->pinctrl, lvds->pins_m1);
-			regmap_write(lvds->grf, PX30_GRF_PD_VO_CON1,
-				     PX30_DPHY_FORCERXMODE(1));
-		} else {
-			dev_err(lvds->dev, "Can't find pinctrl state m0/m1\n");
-			WARN_ON(1);
-		}
-	} else if (lvds->output == DISPLAY_OUTPUT_LVDS) {
-		regmap_write(lvds->grf, PX30_GRF_PD_VO_CON1,
-			     PX30_LVDS_VOP_SEL(pipe));
-		regmap_write(lvds->grf, PX30_GRF_PD_VO_CON1,
-			     PX30_LVDS_PHY_MODE(1) |
-			     PX30_LVDS_OUTPUT_FORMAT(lvds->format) |
-			     PX30_LVDS_MSBSEL(LVDS_MSB_D7) |
-			     PX30_DPHY_FORCERXMODE(1));
-	}
-
-	return innov1_lvds_power_on(lvds);
-}
-
-static void px30_lvds_power_off(struct rockchip_lvds *lvds)
-{
-	regmap_write(lvds->grf, PX30_GRF_PD_VO_CON1, PX30_LVDS_PHY_MODE(0));
-
-	innov1_lvds_power_off(lvds);
-}
-
-static const struct rockchip_lvds_soc_data px30_lvds_soc_data = {
-	.chip_type = PX30,
-	.probe = px30_lvds_probe,
-	.power_on = px30_lvds_power_on,
-	.power_off = px30_lvds_power_off,
-};
-
 static int rk3126_lvds_probe(struct rockchip_lvds *lvds)
 {
 	int ret;
@@ -1015,7 +936,6 @@ static const struct rockchip_lvds_soc_data rk3368_lvds_soc_data = {
 };
 
 static const struct of_device_id rockchip_lvds_dt_ids[] = {
-	{ .compatible = "rockchip,px30-lvds", .data = &px30_lvds_soc_data },
 	{ .compatible = "rockchip,rk3126-lvds", .data = &rk3126_lvds_soc_data },
 	{ .compatible = "rockchip,rk3288-lvds", .data = &rk3288_lvds_soc_data },
 	{ .compatible = "rockchip,rk3366-lvds", .data = &rk3366_lvds_soc_data },
