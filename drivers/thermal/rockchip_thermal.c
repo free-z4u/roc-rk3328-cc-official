@@ -573,11 +573,6 @@ static void rk_tsadcv2_initialize(struct regmap *grf, void __iomem *regs,
 		       regs + TSADCV2_AUTO_PERIOD_HT);
 	writel_relaxed(TSADCV2_HIGHT_TSHUT_DEBOUNCE_COUNT,
 		       regs + TSADCV2_HIGHT_TSHUT_DEBOUNCE);
-
-	if (IS_ERR(grf)) {
-		pr_warn("%s: Missing rockchip,grf property\n", __func__);
-		return;
-	}
 }
 
 /**
