@@ -65,7 +65,8 @@ static int sdio_init_func(struct mmc_card *card, unsigned int fn)
 	int ret;
 	struct sdio_func *func;
 
-	BUG_ON(fn > SDIO_MAX_FUNCS);
+	if (WARN_ON(fn > SDIO_MAX_FUNCS))
+		return -EINVAL;
 
 	func = sdio_alloc_func(card);
 	if (IS_ERR(func))
@@ -557,7 +558,6 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 	u32 rocr = 0;
 	u32 ocr_card = ocr;
 
-	BUG_ON(!host);
 	WARN_ON(!host->claimed);
 
 	/* to query card if 1.8V signalling is supported */
@@ -793,9 +793,6 @@ static void mmc_sdio_remove(struct mmc_host *host)
 {
 	int i;
 
-	BUG_ON(!host);
-	BUG_ON(!host->card);
-
 	for (i = 0;i < host->card->sdio_funcs;i++) {
 		if (host->card->sdio_func[i]) {
 			sdio_remove_func(host->card->sdio_func[i]);
@@ -821,9 +818,6 @@ static int mmc_sdio_alive(struct mmc_host *host)
 static void mmc_sdio_detect(struct mmc_host *host)
 {
 	int err;
-
-	BUG_ON(!host);
-	BUG_ON(!host->card);
 
 	/* Make sure card is powered before detecting it */
 	if (host->caps & MMC_CAP_POWER_OFF_CARD) {
@@ -918,9 +912,6 @@ static int mmc_sdio_resume(struct mmc_host *host)
 {
 	int err = 0;
 
-	BUG_ON(!host);
-	BUG_ON(!host->card);
-
 	/* Basic card reinitialization. */
 	mmc_claim_host(host);
 
@@ -971,9 +962,6 @@ static int mmc_sdio_resume(struct mmc_host *host)
 static int mmc_sdio_power_restore(struct mmc_host *host)
 {
 	int ret;
-
-	BUG_ON(!host);
-	BUG_ON(!host->card);
 
 	mmc_claim_host(host);
 
@@ -1065,7 +1053,6 @@ int mmc_attach_sdio(struct mmc_host *host)
 	u32 ocr, rocr;
 	struct mmc_card *card;
 
-	BUG_ON(!host);
 	WARN_ON(!host->claimed);
 
 	err = mmc_send_io_op_cond(host, 0, &ocr);
