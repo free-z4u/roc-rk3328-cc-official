@@ -787,7 +787,6 @@ extern void drm_pci_free(struct drm_device *dev, struct drm_dma_handle * dmah);
 			       /* sysfs support (drm_sysfs.c) */
 extern void drm_sysfs_hotplug_event(struct drm_device *dev);
 
-
 #ifdef CONFIG_DRM
 struct drm_device *drm_device_get_by_name(const char *name);
 #else
