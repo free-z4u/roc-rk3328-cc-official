@@ -430,13 +430,13 @@ static void ilk_audio_codec_enable(struct drm_connector *connector,
 	 * infrastructure is not there yet.
 	 */
 
-	if (HAS_PCH_IBX(connector->dev)) {
+	if (HAS_PCH_IBX(dev_priv)) {
 		hdmiw_hdmiedid = IBX_HDMIW_HDMIEDID(pipe);
 		aud_config = IBX_AUD_CFG(pipe);
 		aud_cntl_st = IBX_AUD_CNTL_ST(pipe);
 		aud_cntrl_st2 = IBX_AUD_CNTL_ST2;
-	} else if (IS_VALLEYVIEW(connector->dev) ||
-		   IS_CHERRYVIEW(connector->dev)) {
+	} else if (IS_VALLEYVIEW(dev_priv) ||
+		   IS_CHERRYVIEW(dev_priv)) {
 		hdmiw_hdmiedid = VLV_HDMIW_HDMIEDID(pipe);
 		aud_config = VLV_AUD_CFG(pipe);
 		aud_cntl_st = VLV_AUD_CNTL_ST(pipe);

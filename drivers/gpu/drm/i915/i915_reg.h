@@ -86,8 +86,7 @@ static inline bool i915_mmio_reg_valid(i915_reg_t reg)
 #define DEVEN 0x54
 #define   DEVEN_MCHBAR_EN (1 << 28)
 
-#define BSM 0x5c
-#define   BSM_MASK (0xFFFF << 20)
+/* BSM in include/drm/i915_drm.h */
 
 #define HPLLCC	0xc0 /* 85x only */
 #define   GC_CLOCK_CONTROL_MASK		(0x7 << 0)
@@ -2094,9 +2093,9 @@ enum skl_disp_power_wells {
 #define PM_VEBOX_CS_ERROR_INTERRUPT		(1 << 12) /* hsw+ */
 #define PM_VEBOX_USER_INTERRUPT			(1 << 10) /* hsw+ */
 
-#define GT_PARITY_ERROR(dev) \
+#define GT_PARITY_ERROR(dev_priv) \
 	(GT_RENDER_L3_PARITY_ERROR_INTERRUPT | \
-	 (IS_HASWELL(dev) ? GT_RENDER_L3_PARITY_ERROR_INTERRUPT_S1 : 0))
+	 (IS_HASWELL(dev_priv) ? GT_RENDER_L3_PARITY_ERROR_INTERRUPT_S1 : 0))
 
 /* These are all the "old" interrupts */
 #define ILK_BSD_USER_INTERRUPT				(1<<5)
