@@ -171,7 +171,7 @@ struct hdmi_data_info {
 struct dw_hdmi_i2c {
 	struct i2c_adapter	adap;
 
-	struct mutex		lock;
+	struct mutex		lock;	/* used to serialize data transfers */
 	struct completion	cmp;
 	u8			stat;
 
@@ -500,7 +500,7 @@ static int dw_hdmi_i2c_write(struct dw_hdmi *hdmi,
 		hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_WRITE,
 			    HDMI_I2CM_OPERATION);
 
-	stat = wait_for_completion_timeout(&i2c->cmp, HZ / 10);
+		stat = wait_for_completion_timeout(&i2c->cmp, HZ / 10);
 		if (!stat)
 			return -EAGAIN;
 
@@ -533,6 +533,7 @@ static int dw_hdmi_i2c_xfer(struct i2c_adapter *adap,
 
 	mutex_lock(&i2c->lock);
 
+	/* Unmute DONE and ERROR interrupts */
 	hdmi_writeb(hdmi, 0x00, HDMI_IH_MUTE_I2CM_STAT0);
 
 	/* Set slave device address taken from the first I2C message */
@@ -3465,7 +3466,7 @@ int dw_hdmi_bind(struct device *dev, struct device *master,
 
 	ddc_node = of_parse_phandle(np, "ddc-i2c-bus", 0);
 	if (ddc_node) {
-		hdmi->ddc = of_find_i2c_adapter_by_node(ddc_node);
+		hdmi->ddc = of_get_i2c_adapter_by_node(ddc_node);
 		of_node_put(ddc_node);
 		if (!hdmi->ddc) {
 			dev_dbg(hdmi->dev, "failed to read ddc node\n");
@@ -3476,38 +3477,23 @@ int dw_hdmi_bind(struct device *dev, struct device *master,
 		dev_dbg(hdmi->dev, "no ddc property found\n");
 	}
 
-	/* If DDC bus is not specified, try to register HDMI I2C bus */
-	if (!hdmi->ddc) {
-		hdmi->ddc = dw_hdmi_i2c_adapter(hdmi);
-		if (IS_ERR(hdmi->ddc))
-			hdmi->ddc = NULL;
-		/*
-		 * Read high and low time from device tree. If not available use
-		 * the default timing scl clock rate is about 99.6KHz.
-		 */
-		if (of_property_read_u32(np, "ddc-i2c-scl-high-time-ns",
-					 &hdmi->i2c->scl_high_ns))
-			hdmi->i2c->scl_high_ns = 4708;
-		if (of_property_read_u32(np, "ddc-i2c-scl-low-time-ns",
-					 &hdmi->i2c->scl_low_ns))
-			hdmi->i2c->scl_low_ns = 4916;
-	}
-
 	hdmi->regs = devm_ioremap_resource(dev, iores);
-	if (IS_ERR(hdmi->regs))
-		return PTR_ERR(hdmi->regs);
+	if (IS_ERR(hdmi->regs)) {
+		ret = PTR_ERR(hdmi->regs);
+		goto err_res;
+	}
 
 	hdmi->isfr_clk = devm_clk_get(hdmi->dev, "isfr");
 	if (IS_ERR(hdmi->isfr_clk)) {
 		ret = PTR_ERR(hdmi->isfr_clk);
 		dev_err(hdmi->dev, "Unable to get HDMI isfr clk: %d\n", ret);
-		return ret;
+		goto err_res;
 	}
 
 	ret = clk_prepare_enable(hdmi->isfr_clk);
 	if (ret) {
 		dev_err(hdmi->dev, "Cannot enable HDMI isfr clock: %d\n", ret);
-		return ret;
+		goto err_res;
 	}
 
 	hdmi->iahb_clk = devm_clk_get(hdmi->dev, "iahb");
@@ -3594,6 +3580,23 @@ int dw_hdmi_bind(struct device *dev, struct device *master,
 	 */
 	hdmi_init_clk_regenerator(hdmi);
 
+	/* If DDC bus is not specified, try to register HDMI I2C bus */
+	if (!hdmi->ddc) {
+		hdmi->ddc = dw_hdmi_i2c_adapter(hdmi);
+		if (IS_ERR(hdmi->ddc))
+			hdmi->ddc = NULL;
+		/*
+		 * Read high and low time from device tree. If not available use
+		 * the default timing scl clock rate is about 99.6KHz.
+		 */
+		if (of_property_read_u32(np, "ddc-i2c-scl-high-time-ns",
+					 &hdmi->i2c->scl_high_ns))
+			hdmi->i2c->scl_high_ns = 4708;
+		if (of_property_read_u32(np, "ddc-i2c-scl-low-time-ns",
+					 &hdmi->i2c->scl_low_ns))
+			hdmi->i2c->scl_low_ns = 4916;
+	}
+
 	hdmi_writeb(hdmi, HDMI_PHY_I2CM_INT_ADDR_DONE_POL,
 		    HDMI_PHY_I2CM_INT_ADDR);
 
@@ -3677,6 +3680,10 @@ int dw_hdmi_bind(struct device *dev, struct device *master,
 		hdmi->cec = platform_device_register_full(&pdevinfo);
 	}
 
+	/* Reset HDMI DDC I2C master controller and mute I2CM interrupts */
+	if (hdmi->i2c)
+		dw_hdmi_i2c_init(hdmi);
+
 	dev_set_drvdata(dev, hdmi);
 
 	dw_hdmi_register_debugfs(dev, hdmi);
@@ -3691,8 +3698,10 @@ int dw_hdmi_bind(struct device *dev, struct device *master,
 	return 0;
 
 err_iahb:
-	if (hdmi->i2c)
+	if (hdmi->i2c) {
 		i2c_del_adapter(&hdmi->i2c->adap);
+		hdmi->ddc = NULL;
+	}
 
 	if (hdmi->cec_notifier)
 		cec_notifier_put(hdmi->cec_notifier);
@@ -3702,6 +3711,8 @@ err_iahb:
 		clk_disable_unprepare(hdmi->cec_clk);
 err_isfr:
 	clk_disable_unprepare(hdmi->isfr_clk);
+err_res:
+	i2c_put_adapter(hdmi->ddc);
 
 	return ret;
 }
