@@ -97,8 +97,7 @@ static const struct drm_framebuffer_funcs rockchip_drm_fb_funcs = {
 
 struct drm_framebuffer *
 rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cmd,
-		  struct drm_gem_object **obj, struct rockchip_logo *logo,
-		  unsigned int num_planes)
+		  struct drm_gem_object **obj, unsigned int num_planes)
 {
 	struct rockchip_drm_fb *rockchip_fb;
 	struct rockchip_gem_object *rk_obj;
@@ -184,7 +183,7 @@ rockchip_user_fb_create(struct drm_device *dev, struct drm_file *file_priv,
 		objs[i] = obj;
 	}
 
-	fb = rockchip_fb_alloc(dev, mode_cmd, objs, NULL, i);
+	fb = rockchip_fb_alloc(dev, mode_cmd, objs, i);
 	if (IS_ERR(fb)) {
 		ret = PTR_ERR(fb);
 		goto err_gem_object_unreference;
@@ -373,7 +372,7 @@ rockchip_drm_framebuffer_init(struct drm_device *dev,
 {
 	struct drm_framebuffer *fb;
 
-	fb = rockchip_fb_alloc(dev, mode_cmd, &obj, NULL, 1);
+	fb = rockchip_fb_alloc(dev, mode_cmd, &obj, 1);
 	if (IS_ERR(fb))
 		return NULL;
 

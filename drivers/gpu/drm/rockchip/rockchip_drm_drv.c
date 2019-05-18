@@ -369,77 +369,6 @@ static void rockchip_drm_debugfs_cleanup(struct drm_minor *minor)
 }
 #endif
 
-static int rockchip_drm_create_properties(struct drm_device *dev)
-{
-	struct drm_property *prop;
-	struct rockchip_drm_private *private = dev->dev_private;
-	const struct drm_prop_enum_list cabc_mode_enum_list[] = {
-		{ ROCKCHIP_DRM_CABC_MODE_DISABLE, "Disable" },
-		{ ROCKCHIP_DRM_CABC_MODE_NORMAL, "Normal" },
-		{ ROCKCHIP_DRM_CABC_MODE_LOWPOWER, "LowPower" },
-		{ ROCKCHIP_DRM_CABC_MODE_USERSPACE, "Userspace" },
-	};
-
-	prop = drm_property_create_enum(dev, 0, "CABC_MODE", cabc_mode_enum_list,
-			ARRAY_SIZE(cabc_mode_enum_list));
-
-	private->cabc_mode_property = prop;
-
-	prop = drm_property_create(dev, DRM_MODE_PROP_BLOB, "CABC_LUT", 0);
-	if (!prop)
-		return -ENOMEM;
-	private->cabc_lut_property = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					"CABC_STAGE_UP", 0, 512);
-	if (!prop)
-		return -ENOMEM;
-	private->cabc_stage_up_property = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					"CABC_STAGE_DOWN", 0, 255);
-	if (!prop)
-		return -ENOMEM;
-	private->cabc_stage_down_property = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					"CABC_GLOBAL_DN", 0, 255);
-	if (!prop)
-		return -ENOMEM;
-	private->cabc_global_dn_property = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					"CABC_CALC_PIXEL_NUM", 0, 1000);
-	if (!prop)
-		return -ENOMEM;
-	private->cabc_calc_pixel_num_property = prop;
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					 "EOTF", 0, 5);
-	if (!prop)
-		return -ENOMEM;
-	private->eotf_prop = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					 "COLOR_SPACE", 0, 12);
-	if (!prop)
-		return -ENOMEM;
-	private->color_space_prop = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					 "GLOBAL_ALPHA", 0, 255);
-	if (!prop)
-		return -ENOMEM;
-	private->global_alpha_prop = prop;
-
-	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
-					 "BLEND_MODE", 0, 1);
-	if (!prop)
-		return -ENOMEM;
-	private->blend_mode_prop = prop;
-
-	return drm_mode_create_tv_properties(dev, 0, NULL);
-}
-
 static int rockchip_gem_pool_init(struct drm_device *drm)
 {
 	struct rockchip_drm_private *private = drm->dev_private;
@@ -639,7 +568,7 @@ static int rockchip_drm_bind(struct device *dev)
 	drm_mode_config_init(drm_dev);
 
 	rockchip_drm_mode_config_init(drm_dev);
-	rockchip_drm_create_properties(drm_dev);
+	drm_mode_create_tv_properties(drm_dev, 0, NULL);
 
 	/* Try to bind all sub drivers. */
 	ret = component_bind_all(dev, drm_dev);
@@ -828,14 +757,6 @@ static void rockchip_drm_preclose(struct drm_device *dev,
 	mutex_unlock(&subdrv_list_mutex);
 }
 
-static void rockchip_drm_lastclose(struct drm_device *dev)
-{
-	struct rockchip_drm_private *priv = dev->dev_private;
-
-	if (!priv->logo)
-		drm_fb_helper_restore_fbdev_mode_unlocked(priv->fbdev_helper);
-}
-
 static const struct drm_ioctl_desc rockchip_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(ROCKCHIP_GEM_CREATE, rockchip_gem_create_ioctl,
 			  DRM_UNLOCKED | DRM_AUTH | DRM_RENDER_ALLOW),
@@ -870,7 +791,6 @@ static struct drm_driver rockchip_drm_driver = {
 				  DRIVER_PRIME | DRIVER_ATOMIC |
 				  DRIVER_RENDER,
 	.preclose		= rockchip_drm_preclose,
-	.lastclose		= rockchip_drm_lastclose,
 	.get_vblank_counter	= drm_vblank_no_hw_counter,
 	.open			= rockchip_drm_open,
 	.postclose		= rockchip_drm_postclose,

@@ -556,27 +556,6 @@ enum scale_down_mode {
 	SCALE_DOWN_AVG = 0x1
 };
 
-enum dither_down_mode {
-	RGB888_TO_RGB565 = 0x0,
-	RGB888_TO_RGB666 = 0x1
-};
-
-enum dither_down_mode_sel {
-	DITHER_DOWN_ALLEGRO = 0x0,
-	DITHER_DOWN_FRC = 0x1
-};
-
-#define PRE_DITHER_DOWN_EN(x)	((x) << 0)
-#define DITHER_DOWN_EN(x)	((x) << 1)
-#define DITHER_DOWN_MODE(x)	((x) << 2)
-#define DITHER_DOWN_MODE_SEL(x)	((x) << 3)
-
-enum vop_pol {
-	HSYNC_POSITIVE = 0,
-	VSYNC_POSITIVE = 1,
-	DEN_NEGATIVE   = 2,
-};
-
 #define FRAC_16_16(mult, div)    (((mult) << 16) / (div))
 #define SCL_FT_DEFAULT_FIXPOINT_SHIFT	12
 #define SCL_MAX_VSKIPLINES		4
@@ -646,16 +625,6 @@ static inline int scl_vop_cal_lb_mode(int width, bool is_yuv)
 		lb_mode = LB_YUV_2560X8;
 
 	return lb_mode;
-}
-
-static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
-{
-	return us * mode->clock / mode->htotal / 1000;
-}
-
-static inline int interpolate(int x1, int y1, int x2, int y2, int x)
-{
-	return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
 }
 
 extern const struct component_ops vop_component_ops;

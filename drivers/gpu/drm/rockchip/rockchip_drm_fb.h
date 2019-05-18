@@ -28,8 +28,7 @@ struct drm_gem_object *rockchip_fb_get_gem_obj(struct drm_framebuffer *fb,
 
 struct drm_framebuffer *
 rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cmd,
-		  struct drm_gem_object **obj, struct rockchip_logo *logo,
-		  unsigned int num_planes);
+		  struct drm_gem_object **obj, unsigned int num_planes);
 
 dma_addr_t rockchip_fb_get_dma_addr(struct drm_framebuffer *fb,
 				    unsigned int plane);

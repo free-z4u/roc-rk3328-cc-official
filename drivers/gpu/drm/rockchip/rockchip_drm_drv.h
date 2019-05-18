@@ -146,16 +146,6 @@ struct rockchip_drm_file_private {
 	struct rockchip_drm_rga_private *rga_priv;
 };
 
-struct rockchip_logo {
-	struct sg_table *sgt;
-	struct drm_mm_node mm;
-	dma_addr_t dma_addr;
-	phys_addr_t start;
-	phys_addr_t size;
-	size_t iommu_map_size;
-	int count;
-};
-
 /*
  * Rockchip drm private structure.
  *
@@ -165,19 +155,6 @@ struct rockchip_logo {
  * @cpu_fence_seqno: fence sequence number
  */
 struct rockchip_drm_private {
-	struct rockchip_logo *logo;
-	struct drm_property *logo_ymirror_prop;
-	struct drm_property *cabc_mode_property;
-	struct drm_property *cabc_lut_property;
-	struct drm_property *cabc_stage_up_property;
-	struct drm_property *cabc_stage_down_property;
-	struct drm_property *cabc_global_dn_property;
-	struct drm_property *cabc_calc_pixel_num_property;
-	struct drm_property *eotf_prop;
-	struct drm_property *color_space_prop;
-	struct drm_property *global_alpha_prop;
-	struct drm_property *blend_mode_prop;
-	void *backlight;
 	struct drm_fb_helper *fbdev_helper;
 	struct drm_gem_object *fbdev_bo;
 	const struct rockchip_crtc_funcs *crtc_funcs[ROCKCHIP_MAX_CRTC];
