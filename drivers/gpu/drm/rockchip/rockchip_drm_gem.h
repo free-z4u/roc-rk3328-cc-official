@@ -37,7 +37,7 @@ struct rockchip_gem_object {
 	unsigned long dma_attrs;
 
 #ifdef CONFIG_DRM_DMA_SYNC
-	struct fence *acquire_fence;
+	struct dma_fence *acquire_fence;
 	atomic_t acquire_shared_count;
 	bool acquire_exclusive;
 #endif

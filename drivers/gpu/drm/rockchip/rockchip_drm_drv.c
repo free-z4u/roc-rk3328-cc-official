@@ -22,6 +22,7 @@
 #include <drm/rockchip_drm.h>
 #include <linux/devfreq.h>
 #include <drm/drm_gem_cma_helper.h>
+#include <drm/drm_of.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-iommu.h>
 #include <linux/genalloc.h>
@@ -33,7 +34,7 @@
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/component.h>
-#include <linux/fence.h>
+#include <linux/dma-fence.h>
 #include <linux/console.h>
 #include <linux/iommu.h>
 #include <linux/of_reserved_mem.h>
@@ -557,7 +558,7 @@ static int rockchip_drm_bind(struct device *dev)
 	}
 
 #ifdef CONFIG_DRM_DMA_SYNC
-	private->cpu_fence_context = fence_context_alloc(1);
+	private->cpu_fence_context = dma_fence_context_alloc(1);
 	atomic_set(&private->cpu_fence_seqno, 0);
 #endif
 
@@ -904,7 +905,7 @@ static void rockchip_add_endpoints(struct device *dev,
 			continue;
 		}
 
-		component_match_add(dev, match, compare_of, remote);
+		drm_of_component_match_add(dev, match, compare_of, remote);
 		of_node_put(remote);
 	}
 }
@@ -953,7 +954,8 @@ static int rockchip_drm_platform_probe(struct platform_device *pdev)
 		}
 
 		of_node_put(iommu);
-		component_match_add(dev, &match, compare_of, port->parent);
+		drm_of_component_match_add(dev, &match, compare_of,
+					   port->parent);
 		of_node_put(port);
 	}
 

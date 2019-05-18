@@ -817,7 +817,7 @@ static int rockchip_gem_acquire(struct drm_device *dev,
 				struct rockchip_gem_object *rockchip_gem_obj,
 				bool exclusive)
 {
-	struct fence *fence;
+	struct dma_fence *fence;
 	struct rockchip_drm_private *dev_priv = dev->dev_private;
 	struct reservation_object *resv =
 		drm_gem_get_resv(&rockchip_gem_obj->base);
@@ -881,7 +881,7 @@ static int rockchip_gem_acquire(struct drm_device *dev,
 
 resv_unlock:
 	ww_mutex_unlock(&resv->lock);
-	fence_put(fence);
+	dma_fence_put(fence);
 	return ret;
 }
 
