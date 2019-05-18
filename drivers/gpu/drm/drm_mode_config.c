@@ -335,6 +335,18 @@ static int drm_mode_create_standard_properties(struct drm_device *dev)
 		return -ENOMEM;
 	dev->mode_config.prop_fb_id = prop;
 
+	prop = drm_property_create_signed_range(dev, DRM_MODE_PROP_ATOMIC,
+			"IN_FENCE_FD", -1, INT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	dev->mode_config.prop_in_fence_fd = prop;
+
+	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
+			"OUT_FENCE_PTR", 0, U64_MAX);
+	if (!prop)
+		return -ENOMEM;
+	dev->mode_config.prop_out_fence_ptr = prop;
+
 	prop = drm_property_create_object(dev, DRM_MODE_PROP_ATOMIC,
 			"CRTC_ID", DRM_MODE_OBJECT_CRTC);
 	if (!prop)

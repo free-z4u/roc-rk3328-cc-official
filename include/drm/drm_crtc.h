@@ -67,14 +67,6 @@ static inline uint64_t I642U64(int64_t val)
 	return (uint64_t)*((uint64_t *)&val);
 }
 
-/* data corresponds to displayid vend/prod/serial */
-struct drm_tile_group {
-	struct kref refcount;
-	struct drm_device *dev;
-	int id;
-	u8 group_data[8];
-};
-
 struct drm_crtc;
 struct drm_encoder;
 struct drm_pending_vblank_event;
@@ -740,6 +732,35 @@ struct drm_crtc {
 	 */
 	struct drm_crtc_crc crc;
 #endif
+
+	/**
+	 * @fence_context:
+	 *
+	 * timeline context used for fence operations.
+	 */
+	unsigned int fence_context;
+
+	/**
+	 * @fence_lock:
+	 *
+	 * spinlock to protect the fences in the fence_context.
+	 */
+
+	spinlock_t fence_lock;
+	/**
+	 * @fence_seqno:
+	 *
+	 * Seqno variable used as monotonic counter for the fences
+	 * created on the CRTC's timeline.
+	 */
+	unsigned long fence_seqno;
+
+	/**
+	 * @timeline_name:
+	 *
+	 * The name of the CRTC's fence timeline.
+	 */
+	char timeline_name[32];
 };
 
 /**
@@ -771,14 +792,14 @@ struct drm_mode_set {
 
 #define obj_to_crtc(x) container_of(x, struct drm_crtc, base)
 
-extern __printf(6, 7)
+__printf(6, 7)
 int drm_crtc_init_with_planes(struct drm_device *dev,
 			      struct drm_crtc *crtc,
 			      struct drm_plane *primary,
 			      struct drm_plane *cursor,
 			      const struct drm_crtc_funcs *funcs,
 			      const char *name, ...);
-extern void drm_crtc_cleanup(struct drm_crtc *crtc);
+void drm_crtc_cleanup(struct drm_crtc *crtc);
 
 /**
  * drm_crtc_index - find the index of a registered CRTC
@@ -804,19 +825,12 @@ static inline uint32_t drm_crtc_mask(const struct drm_crtc *crtc)
 	return 1 << drm_crtc_index(crtc);
 }
 
-extern void drm_crtc_get_hv_timing(const struct drm_display_mode *mode,
-				   int *hdisplay, int *vdisplay);
-extern int drm_crtc_force_disable(struct drm_crtc *crtc);
-extern int drm_crtc_force_disable_all(struct drm_device *dev);
+void drm_crtc_get_hv_timing(const struct drm_display_mode *mode,
+			    int *hdisplay, int *vdisplay);
+int drm_crtc_force_disable(struct drm_crtc *crtc);
+int drm_crtc_force_disable_all(struct drm_device *dev);
 
-extern int drm_mode_set_config_internal(struct drm_mode_set *set);
-
-extern struct drm_tile_group *drm_mode_create_tile_group(struct drm_device *dev,
-							 char topology[8]);
-extern struct drm_tile_group *drm_mode_get_tile_group(struct drm_device *dev,
-					       char topology[8]);
-extern void drm_mode_put_tile_group(struct drm_device *dev,
-				   struct drm_tile_group *tg);
+int drm_mode_set_config_internal(struct drm_mode_set *set);
 
 int drm_mode_connector_update_hdr_property(struct drm_connector *connector,
 					   const struct hdr_static_metadata *data);

@@ -33,6 +33,7 @@
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <linux/export.h>
+#include <linux/dma-fence.h>
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
 #include <drm/drm_edid.h>
@@ -151,6 +152,38 @@ static void drm_crtc_crc_fini(struct drm_crtc *crtc)
 #endif
 }
 
+static struct drm_crtc *fence_to_crtc(struct dma_fence *fence)
+{
+	BUG_ON(fence->ops != &drm_crtc_fence_ops);
+	return container_of(fence->lock, struct drm_crtc, fence_lock);
+}
+
+static const char *drm_crtc_fence_get_driver_name(struct dma_fence *fence)
+{
+	struct drm_crtc *crtc = fence_to_crtc(fence);
+
+	return crtc->dev->driver->name;
+}
+
+static const char *drm_crtc_fence_get_timeline_name(struct dma_fence *fence)
+{
+	struct drm_crtc *crtc = fence_to_crtc(fence);
+
+	return crtc->timeline_name;
+}
+
+static bool drm_crtc_fence_enable_signaling(struct dma_fence *fence)
+{
+	return true;
+}
+
+const struct dma_fence_ops drm_crtc_fence_ops = {
+	.get_driver_name = drm_crtc_fence_get_driver_name,
+	.get_timeline_name = drm_crtc_fence_get_timeline_name,
+	.enable_signaling = drm_crtc_fence_enable_signaling,
+	.wait = dma_fence_default_wait,
+};
+
 /**
  * drm_crtc_init_with_planes - Initialise a new CRTC object with
  *    specified primary and cursor planes.
@@ -208,6 +241,11 @@ int drm_crtc_init_with_planes(struct drm_device *dev, struct drm_crtc *crtc,
 		return -ENOMEM;
 	}
 
+	crtc->fence_context = dma_fence_context_alloc(1);
+	spin_lock_init(&crtc->fence_lock);
+	snprintf(crtc->timeline_name, sizeof(crtc->timeline_name),
+		 "CRTC:%d-%s", crtc->base.id, crtc->name);
+
 	crtc->base.properties = &crtc->properties;
 
 	list_add_tail(&crtc->head, &config->crtc_list);
@@ -229,6 +267,8 @@ int drm_crtc_init_with_planes(struct drm_device *dev, struct drm_crtc *crtc,
 	if (drm_core_check_feature(dev, DRIVER_ATOMIC)) {
 		drm_object_attach_property(&crtc->base, config->prop_active, 0);
 		drm_object_attach_property(&crtc->base, config->prop_mode_id, 0);
+		drm_object_attach_property(&crtc->base,
+					   config->prop_out_fence_ptr, 0);
 	}
 
 	return 0;
@@ -645,102 +685,3 @@ int drm_mode_crtc_set_obj_prop(struct drm_mode_object *obj,
 
 	return ret;
 }
-
-/**
- * DOC: Tile group
- *
- * Tile groups are used to represent tiled monitors with a unique
- * integer identifier. Tiled monitors using DisplayID v1.3 have
- * a unique 8-byte handle, we store this in a tile group, so we
- * have a common identifier for all tiles in a monitor group.
- */
-static void drm_tile_group_free(struct kref *kref)
-{
-	struct drm_tile_group *tg = container_of(kref, struct drm_tile_group, refcount);
-	struct drm_device *dev = tg->dev;
-	mutex_lock(&dev->mode_config.idr_mutex);
-	idr_remove(&dev->mode_config.tile_idr, tg->id);
-	mutex_unlock(&dev->mode_config.idr_mutex);
-	kfree(tg);
-}
-
-/**
- * drm_mode_put_tile_group - drop a reference to a tile group.
- * @dev: DRM device
- * @tg: tile group to drop reference to.
- *
- * drop reference to tile group and free if 0.
- */
-void drm_mode_put_tile_group(struct drm_device *dev,
-			     struct drm_tile_group *tg)
-{
-	kref_put(&tg->refcount, drm_tile_group_free);
-}
-
-/**
- * drm_mode_get_tile_group - get a reference to an existing tile group
- * @dev: DRM device
- * @topology: 8-bytes unique per monitor.
- *
- * Use the unique bytes to get a reference to an existing tile group.
- *
- * RETURNS:
- * tile group or NULL if not found.
- */
-struct drm_tile_group *drm_mode_get_tile_group(struct drm_device *dev,
-					       char topology[8])
-{
-	struct drm_tile_group *tg;
-	int id;
-	mutex_lock(&dev->mode_config.idr_mutex);
-	idr_for_each_entry(&dev->mode_config.tile_idr, tg, id) {
-		if (!memcmp(tg->group_data, topology, 8)) {
-			if (!kref_get_unless_zero(&tg->refcount))
-				tg = NULL;
-			mutex_unlock(&dev->mode_config.idr_mutex);
-			return tg;
-		}
-	}
-	mutex_unlock(&dev->mode_config.idr_mutex);
-	return NULL;
-}
-EXPORT_SYMBOL(drm_mode_get_tile_group);
-
-/**
- * drm_mode_create_tile_group - create a tile group from a displayid description
- * @dev: DRM device
- * @topology: 8-bytes unique per monitor.
- *
- * Create a tile group for the unique monitor, and get a unique
- * identifier for the tile group.
- *
- * RETURNS:
- * new tile group or error.
- */
-struct drm_tile_group *drm_mode_create_tile_group(struct drm_device *dev,
-						  char topology[8])
-{
-	struct drm_tile_group *tg;
-	int ret;
-
-	tg = kzalloc(sizeof(*tg), GFP_KERNEL);
-	if (!tg)
-		return ERR_PTR(-ENOMEM);
-
-	kref_init(&tg->refcount);
-	memcpy(tg->group_data, topology, 8);
-	tg->dev = dev;
-
-	mutex_lock(&dev->mode_config.idr_mutex);
-	ret = idr_alloc(&dev->mode_config.tile_idr, tg, 1, 0, GFP_KERNEL);
-	if (ret >= 0) {
-		tg->id = ret;
-	} else {
-		kfree(tg);
-		tg = ERR_PTR(ret);
-	}
-
-	mutex_unlock(&dev->mode_config.idr_mutex);
-	return tg;
-}
-EXPORT_SYMBOL(drm_mode_create_tile_group);
