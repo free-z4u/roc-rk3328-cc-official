@@ -27,8 +27,6 @@
 
 #include "cpufreq-dt.h"
 
-#define MAX_CLUSTERS		2
-
 struct private_data {
 	struct device *cpu_dev;
 	struct thermal_cooling_device *cdev;
@@ -153,11 +151,9 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 	struct cpumask cpus;
 #endif
 	unsigned int transition_latency;
-	unsigned long cur_freq;
 	bool fallback = false;
 	const char *name;
 	int ret;
-	static int check_init;
 
 	cpu_dev = get_cpu_device(policy->cpu);
 	if (!cpu_dev) {
@@ -298,20 +294,6 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 
 	policy->cpuinfo.transition_latency = transition_latency;
 
-        /*
-         * Android: set default parameters for parity between schedutil and
-         * schedfreq
-         */
-	policy->up_transition_delay_us = transition_latency / NSEC_PER_USEC;
-	policy->down_transition_delay_us = 50000; /* 50ms */
-
-	if (check_init < MAX_CLUSTERS) {
-		ret = dev_pm_opp_check_initial_rate(cpu_dev, &cur_freq);
-		if (!ret)
-			policy->cur = cur_freq / 1000;
-		check_init++;
-	}
-
 	return 0;
 
 out_free_cpufreq_table:
@@ -388,8 +370,11 @@ static void cpufreq_ready(struct cpufreq_policy *policy)
 }
 
 static struct cpufreq_driver dt_cpufreq_driver = {
-	.flags = CPUFREQ_STICKY | CPUFREQ_NEED_INITIAL_FREQ_CHECK |
-			 CPUFREQ_HAVE_GOVERNOR_PER_POLICY,
+#ifdef CONFIG_ARCH_ROCKCHIP
+	.flags = CPUFREQ_STICKY | CPUFREQ_HAVE_GOVERNOR_PER_POLICY,
+#else
+	.flags = CPUFREQ_STICKY | CPUFREQ_NEED_INITIAL_FREQ_CHECK,
+#endif
 	.verify = cpufreq_generic_frequency_table_verify,
 	.target_index = set_target,
 	.get = cpufreq_generic_get,
