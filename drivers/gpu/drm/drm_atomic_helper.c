@@ -1255,9 +1255,6 @@ static void commit_work(struct work_struct *work)
  * function implements nonblocking commits, using
  * drm_atomic_helper_setup_commit() and related functions.
  *
- * Note that right now this function does not support nonblocking commits, hence
- * driver writers must implement their own version for now.
- *
  * Committing the actual hardware state is done through the
  * ->atomic_commit_tail() callback of the &drm_mode_config_helper_funcs vtable,
  * or it's default implementation drm_atomic_helper_commit_tail().
@@ -2945,8 +2942,8 @@ retry:
 fail:
 	if (ret == -EDEADLK)
 		goto backoff;
-
-	connector->dpms = old_mode;
+	if (ret != 0)
+		connector->dpms = old_mode;
 	drm_atomic_state_put(state);
 	return ret;
 
