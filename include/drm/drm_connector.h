@@ -270,6 +270,10 @@ struct drm_display_info {
 	struct drm_hdmi_info hdmi;
 };
 
+int drm_display_info_set_bus_formats(struct drm_display_info *info,
+				     const u32 *formats,
+				     unsigned int num_formats);
+
 /**
  * struct drm_tv_connector_state - TV connector related states
  * @subconnector: selected subconnector
@@ -299,15 +303,12 @@ struct drm_tv_connector_state {
 	unsigned int hue;
 };
 
-int drm_display_info_set_bus_formats(struct drm_display_info *info,
-				     const u32 *formats,
-				     unsigned int num_formats);
-
 /**
  * struct drm_connector_state - mutable connector state
  * @connector: backpointer to the connector
  * @best_encoder: can be used by helpers and drivers to select the encoder
  * @state: backpointer to global drm_atomic_state
+ * @tv: TV connector state
  */
 struct drm_connector_state {
 	struct drm_connector *connector;
