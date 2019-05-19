@@ -22,7 +22,6 @@ struct device;
 
 enum dev_pm_opp_event {
 	OPP_EVENT_ADD, OPP_EVENT_REMOVE, OPP_EVENT_ENABLE, OPP_EVENT_DISABLE,
-	OPP_EVENT_ADJUST_VOLTAGE,
 };
 
 #if defined(CONFIG_PM_OPP)
@@ -66,7 +65,6 @@ void dev_pm_opp_put_prop_name(struct device *dev);
 int dev_pm_opp_set_regulator(struct device *dev, const char *name);
 void dev_pm_opp_put_regulator(struct device *dev);
 int dev_pm_opp_set_rate(struct device *dev, unsigned long target_freq);
-int dev_pm_opp_check_initial_rate(struct device *dev, unsigned long *cur_freq);
 int dev_pm_opp_set_sharing_cpus(struct device *cpu_dev, const struct cpumask *cpumask);
 int dev_pm_opp_get_sharing_cpus(struct device *cpu_dev, struct cpumask *cpumask);
 void dev_pm_opp_remove_table(struct device *dev);
@@ -190,12 +188,6 @@ static inline int dev_pm_opp_set_sharing_cpus(struct device *cpu_dev, const stru
 }
 
 static inline int dev_pm_opp_get_sharing_cpus(struct device *cpu_dev, struct cpumask *cpumask)
-{
-	return -EINVAL;
-}
-
-static inline int dev_pm_opp_check_initial_rate(struct device *dev,
-						unsigned long *cur_freq)
 {
 	return -EINVAL;
 }
