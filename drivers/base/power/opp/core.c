@@ -747,9 +747,9 @@ int dev_pm_opp_check_initial_rate(struct device *dev, unsigned long *cur_freq)
 		}
 	}
 
-	u_volt = opp->u_volt;
-	u_volt_min = opp->u_volt_min;
-	u_volt_max = opp->u_volt_max;
+	u_volt = opp->supply.u_volt;
+	u_volt_min = opp->supply.u_volt_min;
+	u_volt_max = opp->supply.u_volt_max;
 
 	rcu_read_unlock();
 
