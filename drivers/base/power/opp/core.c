@@ -701,8 +701,7 @@ int dev_pm_opp_check_initial_rate(struct device *dev, unsigned long *cur_freq)
 	struct regulator *reg;
 	struct clk *clk;
 	unsigned long target_freq, old_freq;
-	unsigned long u_volt, u_volt_min, u_volt_max;
-	int old_volt;
+	struct dev_pm_opp_supply old_supply, new_supply;
 	int ret;
 
 	rcu_read_lock();
@@ -737,30 +736,29 @@ int dev_pm_opp_check_initial_rate(struct device *dev, unsigned long *cur_freq)
 		}
 	}
 
-	u_volt = opp->supply.u_volt;
-	u_volt_min = opp->supply.u_volt_min;
-	u_volt_max = opp->supply.u_volt_max;
+	new_supply.u_volt = opp->supply.u_volt;
+	new_supply.u_volt_min = opp->supply.u_volt_min;
+	new_supply.u_volt_max = opp->supply.u_volt_max;
 
 	rcu_read_unlock();
 
 	target_freq = clk_round_rate(clk, target_freq);
-	old_volt = regulator_get_voltage(reg);
-	if (old_volt <= 0) {
-		dev_err(dev, "failed to get volt %d\n", old_volt);
+	old_supply.u_volt = regulator_get_voltage(reg);
+	if (old_supply.u_volt <= 0) {
+		dev_err(dev, "failed to get volt %ld\n", old_supply.u_volt);
 		return -EINVAL;
 	}
 
-	dev_dbg(dev, "%lu Hz %d uV --> %lu Hz %lu uV\n", old_freq, old_volt,
-		target_freq, u_volt);
+	dev_dbg(dev, "%lu Hz %ld uV --> %lu Hz %lu uV\n", old_freq, old_supply.u_volt,
+		target_freq, new_supply.u_volt);
 
-	if (old_freq == target_freq && old_volt == u_volt)
+	if (old_freq == target_freq && old_supply.u_volt == new_supply.u_volt)
 		return 0;
 
-	if (old_freq == target_freq && old_volt != u_volt) {
-		ret = _set_opp_voltage(dev, reg, u_volt, u_volt_min,
-				       u_volt_max);
+	if (old_freq == target_freq && old_supply.u_volt != new_supply.u_volt) {
+		ret = _set_opp_voltage(dev, reg, &new_supply);
 		if (ret) {
-			dev_err(dev, "failed to set volt %lu\n", u_volt);
+			dev_err(dev, "failed to set volt %lu\n", new_supply.u_volt);
 			return ret;
 		}
 		return 0;
@@ -768,10 +766,9 @@ int dev_pm_opp_check_initial_rate(struct device *dev, unsigned long *cur_freq)
 
 	/* Scaling up? Scale voltage before frequency */
 	if (target_freq > old_freq) {
-		ret = _set_opp_voltage(dev, reg, u_volt, u_volt_min,
-				       u_volt_max);
+		ret = _set_opp_voltage(dev, reg, &new_supply);
 		if (ret) {
-			dev_err(dev, "failed to set volt %lu\n", u_volt);
+			dev_err(dev, "failed to set volt %lu\n", new_supply.u_volt);
 			return ret;
 		}
 	}
@@ -787,10 +784,9 @@ int dev_pm_opp_check_initial_rate(struct device *dev, unsigned long *cur_freq)
 
 	/* Scaling down? Scale voltage after frequency */
 	if (target_freq < old_freq) {
-		ret = _set_opp_voltage(dev, reg, u_volt, u_volt_min,
-				       u_volt_max);
+		ret = _set_opp_voltage(dev, reg, &new_supply);
 		if (ret) {
-			dev_err(dev, "failed to set volt %lu\n", u_volt);
+			dev_err(dev, "failed to set volt %lu\n", new_supply.u_volt);
 			return ret;
 		}
 	}
