@@ -303,9 +303,9 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 	policy->cpuinfo.transition_latency = transition_latency;
 
 	if (check_init < MAX_CLUSTERS) {
-		ret = dev_pm_opp_check_initial_rate(cpu_dev, &cur_freq);
-		if (!ret)
-			policy->cur = cur_freq / 1000;
+		ret = dev_pm_opp_set_rate(cpu_dev, cur_freq);
+		if (ret)
+			dev_err(cpu_dev, "failed to set cur_freq: %ld\n", cur_freq);
 		check_init++;
 	}
 
