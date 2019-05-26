@@ -41,7 +41,7 @@ int main(void)
   DEFINE(TI_PREEMPT,		offsetof(struct thread_info, preempt_count));
   DEFINE(TI_ADDR_LIMIT,		offsetof(struct thread_info, addr_limit));
 #ifdef CONFIG_ARM64_SW_TTBR0_PAN
-  DEFINE(TSK_TI_TTBR0,		offsetof(struct thread_info, ttbr0));
+  DEFINE(TSK_TI_TTBR0,		offsetof(struct task_struct, thread_info.ttbr0));
 #endif
   BLANK();
   DEFINE(THREAD_CPU_CONTEXT,	offsetof(struct task_struct, thread.cpu_context));
