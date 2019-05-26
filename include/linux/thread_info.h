@@ -11,10 +11,13 @@
 #include <linux/bug.h>
 #include <linux/restart_block.h>
 
-struct timespec;
-struct compat_timespec;
-
 #ifdef CONFIG_THREAD_INFO_IN_TASK
+/*
+ * For CONFIG_THREAD_INFO_IN_TASK kernels we need <asm/current.h> for the
+ * definition of current, but for !CONFIG_THREAD_INFO_IN_TASK kernels,
+ * including <asm/current.h> can cause a circular dependency on some platforms.
+ */
+#include <asm/current.h>
 #define current_thread_info() ((struct thread_info *)current)
 #endif
 
@@ -23,7 +26,12 @@ struct compat_timespec;
 
 #ifdef __KERNEL__
 
-#define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT| __GFP_NOTRACK | __GFP_ZERO)
+#ifdef CONFIG_DEBUG_STACK_USAGE
+# define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT | __GFP_NOTRACK | \
+				 __GFP_ZERO)
+#else
+# define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT | __GFP_NOTRACK)
+#endif
 
 /*
  * flag set/clear/test wrappers
