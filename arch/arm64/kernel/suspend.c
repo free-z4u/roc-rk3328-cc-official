@@ -51,14 +51,6 @@ void notrace __cpu_suspend_exit(void)
 	 * features that might not have been set correctly.
 	 */
 	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN,
-				CONFIG_ARM64_PAN));
-	uao_thread_switch(current);
-
-	/*
-	 * PSTATE was not saved over suspend/resume, re-enable any detected
-	 * features that might not have been set correctly.
-	 */
-	asm(ALTERNATIVE("nop", SET_PSTATE_PAN(1), ARM64_HAS_PAN,
 			CONFIG_ARM64_PAN));
 	uao_thread_switch(current);
 
