@@ -195,7 +195,7 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 	 */
 	name = find_supply_name(cpu_dev);
 	if (name) {
-		opp_table = dev_pm_opp_set_regulator(cpu_dev, name);
+		opp_table = dev_pm_opp_set_regulators(cpu_dev, &name, 1);
 		if (IS_ERR(opp_table)) {
 			ret = PTR_ERR(opp_table);
 			dev_err(cpu_dev, "Failed to set regulator for cpu%d: %d\n",
@@ -318,7 +318,7 @@ out_free_priv:
 out_free_opp:
 	dev_pm_opp_of_cpumask_remove_table(policy->cpus);
 	if (name)
-		dev_pm_opp_put_regulator(opp_table);
+		dev_pm_opp_put_regulators(opp_table);
 out_put_clk:
 	clk_put(cpu_clk);
 
@@ -344,7 +344,7 @@ static int cpufreq_exit(struct cpufreq_policy *policy)
 	dev_pm_opp_of_cpumask_remove_table(&cpus);
 	dev_pm_opp_of_remove_table(priv->cpu_dev);
 	if (priv->reg_name)
-		dev_pm_opp_put_regulator(priv->opp_table);
+		dev_pm_opp_put_regulators(priv->opp_table);
 
 	clk_put(policy->clk);
 	kfree(priv);
