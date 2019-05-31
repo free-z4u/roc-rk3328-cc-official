@@ -110,8 +110,7 @@ config ARM64
 	select POWER_SUPPLY
 	select SPARSE_IRQ
 	select SYSCTL_EXCEPTION_TRACE
-	select HAVE_CONTEXT_TRACKING
-	select HAVE_ARM_SMCCC
+	select THREAD_INFO_IN_TASK
 	help
 	  ARM 64-bit (AArch64) Linux support.
 
@@ -168,10 +167,6 @@ config ARCH_MMAP_RND_COMPAT_BITS_MAX
 
 config NO_IOPORT_MAP
 	def_bool y if !PCI
-
-config ILLEGAL_POINTER_VALUE
-	hex
-	default 0xdead000000000000
 
 config STACKTRACE_SUPPORT
 	def_bool y

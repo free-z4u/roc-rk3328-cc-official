@@ -7,8 +7,13 @@
 
 #ifndef __ASSEMBLY__
 
-#include <linux/thread_info.h>
-#define get_current() (current_thread_info()->task)
+struct task_struct;
+
+static __always_inline struct task_struct *get_current(void)
+{
+	return (struct task_struct *)read_sysreg(sp_el0);
+}
+
 #define current get_current()
 
 #endif /* __ASSEMBLY__ */
