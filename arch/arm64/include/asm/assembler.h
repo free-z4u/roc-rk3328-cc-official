@@ -435,6 +435,13 @@ alternative_endif
 	.endm
 
 /*
+ * Errata workaround post TTBR0_EL1 update.
+ */
+	.macro	get_thread_info, rd
+	mrs	\rd, sp_el0
+	.endm
+
+/*
  * Check the MIDR_EL1 of the current CPU for a given model and a range of
  * variant/revision. See asm/cputype.h for the macros used below.
  *
