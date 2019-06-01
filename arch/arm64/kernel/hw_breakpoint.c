@@ -798,7 +798,7 @@ static int watchpoint_handler(unsigned long addr, unsigned int esr,
 		perf_bp_event(wp, regs);
 
 		/* Do we need to handle the stepping? */
-		if (!wp->overflow_handler)
+		if (is_default_overflow_handler(wp))
 			step = 1;
 	}
 	rcu_read_unlock();
