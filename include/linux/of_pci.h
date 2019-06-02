@@ -69,6 +69,12 @@ static inline int of_pci_map_rid(struct device_node *np, u32 rid,
 	return -EINVAL;
 }
 
+static inline int
+of_pci_get_max_link_speed(struct device_node *node)
+{
+	return -EINVAL;
+}
+
 static inline void of_pci_check_probe_only(void) { }
 #endif
 
