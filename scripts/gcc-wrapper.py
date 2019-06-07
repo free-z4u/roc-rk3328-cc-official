@@ -82,6 +82,8 @@ allowed_warnings = set([
     "core.c:2522", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
     "export.h:63", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
     "lkdtm_bugs.c:88", # warning: ‘memset’ writing 64 bytes into a region of size 8 overflows the destination [-Wstringop-overflow=]
+    "ip_tunnel.c:264", # warning: ‘strncat’ specified bound 2 equals source length [-Wstringop-overflow=]
+    "cfg80211.c:4178", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
  ])
 
 # Capture the name of the object file, can find it.
