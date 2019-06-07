@@ -33,3 +33,5 @@ obj-$(CONFIG_RK3368_MBOX)	+= rk3368-mailbox.o
 obj-$(CONFIG_RK3368_SCPI_PROTOCOL)	+= scpi_protocol.o
 
 obj-$(CONFIG_BCM_PDC_MBOX)	+= bcm-pdc-mailbox.o
+
+obj-$(CONFIG_TEGRA_HSP_MBOX)	+= tegra-hsp.o

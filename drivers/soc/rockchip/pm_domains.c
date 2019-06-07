@@ -532,7 +532,16 @@ err_out:
 
 static void rockchip_pm_remove_one_domain(struct rockchip_pm_domain *pd)
 {
-	int i;
+	int i, ret;
+
+	/*
+	 * We're in the error cleanup already, so we only complain,
+	 * but won't emit another error on top of the original one.
+	 */
+	ret = pm_genpd_remove(&pd->genpd);
+	if (ret < 0)
+		dev_err(pd->pmu->dev, "failed to remove domain '%s' : %d - state may be inconsistent\n",
+			pd->genpd.name, ret);
 
 	for (i = 0; i < pd->num_clks; i++) {
 		clk_unprepare(pd->clks[i]);
@@ -720,12 +729,12 @@ static int rockchip_pm_domain_probe(struct platform_device *pdev)
 	 * Configure power up and down transition delays for CORE
 	 * and GPU domains.
 	 */
-	if (pmu_info->core_pwrcnt_offset)
+	if (pmu_info->core_power_transition_time)
 		rockchip_configure_pd_cnt(pmu, pmu_info->core_pwrcnt_offset,
-					  pmu_info->core_power_transition_time);
+					pmu_info->core_power_transition_time);
 	if (pmu_info->gpu_pwrcnt_offset)
 		rockchip_configure_pd_cnt(pmu, pmu_info->gpu_pwrcnt_offset,
-					  pmu_info->gpu_power_transition_time);
+					pmu_info->gpu_power_transition_time);
 
 	error = -ENODEV;
 
@@ -752,7 +761,11 @@ static int rockchip_pm_domain_probe(struct platform_device *pdev)
 		goto err_out;
 	}
 
-	of_genpd_add_provider_onecell(np, &pmu->genpd_data);
+	error = of_genpd_add_provider_onecell(np, &pmu->genpd_data);
+	if (error) {
+		dev_err(dev, "failed to add provider: %d\n", error);
+		goto err_out;
+	}
 
 	dmc_pmu = pmu;
 
@@ -958,11 +971,7 @@ static const struct rockchip_pmu_info rk3399_pmu = {
 	.idle_offset = 0x64,
 	.ack_offset = 0x68,
 
-	.core_pwrcnt_offset = 0xac,
-	.gpu_pwrcnt_offset = 0xac,
-
-	.core_power_transition_time = 6, /* 0.25us */
-	.gpu_power_transition_time = 6, /* 0.25us */
+	/* ARM Trusted Firmware manages power transition times */
 
 	.num_domains = ARRAY_SIZE(rk3399_pm_domains),
 	.domain_info = rk3399_pm_domains,
