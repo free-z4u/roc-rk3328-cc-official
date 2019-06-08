@@ -84,6 +84,7 @@ allowed_warnings = set([
     "lkdtm_bugs.c:88", # warning: ‘memset’ writing 64 bytes into a region of size 8 overflows the destination [-Wstringop-overflow=]
     "ip_tunnel.c:264", # warning: ‘strncat’ specified bound 2 equals source length [-Wstringop-overflow=]
     "cfg80211.c:4178", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
+    "virtio_net.c:758", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
  ])
 
 # Capture the name of the object file, can find it.
