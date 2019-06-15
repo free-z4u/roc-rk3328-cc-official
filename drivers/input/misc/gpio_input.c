@@ -139,15 +139,6 @@ static enum hrtimer_restart gpio_event_input_timer_func(struct hrtimer *timer)
 			input_sync(ds->input_devs->dev[i]);
 	}
 
-#if 0
-	key_entry = kp->keys_info->keymap;
-	key_state = kp->key_state;
-	for (i = 0; i < nkeys; i++, key_entry++, key_state++) {
-		pr_info("gpio_read_detect_status %d %d\n", key_entry->gpio,
-			gpio_read_detect_status(key_entry->gpio));
-	}
-#endif
-
 	if (ds->debounce_count)
 		hrtimer_start(timer, ds->info->debounce_time, HRTIMER_MODE_REL);
 	else if (!ds->use_irq)
@@ -174,7 +165,7 @@ static irqreturn_t gpio_event_input_irq_handler(int irq, void *dev_id)
 
 	key_entry = &ds->info->keymap[keymap_index];
 
-	if (ds->info->debounce_time.tv64) {
+	if (ds->info->debounce_time) {
 		spin_lock_irqsave(&ds->irq_lock, irqflags);
 		if (ks->debounce & DEBOUNCE_WAIT_IRQ) {
 			ks->debounce = DEBOUNCE_UNKNOWN;
