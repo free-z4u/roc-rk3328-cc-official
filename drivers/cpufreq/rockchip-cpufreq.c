@@ -223,42 +223,41 @@ static int rockchip_cpufreq_set_opp_info(int cpu, struct cluster_info *cluster)
 	return 0;
 }
 
-static int rockchip_hotcpu_notifier(struct notifier_block *nb,
-				    unsigned long action, void *hcpu)
+static int rockchip_cpu_online(unsigned int cpu)
 {
-	unsigned int cpu = (unsigned long)hcpu;
 	struct cluster_info *cluster;
-	cpumask_t cpus;
-	int number, ret;
+	int ret;
 
 	cluster = rockchip_cluster_info_lookup(cpu);
 	if (!cluster)
 		return NOTIFY_OK;
 
-	switch (action & ~CPU_TASKS_FROZEN) {
-	case CPU_ONLINE:
-		if (cluster->offline) {
-			ret = rockchip_cpufreq_set_opp_info(cpu, cluster);
-			if (ret)
-				pr_err("Failed to set cpu%d opp_info\n", cpu);
-			cluster->offline = false;
-		}
-		break;
-
-	case CPU_POST_DEAD:
-		cpumask_and(&cpus, &cluster->cpus, cpu_online_mask);
-		number = cpumask_weight(&cpus);
-		if (!number)
-			cluster->offline = true;
-		break;
+	if (cluster->offline) {
+		ret = rockchip_cpufreq_set_opp_info(cpu, cluster);
+		if (ret)
+			pr_err("Failed to set cpu%d opp_info\n", cpu);
+		cluster->offline = false;
 	}
-
 	return NOTIFY_OK;
 }
 
-static struct notifier_block rockchip_hotcpu_nb = {
-	.notifier_call = rockchip_hotcpu_notifier,
-};
+static int rockchip_cpu_offline(unsigned int cpu)
+{
+	struct cluster_info *cluster;
+	cpumask_t cpus;
+	int number;
+
+	cluster = rockchip_cluster_info_lookup(cpu);
+	if (!cluster)
+		return NOTIFY_OK;
+
+	cpumask_and(&cpus, &cluster->cpus, cpu_online_mask);
+	number = cpumask_weight(&cpus);
+	if (!number)
+		cluster->offline = true;
+
+	return NOTIFY_OK;
+}
 
 static int rockchip_reboot_notifier(struct notifier_block *nb,
 				    unsigned long action, void *ptr)
@@ -363,7 +362,8 @@ static int __init rockchip_cpufreq_driver_init(void)
 		list_add(&cluster->list_head, &cluster_info_list);
 	}
 
-	register_hotcpu_notifier(&rockchip_hotcpu_nb);
+	cpuhp_setup_state(CPUHP_AP_ONLINE_DYN, "cpufreq/rockchip:online",
+			  rockchip_cpu_online, rockchip_cpu_offline);
 	register_reboot_notifier(&rockchip_reboot_nb);
 	cpufreq_register_notifier(&rockchip_cpufreq_policy_nb,
 				  CPUFREQ_POLICY_NOTIFIER);
