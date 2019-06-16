@@ -2196,7 +2196,7 @@ static void pl330_tasklet(unsigned long data)
 		spin_lock(&pch->thread->dmac->lock);
 		_stop(pch->thread);
 		spin_unlock(&pch->thread->dmac->lock);
-		power_down = pch->active;
+		power_down = true;
 		pch->active = false;
 	} else {
 		/* Make sure the PL330 Channel thread is active */
