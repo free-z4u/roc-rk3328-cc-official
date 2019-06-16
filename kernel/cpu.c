@@ -765,7 +765,6 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
 {
 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
 	int prev_state, ret = 0;
-	bool hasdied = false;
 
 	if (num_online_cpus() == 1)
 		return -EBUSY;
@@ -810,7 +809,6 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
 		cpuhp_kick_ap_work(cpu);
 	}
 
-	hasdied = prev_state != st->state && st->state == CPUHP_OFFLINE;
 out:
 	cpu_hotplug_done();
 	return ret;
