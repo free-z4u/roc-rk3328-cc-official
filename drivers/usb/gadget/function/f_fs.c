@@ -1840,7 +1840,7 @@ static int ffs_func_eps_enable(struct ffs_function *func)
 		ret = config_ep_by_speed(func->gadget, &func->function, ep->ep);
 		if (ret) {
 			pr_err("%s: config_ep_by_speed(%s) returned %d\n",
-			       __func__, ep->ep->name, ret);
+					__func__, ep->ep->name, ret);
 			break;
 		}
 
