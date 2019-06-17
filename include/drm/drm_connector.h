@@ -158,9 +158,6 @@ struct drm_hdmi_info {
 
 	/* Colorimerty info from EDID */
 	u32 colorimetry;
-
-	/* HDR metdata */
-	struct hdr_static_metadata hdr_panel_metadata;
 };
 
 /*
@@ -469,6 +466,8 @@ struct drm_connector_funcs {
 	 * core drm connector interfaces. Everything added from this callback
 	 * should be unregistered in the early_unregister callback.
 	 *
+	 * This is called while holding drm_connector->mutex.
+	 *
 	 * Returns:
 	 *
 	 * 0 on success, or a negative error code on failure.
@@ -483,6 +482,8 @@ struct drm_connector_funcs {
 	 * late_register(). It is called from drm_connector_unregister(),
 	 * early in the driver unload sequence to disable userspace access
 	 * before data structures are torndown.
+	 *
+	 * This is called while holding drm_connector->mutex.
 	 */
 	void (*early_unregister)(struct drm_connector *connector);
 
@@ -709,6 +710,10 @@ struct drm_connector {
 	bool interlace_allowed;
 	bool doublescan_allowed;
 	bool stereo_allowed;
+	/**
+	 * @registered: Is this connector exposed (registered) with userspace?
+	 * Protected by @mutex.
+	 */
 	bool registered;
 	struct list_head modes; /* list of modes on this connector */
 

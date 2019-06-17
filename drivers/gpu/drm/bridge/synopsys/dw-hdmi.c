@@ -1811,10 +1811,7 @@ static void hdmi_config_vendor_specific_infoframe(struct dw_hdmi *hdmi,
 static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 {
 	struct hdmi_drm_infoframe frame;
-	struct hdr_static_metadata *hdr_metadata;
 	struct drm_connector_state *conn_state = hdmi->connector.state;
-	struct drm_hdmi_info *hdmi_info = &hdmi->connector.display_info.hdmi;
-	int ret;
 
 	/* Dynamic Range and Mastering Infoframe is introduced in v2.11a. */
 	if (hdmi->version < 0x211a) {
@@ -1824,30 +1821,6 @@ static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 
 	hdmi_modb(hdmi, HDMI_FC_PACKET_DRM_TX_DEN,
 		  HDMI_FC_PACKET_DRM_TX_EN_MASK, HDMI_FC_PACKET_TX_EN);
-
-	if (!hdmi_info->hdr_panel_metadata.eotf) {
-		DRM_DEBUG("No need to set HDR metadata in infoframe\n");
-		return;
-	}
-
-	if (!conn_state->hdr_source_metadata_blob_ptr) {
-		DRM_DEBUG("source metadata not set yet\n");
-		return;
-	}
-
-	hdr_metadata = (struct hdr_static_metadata *)
-		conn_state->hdr_source_metadata_blob_ptr->data;
-
-	if (!(hdmi_info->hdr_panel_metadata.eotf & BIT(hdr_metadata->eotf))) {
-		DRM_ERROR("Not support EOTF %d\n", hdr_metadata->eotf);
-		return;
-	}
-
-	ret = drm_hdmi_infoframe_set_hdr_metadata(&frame, hdr_metadata);
-	if (ret < 0) {
-		DRM_ERROR("couldn't set HDR metadata in infoframe\n");
-		return;
-	}
 
 	hdmi_writeb(hdmi, 1, HDMI_FC_DRM_HB0);
 	hdmi_writeb(hdmi, frame.length, HDMI_FC_DRM_HB1);
@@ -1899,8 +1872,6 @@ static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 
 	if (conn_state->hdr_metadata_changed)
 		conn_state->hdr_metadata_changed = false;
-
-	DRM_DEBUG("%s eotf %d end\n", __func__, hdr_metadata->eotf);
 }
 
 static unsigned int
@@ -2481,8 +2452,6 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 	struct edid *edid;
 	struct drm_display_mode *mode;
 	const u8 def_modes[6] = {4, 16, 31, 19, 17, 2};
-	struct hdr_static_metadata *metedata =
-			&connector->display_info.hdmi.hdr_panel_metadata;
 	int i, ret = 0;
 
 	if (!hdmi->ddc)
@@ -2500,7 +2469,6 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 		ret = drm_add_edid_modes(connector, edid);
 		/* Store the ELD */
 		drm_edid_to_eld(connector, edid);
-		drm_mode_connector_update_hdr_property(connector, metedata);
 		kfree(edid);
 	} else {
 		hdmi->sink_is_hdmi = true;

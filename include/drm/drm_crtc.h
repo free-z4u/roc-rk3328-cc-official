@@ -832,8 +832,6 @@ int drm_crtc_force_disable_all(struct drm_device *dev);
 
 int drm_mode_set_config_internal(struct drm_mode_set *set);
 
-int drm_mode_connector_update_hdr_property(struct drm_connector *connector,
-					   const struct hdr_static_metadata *data);
 struct drm_display_mode *
 drm_display_mode_from_vic_index(struct drm_connector *connector,
 				const u8 *video_db, u8 video_len,

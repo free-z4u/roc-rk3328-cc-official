@@ -667,26 +667,6 @@ out:
 	return ret;
 }
 
-int
-drm_mode_connector_update_hdr_property(struct drm_connector *connector,
-				       const struct hdr_static_metadata *data)
-{
-	struct drm_device *dev = connector->dev;
-	size_t size = sizeof(*data);
-	struct drm_property *property =
-			dev->mode_config.hdr_panel_metadata_property;
-	int ret;
-
-	ret = drm_property_replace_global_blob(dev,
-					       &connector->hdr_panel_blob_ptr,
-					       size,
-					       data,
-					       &connector->base,
-					       property);
-	return ret;
-}
-EXPORT_SYMBOL(drm_mode_connector_update_hdr_property);
-
 int drm_mode_crtc_set_obj_prop(struct drm_mode_object *obj,
 			       struct drm_property *property,
 			       uint64_t value)
