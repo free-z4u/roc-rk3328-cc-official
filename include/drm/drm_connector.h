@@ -648,7 +648,6 @@ struct drm_cmdline_mode {
  * @interlace_allowed: can this connector handle interlaced modes?
  * @doublescan_allowed: can this connector handle doublescan?
  * @stereo_allowed: can this connector handle stereo modes?
- * @registered: is this connector exposed (registered) with userspace?
  * @modes: modes available on this connector (from fill_modes() + user)
  * @status: one of the drm_connector_status enums (connected, not, or unknown)
  * @probed_modes: list of modes derived directly from the display
@@ -696,6 +695,13 @@ struct drm_connector {
 	struct drm_mode_object base;
 
 	char *name;
+
+	/**
+	 * @mutex: Lock for general connector state, but currently only protects
+	 * @registered. Most of the connector state is still protected by the
+	 * mutex in &drm_mode_config.
+	 */
+	struct mutex mutex;
 
 	/**
 	 * @index: Compacted connector index, which matches the position inside
