@@ -40,21 +40,8 @@ import subprocess
 # force LANG to be set to en_US.UTF-8 to get consistent warnings.
 
 allowed_warnings = set([
-    "posix-cpu-timers.c:1268", # kernel/time/posix-cpu-timers.c:1268:13: warning: 'now' may be used uninitialized in this function
-    "af_unix.c:1036", # net/unix/af_unix.c:1036:20: warning: 'hash' may be used uninitialized in this function
-    "sunxi_sram.c:214", # drivers/soc/sunxi/sunxi_sram.c:214:24: warning: 'device' may be used uninitialized in this function
-    "ks8851.c:298", # drivers/net/ethernet/micrel/ks8851.c:298:2: warning: 'rxb[0]' may be used uninitialized in this function
-    "ks8851.c:421", # drivers/net/ethernet/micrel/ks8851.c:421:20: warning: 'rxb[0]' may be used uninitialized in this function
-    "compat_binfmt_elf.c:58", # fs/compat_binfmt_elf.c:58:13: warning: 'cputime_to_compat_timeval' defined but not used
-    "memcontrol.c:5337", # mm/memcontrol.c:5337:12: warning: initialization from incompatible pointer type
-    "atags_to_fdt.c:98", # arch/arm/boot/compressed/atags_to_fdt.c:98:1: warning: the frame size of 1032 bytes is larger than 1024 bytes
-    "drm_edid.c:3506", # drivers/gpu/drm/drm_edid.c:3506:13: warning: 'cea_db_is_hdmi_forum_vsdb' defined but not used
     "vdso.c:128", # arch/arm64/kernel/vdso.c:119:6: warning: ‘memcmp’ reading 4 bytes from a region of size 1 [-Wstringop-overflow=]
-    "syscalls.h:195", # include/linux/syscalls.h:195:18: warning: ‘sys_set_tid_address’ alias between functions of incompatible types ‘long int(int *)’ and ‘long int(long int)’ [-Wattribute-alias]
-    "compat.h:48", # include/linux/compat.h:48:18: warning: ‘compat_sys_sysctl’ alias between functions of incompatible types ‘long int(struct compat_sysctl_args *)’ and ‘long int(long int)’ [-Wattribute-alias]
     "regcache-rbtree.c:36", # drivers/base/regmap/regcache-rbtree.c:36:1: warning: alignment 1 of ‘struct regcache_rbtree_node’ is less than 8 [-Wpacked-not-aligned]
-    "dm.c:2488", # drivers/net/wireless/realtek/rtlwifi/rtl8821ae/dm.c:2488:3: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
-    "scsi.c:555", # drivers/nvme/host/scsi.c:555:2: warning: ‘strncpy’ output truncated before terminating nul copying 8 bytes from a string of the same length [-Wstringop-truncation]
     "sctp.h:331", # include/uapi/linux/sctp.h:331:1: warning: alignment 4 of ‘struct sctp_paddr_change’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:605", # include/uapi/linux/sctp.h:580:1: warning: alignment 4 of ‘struct sctp_setpeerprim’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:604", # include/uapi/linux/sctp.h:579:26: warning: ‘sspp_addr’ offset 4 in ‘struct sctp_setpeerprim’ isn’t aligned to 8 [-Wpacked-not-aligned]
@@ -71,16 +58,9 @@ allowed_warnings = set([
     "compat.c:542", # net/compat.c:526:1: warning: alignment 4 of ‘struct compat_group_source_req’ is less than 8 [-Wpacked-not-aligned]
     "compat.c:546", # net/compat.c:530:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "compat.c:552", # net/compat.c:536:1: warning: alignment 4 of ‘struct compat_group_filter’ is less than 8 [-Wpacked-not-aligned]
-    "amba-pl011.c:190", # drivers/tty/serial/amba-pl011.c:190:27: warning: ‘vendor_zte’ defined but not used [-Wunused-variable]
     "exec.c:1238", # warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
     "printk.c:137", # warning: ‘strncpy’ output truncated before terminating nul copying 2 bytes from a string of the same length [-Wstringop-truncation]
     "printk.c:140", # warning: ‘strncpy’ output truncated before terminating nul copying 2 bytes from a string of the same length [-Wstringop-truncation]
-    "task_mmu.c:154", # warning: ‘get_user_pages8’ is deprecated [-Wdeprecated-declarations]
-    "dsi_host.c:329", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
-    "dsi_phy.c:181", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
-    "core.c:2538", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
-    "core.c:2522", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
-    "export.h:63", # warning: ‘regulator_can_change_voltage’ is deprecated [-Wdeprecated-declarations]
     "lkdtm_bugs.c:88", # warning: ‘memset’ writing 64 bytes into a region of size 8 overflows the destination [-Wstringop-overflow=]
     "ip_tunnel.c:264", # warning: ‘strncat’ specified bound 2 equals source length [-Wstringop-overflow=]
     "cfg80211.c:4178", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
