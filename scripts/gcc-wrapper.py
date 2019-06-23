@@ -61,7 +61,7 @@ allowed_warnings = set([
     "exec.c:1238", # warning: argument to ‘sizeof’ in ‘strncpy’ call is the same expression as the source; did you mean to use the size of the destination? [-Wsizeof-pointer-memaccess]
     "printk.c:137", # warning: ‘strncpy’ output truncated before terminating nul copying 2 bytes from a string of the same length [-Wstringop-truncation]
     "printk.c:140", # warning: ‘strncpy’ output truncated before terminating nul copying 2 bytes from a string of the same length [-Wstringop-truncation]
-    "lkdtm_bugs.c:88", # warning: ‘memset’ writing 64 bytes into a region of size 8 overflows the destination [-Wstringop-overflow=]
+    "lkdtm_bugs.c:89", # warning: ‘memset’ writing 64 bytes into a region of size 8 overflows the destination [-Wstringop-overflow=]
     "ip_tunnel.c:264", # warning: ‘strncat’ specified bound 2 equals source length [-Wstringop-overflow=]
     "cfg80211.c:4178", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
     "virtio_net.c:382", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
