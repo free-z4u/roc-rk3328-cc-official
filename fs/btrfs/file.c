@@ -1928,19 +1928,10 @@ int btrfs_release_file(struct inode *inode, struct file *filp)
 static int start_ordered_ops(struct inode *inode, loff_t start, loff_t end)
 {
 	int ret;
-	struct blk_plug plug;
 
-	/*
-	 * This is only called in fsync, which would do synchronous writes, so
-	 * a plug can merge adjacent IOs as much as possible.  Esp. in case of
-	 * multiple disks using raid profile, a large IO can be split to
-	 * several segments of stripe length (currently 64K).
-	 */
-	blk_start_plug(&plug);
 	atomic_inc(&BTRFS_I(inode)->sync_writers);
 	ret = btrfs_fdatawrite_range(inode, start, end);
 	atomic_dec(&BTRFS_I(inode)->sync_writers);
-	blk_finish_plug(&plug);
 
 	return ret;
 }
@@ -2885,7 +2876,7 @@ static long btrfs_fallocate(struct file *file, int mode,
 		if (!ret)
 			ret = btrfs_prealloc_file_range(inode, mode,
 					range->start,
-					range->len, i_blocksize(inode),
+					range->len, 1 << inode->i_blkbits,
 					offset + len, &alloc_hint);
 		else
 			btrfs_free_reserved_data_space(inode, range->start,

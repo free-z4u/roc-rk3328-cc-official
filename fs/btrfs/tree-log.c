@@ -28,7 +28,6 @@
 #include "hash.h"
 #include "compression.h"
 #include "qgroup.h"
-#include "inode-map.h"
 
 /* magic values for the inode_only field in btrfs_log_inode:
  *
@@ -2250,10 +2249,8 @@ again:
 			nritems = btrfs_header_nritems(path->nodes[0]);
 			if (path->slots[0] >= nritems) {
 				ret = btrfs_next_leaf(root, path);
-				if (ret == 1)
+				if (ret)
 					break;
-				else if (ret < 0)
-					goto out;
 			}
 			btrfs_item_key_to_cpu(path->nodes[0], &found_key,
 					      path->slots[0]);
@@ -2475,9 +2472,6 @@ static noinline int walk_down_log_tree(struct btrfs_trans_handle *trans,
 					clean_tree_block(trans, fs_info, next);
 					btrfs_wait_tree_block_writeback(next);
 					btrfs_tree_unlock(next);
-				} else {
-					if (test_and_clear_bit(EXTENT_BUFFER_DIRTY, &next->bflags))
-						clear_extent_buffer_dirty(next);
 				}
 
 				WARN_ON(root_owner !=
@@ -2558,9 +2552,6 @@ static noinline int walk_up_log_tree(struct btrfs_trans_handle *trans,
 					clean_tree_block(trans, fs_info, next);
 					btrfs_wait_tree_block_writeback(next);
 					btrfs_tree_unlock(next);
-				} else {
-					if (test_and_clear_bit(EXTENT_BUFFER_DIRTY, &next->bflags))
-						clear_extent_buffer_dirty(next);
 				}
 
 				WARN_ON(root_owner != BTRFS_TREE_LOG_OBJECTID);
@@ -2639,9 +2630,6 @@ static int walk_log_tree(struct btrfs_trans_handle *trans,
 				clean_tree_block(trans, fs_info, next);
 				btrfs_wait_tree_block_writeback(next);
 				btrfs_tree_unlock(next);
-			} else {
-				if (test_and_clear_bit(EXTENT_BUFFER_DIRTY, &next->bflags))
-					clear_extent_buffer_dirty(next);
 			}
 
 			WARN_ON(log->root_key.objectid !=
@@ -2991,11 +2979,8 @@ out_wake_log_root:
 	mutex_unlock(&log_root_tree->log_mutex);
 
 	/*
-	 * The barrier before waitqueue_active is needed so all the updates
-	 * above are seen by the woken threads. It might not be necessary, but
-	 * proving that seems to be hard.
+	 * The barrier before waitqueue_active is implied by mutex_unlock
 	 */
-	smp_mb();
 	if (waitqueue_active(&log_root_tree->log_commit_wait[index2]))
 		wake_up(&log_root_tree->log_commit_wait[index2]);
 out:
@@ -3006,11 +2991,8 @@ out:
 	mutex_unlock(&root->log_mutex);
 
 	/*
-	 * The barrier before waitqueue_active is needed so all the updates
-	 * above are seen by the woken threads. It might not be necessary, but
-	 * proving that seems to be hard.
+	 * The barrier before waitqueue_active is implied by mutex_unlock
 	 */
-	smp_mb();
 	if (waitqueue_active(&root->log_commit_wait[index1]))
 		wake_up(&root->log_commit_wait[index1]);
 	return ret;
@@ -3417,11 +3399,8 @@ static noinline int log_dir_items(struct btrfs_trans_handle *trans,
 		 * from this directory and from this transaction
 		 */
 		ret = btrfs_next_leaf(root, path);
-		if (ret) {
-			if (ret == 1)
-				last_offset = (u64)-1;
-			else
-				err = ret;
+		if (ret == 1) {
+			last_offset = (u64)-1;
 			goto done;
 		}
 		btrfs_item_key_to_cpu(path->nodes[0], &tmp, path->slots[0]);
@@ -3873,7 +3852,6 @@ fill_holes:
 			ASSERT(ret == 0);
 			src = src_path->nodes[0];
 			i = 0;
-			need_find_last_extent = true;
 		}
 
 		btrfs_item_key_to_cpu(src, &key, i);
@@ -4643,7 +4621,6 @@ static int btrfs_log_inode(struct btrfs_trans_handle *trans,
 	struct extent_map_tree *em_tree = &BTRFS_I(inode)->extent_tree;
 	u64 logged_isize = 0;
 	bool need_log_inode_item = true;
-	bool xattrs_logged = false;
 
 	path = btrfs_alloc_path();
 	if (!path)
@@ -4948,7 +4925,6 @@ next_key:
 	err = btrfs_log_all_xattrs(trans, root, inode, path, dst_path);
 	if (err)
 		goto out_unlock;
-	xattrs_logged = true;
 	if (max_key.type >= BTRFS_EXTENT_DATA_KEY && !fast_search) {
 		btrfs_release_path(path);
 		btrfs_release_path(dst_path);
@@ -4961,11 +4937,6 @@ log_extents:
 	btrfs_release_path(dst_path);
 	if (need_log_inode_item) {
 		err = log_inode_item(trans, log, dst_path, inode);
-		if (!err && !xattrs_logged) {
-			err = btrfs_log_all_xattrs(trans, root, inode, path,
-						   dst_path);
-			btrfs_release_path(path);
-		}
 		if (err)
 			goto out_unlock;
 	}
@@ -5698,23 +5669,6 @@ again:
 		if (!ret && wc.stage == LOG_WALK_REPLAY_ALL) {
 			ret = fixup_inode_link_counts(trans, wc.replay_dest,
 						      path);
-		}
-
-		if (!ret && wc.stage == LOG_WALK_REPLAY_ALL) {
-			struct btrfs_root *root = wc.replay_dest;
-
-			btrfs_release_path(path);
-
-			/*
-			 * We have just replayed everything, and the highest
-			 * objectid of fs roots probably has changed in case
-			 * some inode_item's got replayed.
-			 *
-			 * root->objectid_mutex is not acquired as log replay
-			 * could only happen during mount.
-			 */
-			ret = btrfs_find_highest_objectid(root,
-						  &root->highest_objectid);
 		}
 
 		key.offset = found_key.offset - 1;
