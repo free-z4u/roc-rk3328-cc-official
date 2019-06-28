@@ -72,10 +72,6 @@ int fwnode_property_read_string(struct fwnode_handle *fwnode,
 				const char *propname, const char **val);
 int fwnode_property_match_string(struct fwnode_handle *fwnode,
 				 const char *propname, const char *string);
-int fwnode_property_get_reference_args(struct fwnode_handle *fwnode,
-				       const char *prop, const char *nargs_prop,
-				       unsigned int nargs, unsigned int index,
-				       struct fwnode_reference_args *args);
 
 struct fwnode_handle *fwnode_get_parent(struct fwnode_handle *fwnode);
 struct fwnode_handle *fwnode_get_next_parent(struct fwnode_handle *fwnode);
@@ -179,12 +175,12 @@ struct property_entry {
 	bool is_string;
 	union {
 		union {
-			void *raw_data;
-			u8 *u8_data;
-			u16 *u16_data;
-			u32 *u32_data;
-			u64 *u64_data;
-			const char **str;
+			const void *raw_data;
+			const u8 *u8_data;
+			const u16 *u16_data;
+			const u32 *u32_data;
+			const u64 *u64_data;
+			const char * const *str;
 		} pointer;
 		union {
 			unsigned long long raw_data;
@@ -260,8 +256,13 @@ struct property_entry {
 	.name = _name_,				\
 }
 
+struct property_entry *
+property_entries_dup(const struct property_entry *properties);
+
+void property_entries_free(const struct property_entry *properties);
+
 int device_add_properties(struct device *dev,
-			  struct property_entry *properties);
+			  const struct property_entry *properties);
 void device_remove_properties(struct device *dev);
 
 bool device_dma_supported(struct device *dev);

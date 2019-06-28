@@ -2429,10 +2429,14 @@ static int rockchip_dmcfreq_probe(struct platform_device *pdev)
 	 */
 	lkg_volt_sel = rockchip_of_get_lkg_volt_sel(dev, "ddr_leakage");
 	if (lkg_volt_sel >= 0) {
+		struct opp_table *opp_table;
+
 		snprintf(name, MAX_PROP_NAME_LEN, "L%d", lkg_volt_sel);
-		ret = dev_pm_opp_set_prop_name(dev, name);
-		if (ret)
+		opp_table = dev_pm_opp_set_prop_name(dev, name);
+		if (IS_ERR(opp_table)) {
 			dev_err(dev, "Failed to set prop name\n");
+			return PTR_ERR(opp_table);
+		}
 	}
 
 	if (dev_pm_opp_of_add_table(dev)) {
