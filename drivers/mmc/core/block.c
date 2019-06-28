@@ -1560,10 +1560,7 @@ static bool mmc_blk_rw_cmd_err(struct mmc_blk_data *md, struct mmc_card *card,
 			       struct mmc_blk_request *brq, struct request *req,
 			       bool old_req_pending)
 {
-	struct mmc_queue_req *mq_rq;
 	bool req_pending;
-
-	mq_rq = container_of(brq, struct mmc_queue_req, brq);
 
 	/*
 	 * If this is an SD card and we're writing, we can first
@@ -2102,7 +2099,6 @@ force_ro_fail:
 	return ret;
 }
 
-extern struct mmc_card *this_card;
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
@@ -2130,18 +2126,6 @@ static int mmc_blk_probe(struct mmc_card *card)
 		goto out;
 
 	dev_set_drvdata(&card->dev, md);
-
-#if defined(CONFIG_MMC_DW_ROCKCHIP) || defined(CONFIG_MMC_SDHCI_OF_ARASAN)
-  md->disk->is_rk_disk = false;
-	if (card->host->restrict_caps & RESTRICT_CARD_TYPE_EMMC) {
-		this_card = card;
-    if (strstr(saved_command_line, "storagemedia=emmc"))
-      md->disk->is_rk_disk = true;
-  } else if (card->host->restrict_caps & (RESTRICT_CARD_TYPE_SD | RESTRICT_CARD_TYPE_SDIO)) {
-    if (strstr(saved_command_line, "storagemedia=sd"))
-      md->disk->is_rk_disk = true;
-  }
-#endif
 
 	if (mmc_add_disk(md))
 		goto out;
@@ -2174,11 +2158,6 @@ static int mmc_blk_probe(struct mmc_card *card)
 static void mmc_blk_remove(struct mmc_card *card)
 {
 	struct mmc_blk_data *md = dev_get_drvdata(&card->dev);
-
-#if defined(CONFIG_MMC_DW_ROCKCHIP) || defined(CONFIG_MMC_SDHCI_OF_ARASAN)
-	if (card->host->restrict_caps & RESTRICT_CARD_TYPE_EMMC)
-		this_card = NULL;
-#endif
 
 	mmc_blk_remove_parts(card, md);
 	pm_runtime_get_sync(&card->dev);
