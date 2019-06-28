@@ -27,8 +27,6 @@
 
 #include "cpufreq-dt.h"
 
-#define MAX_CLUSTERS		2
-
 struct private_data {
 	struct opp_table *opp_table;
 	struct device *cpu_dev;
@@ -151,15 +149,10 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 	struct device *cpu_dev;
 	struct clk *cpu_clk;
 	struct dev_pm_opp *suspend_opp;
-#ifdef CONFIG_ARCH_ROCKCHIP
-	struct cpumask cpus;
-#endif
 	unsigned int transition_latency;
-	unsigned long cur_freq;
 	bool fallback = false;
 	const char *name;
 	int ret;
-	static int check_init;
 
 	cpu_dev = get_cpu_device(policy->cpu);
 	if (!cpu_dev) {
@@ -214,22 +207,7 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 	 *
 	 * OPPs might be populated at runtime, don't check for error here
 	 */
-#ifdef CONFIG_ARCH_ROCKCHIP
-	ret = dev_pm_opp_of_add_table(cpu_dev);
-	if (ret) {
-		dev_err(cpu_dev, "couldn't find opp table for cpu:%d, %d\n",
-			policy->cpu, ret);
-	} else {
-		cpumask_copy(&cpus, policy->cpus);
-		cpumask_clear_cpu(policy->cpu, &cpus);
-		if (!cpumask_empty(&cpus)) {
-			if (dev_pm_opp_of_cpumask_add_table(&cpus))
-				dev_pm_opp_of_remove_table(cpu_dev);
-		}
-	}
-#else
 	dev_pm_opp_of_cpumask_add_table(policy->cpus);
-#endif
 
 	/*
 	 * But we need OPP table to function so if it is not there let's
@@ -302,13 +280,6 @@ static int cpufreq_init(struct cpufreq_policy *policy)
 
 	policy->cpuinfo.transition_latency = transition_latency;
 
-	if (check_init < MAX_CLUSTERS) {
-		ret = dev_pm_opp_set_rate(cpu_dev, cur_freq);
-		if (ret)
-			dev_err(cpu_dev, "failed to set cur_freq: %ld\n", cur_freq);
-		check_init++;
-	}
-
 	return 0;
 
 out_free_cpufreq_table:
@@ -327,22 +298,11 @@ out_put_clk:
 
 static int cpufreq_exit(struct cpufreq_policy *policy)
 {
-	struct cpumask cpus;
 	struct private_data *priv = policy->driver_data;
 
-#ifdef CONFIG_ARCH_ROCKCHIP
-	cpumask_set_cpu(policy->cpu, policy->cpus);
-	if (cpufreq_generic_suspend(policy))
-		pr_err("%s: Failed to suspend driver: %p\n", __func__, policy);
-	cpumask_clear_cpu(policy->cpu, policy->cpus);
-#endif
-	priv->cpu_dev = get_cpu_device(policy->cpu);
 	cpufreq_cooling_unregister(priv->cdev);
 	dev_pm_opp_free_cpufreq_table(priv->cpu_dev, &policy->freq_table);
-	cpumask_copy(&cpus, policy->related_cpus);
-	cpumask_clear_cpu(policy->cpu, &cpus);
-	dev_pm_opp_of_cpumask_remove_table(&cpus);
-	dev_pm_opp_of_remove_table(priv->cpu_dev);
+	dev_pm_opp_of_cpumask_remove_table(policy->related_cpus);
 	if (priv->reg_name)
 		dev_pm_opp_put_regulators(priv->opp_table);
 
@@ -385,8 +345,7 @@ static void cpufreq_ready(struct cpufreq_policy *policy)
 }
 
 static struct cpufreq_driver dt_cpufreq_driver = {
-	.flags = CPUFREQ_STICKY | CPUFREQ_NEED_INITIAL_FREQ_CHECK |
-			 CPUFREQ_HAVE_GOVERNOR_PER_POLICY,
+	.flags = CPUFREQ_STICKY | CPUFREQ_NEED_INITIAL_FREQ_CHECK,
 	.verify = cpufreq_generic_frequency_table_verify,
 	.target_index = set_target,
 	.get = cpufreq_generic_get,

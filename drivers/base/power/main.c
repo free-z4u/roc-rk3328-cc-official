@@ -33,7 +33,6 @@
 #include <linux/cpufreq.h>
 #include <linux/cpuidle.h>
 #include <linux/timer.h>
-#include <linux/wakeup_reason.h>
 
 #include "../base.h"
 #include "power.h"
@@ -193,14 +192,14 @@ void device_pm_move_last(struct device *dev)
 	list_move_tail(&dev->power.entry, &dpm_list);
 }
 
-static ktime_t initcall_debug_start(struct device *dev, void *cb)
+static ktime_t initcall_debug_start(struct device *dev)
 {
 	ktime_t calltime = 0;
 
 	if (pm_print_times_enabled) {
-		pr_info("calling  %s+ @ %i, parent: %s, cb: %pf\n",
+		pr_info("calling  %s+ @ %i, parent: %s\n",
 			dev_name(dev), task_pid_nr(current),
-			dev->parent ? dev_name(dev->parent) : "none", cb);
+			dev->parent ? dev_name(dev->parent) : "none");
 		calltime = ktime_get();
 	}
 
@@ -443,7 +442,7 @@ static int dpm_run_callback(pm_callback_t cb, struct device *dev,
 	if (!cb)
 		return 0;
 
-	calltime = initcall_debug_start(dev, cb);
+	calltime = initcall_debug_start(dev);
 
 	pm_dev_dbg(dev, state, info);
 	trace_device_pm_callback_start(dev, info, state.event);
@@ -1389,7 +1388,7 @@ static int legacy_suspend(struct device *dev, pm_message_t state,
 	int error;
 	ktime_t calltime;
 
-	calltime = initcall_debug_start(dev, cb);
+	calltime = initcall_debug_start(dev);
 
 	trace_device_pm_callback_start(dev, info, state.event);
 	error = cb(dev, state);
@@ -1428,7 +1427,6 @@ static int __device_suspend(struct device *dev, pm_message_t state, bool async)
 	pm_callback_t callback = NULL;
 	char *info = NULL;
 	int error = 0;
-	char suspend_abort[MAX_SUSPEND_ABORT_LEN];
 	DECLARE_DPM_WATCHDOG_ON_STACK(wd);
 
 	TRACE_DEVICE(dev);
@@ -1449,9 +1447,6 @@ static int __device_suspend(struct device *dev, pm_message_t state, bool async)
 		pm_wakeup_event(dev, 0);
 
 	if (pm_wakeup_pending()) {
-		pm_get_active_wakeup_sources(suspend_abort,
-			MAX_SUSPEND_ABORT_LEN);
-		log_suspend_abort_reason(suspend_abort);
 		async_error = -EBUSY;
 		goto Complete;
 	}

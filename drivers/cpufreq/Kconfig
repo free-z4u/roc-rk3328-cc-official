@@ -102,14 +102,6 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
 
-config CPU_FREQ_DEFAULT_GOV_SCHED
-	bool "sched"
-	select CPU_FREQ_GOV_SCHED
-	help
-	  Use the CPUfreq governor 'sched' as default. This scales
-	  cpu frequency using CPU utilization estimates from the
-	  scheduler.
-
 config CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	bool "schedutil"
 	depends on SMP
@@ -281,7 +273,6 @@ endif
 if MIPS
 config LOONGSON2_CPUFREQ
 	tristate "Loongson2 CPUFreq Driver"
-	depends on LEMOTE_MACH2F
 	help
 	  This option adds a CPUFreq driver for loongson processors which
 	  support software configurable cpu frequency.
@@ -294,7 +285,6 @@ config LOONGSON2_CPUFREQ
 
 config LOONGSON1_CPUFREQ
 	tristate "Loongson1 CPUFreq Driver"
-	depends on LOONGSON1_LS1B
 	help
 	  This option adds a CPUFreq driver for loongson1 processors which
 	  support software configurable cpu frequency.
