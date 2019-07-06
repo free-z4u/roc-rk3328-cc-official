@@ -128,6 +128,10 @@ enum qca9377_chip_id_rev {
 #define QCA4019_HW_1_0_BOARD_DATA_FILE "board.bin"
 #define QCA4019_HW_1_0_PATCH_LOAD_ADDR  0x1234
 
+#define ATH10K_FW_FILE_BASE		"firmware"
+#define ATH10K_FW_API_MAX		5
+#define ATH10K_FW_API_MIN		2
+
 #define ATH10K_FW_API2_FILE		"firmware-2.bin"
 #define ATH10K_FW_API3_FILE		"firmware-3.bin"
 
@@ -577,6 +581,9 @@ ath10k_rx_desc_get_l3_pad_bytes(struct ath10k_hw_params *hw,
 #define TARGET_10_4_ATF_CONFIG			0
 #define TARGET_10_4_IPHDR_PAD_CONFIG		1
 #define TARGET_10_4_QWRAP_CONFIG		0
+
+/* Maximum number of Copy Engine's supported */
+#define CE_COUNT_MAX 12
 
 /* Number of Copy Engines supported */
 #define CE_COUNT ar->hw_values->ce_count

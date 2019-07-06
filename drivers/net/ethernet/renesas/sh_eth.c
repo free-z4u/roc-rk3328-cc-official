@@ -518,7 +518,14 @@ static struct sh_eth_cpu_data r7s72100_data = {
 
 	.ecsr_value	= ECSR_ICD,
 	.ecsipr_value	= ECSIPR_ICDIP,
-	.eesipr_value	= 0xe77f009f,
+	.eesipr_value	= EESIPR_TWB1IP | EESIPR_TWBIP | EESIPR_TC1IP |
+			  EESIPR_TABTIP | EESIPR_RABTIP | EESIPR_RFCOFIP |
+			  EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  EESIPR_RMAFIP | EESIPR_RRFIP |
+			  EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_TC1 | EESR_FTC,
 	.eesr_err_check	= EESR_TWB1 | EESR_TWB | EESR_TABT | EESR_RABT |
@@ -535,9 +542,8 @@ static struct sh_eth_cpu_data r7s72100_data = {
 	.rpadir_value   = 2 << 16,
 	.no_trimd	= 1,
 	.no_ade		= 1,
-	.hw_crc		= 1,
+	.hw_checksum	= 1,
 	.tsu		= 1,
-	.shift_rd0	= 1,
 };
 
 static void sh_eth_chip_reset_r8a7740(struct net_device *ndev)
@@ -557,7 +563,14 @@ static struct sh_eth_cpu_data r8a7740_data = {
 
 	.ecsr_value	= ECSR_ICD | ECSR_MPD,
 	.ecsipr_value	= ECSIPR_LCHNGIP | ECSIPR_ICDIP | ECSIPR_MPDIP,
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003fffff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  0x0000f000 | EESIPR_CNDIP | EESIPR_DLCIP |
+			  EESIPR_CDIP | EESIPR_TROIP | EESIPR_RMAFIP |
+			  EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_TC1 | EESR_FTC,
 	.eesr_err_check	= EESR_TWB1 | EESR_TWB | EESR_TABT | EESR_RABT |
@@ -574,10 +587,10 @@ static struct sh_eth_cpu_data r8a7740_data = {
 	.rpadir_value   = 2 << 16,
 	.no_trimd	= 1,
 	.no_ade		= 1,
-	.hw_crc		= 1,
+	.hw_checksum	= 1,
 	.tsu		= 1,
 	.select_mii	= 1,
-	.shift_rd0	= 1,
+	.magic		= 1,
 };
 
 /* There is CPU dependent code */
@@ -604,7 +617,12 @@ static struct sh_eth_cpu_data r8a777x_data = {
 
 	.ecsr_value	= ECSR_PSRTO | ECSR_LCHNG | ECSR_ICD,
 	.ecsipr_value	= ECSIPR_PSRTOIP | ECSIPR_LCHNGIP | ECSIPR_ICDIP,
-	.eesipr_value	= 0x01ff009f,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ADEIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  EESIPR_RMAFIP | EESIPR_RRFIP |
+			  EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_FTC | EESR_CND | EESR_DLC | EESR_CD | EESR_RTO,
 	.eesr_err_check	= EESR_TWB | EESR_TABT | EESR_RABT | EESR_RFE |
@@ -624,9 +642,15 @@ static struct sh_eth_cpu_data r8a779x_data = {
 
 	.register_type	= SH_ETH_REG_FAST_RCAR,
 
-	.ecsr_value	= ECSR_PSRTO | ECSR_LCHNG | ECSR_ICD,
-	.ecsipr_value	= ECSIPR_PSRTOIP | ECSIPR_LCHNGIP | ECSIPR_ICDIP,
-	.eesipr_value	= 0x01ff009f,
+	.ecsr_value	= ECSR_PSRTO | ECSR_LCHNG | ECSR_ICD | ECSR_MPD,
+	.ecsipr_value	= ECSIPR_PSRTOIP | ECSIPR_LCHNGIP | ECSIPR_ICDIP |
+			  ECSIPR_MPDIP,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ADEIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  EESIPR_RMAFIP | EESIPR_RRFIP |
+			  EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_FTC | EESR_CND | EESR_DLC | EESR_CD | EESR_RTO,
 	.eesr_err_check	= EESR_TWB | EESR_TABT | EESR_RABT | EESR_RFE |
@@ -640,6 +664,7 @@ static struct sh_eth_cpu_data r8a779x_data = {
 	.tpauser	= 1,
 	.hw_swap	= 1,
 	.rmiimode	= 1,
+	.magic		= 1,
 };
 #endif /* CONFIG_OF */
 
@@ -666,7 +691,12 @@ static struct sh_eth_cpu_data sh7724_data = {
 
 	.ecsr_value	= ECSR_PSRTO | ECSR_LCHNG | ECSR_ICD,
 	.ecsipr_value	= ECSIPR_PSRTOIP | ECSIPR_LCHNGIP | ECSIPR_ICDIP,
-	.eesipr_value	= 0x01ff009f,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ADEIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  EESIPR_RMAFIP | EESIPR_RRFIP |
+			  EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_FTC | EESR_CND | EESR_DLC | EESR_CD | EESR_RTO,
 	.eesr_err_check	= EESR_TWB | EESR_TABT | EESR_RABT | EESR_RFE |
@@ -701,7 +731,14 @@ static struct sh_eth_cpu_data sh7757_data = {
 
 	.register_type	= SH_ETH_REG_FAST_SH4,
 
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003fffff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  0x0000f000 | EESIPR_CNDIP | EESIPR_DLCIP |
+			  EESIPR_CDIP | EESIPR_TROIP | EESIPR_RMAFIP |
+			  EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_FTC | EESR_CND | EESR_DLC | EESR_CD | EESR_RTO,
 	.eesr_err_check	= EESR_TWB | EESR_TABT | EESR_RABT | EESR_RFE |
@@ -768,7 +805,14 @@ static struct sh_eth_cpu_data sh7757_data_giga = {
 
 	.ecsr_value	= ECSR_ICD | ECSR_MPD,
 	.ecsipr_value	= ECSIPR_LCHNGIP | ECSIPR_ICDIP | ECSIPR_MPDIP,
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003fffff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  0x0000f000 | EESIPR_CNDIP | EESIPR_DLCIP |
+			  EESIPR_CDIP | EESIPR_TROIP | EESIPR_RMAFIP |
+			  EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_TC1 | EESR_FTC,
 	.eesr_err_check	= EESR_TWB1 | EESR_TWB | EESR_TABT | EESR_RABT |
@@ -799,7 +843,13 @@ static struct sh_eth_cpu_data sh7734_data = {
 
 	.ecsr_value	= ECSR_ICD | ECSR_MPD,
 	.ecsipr_value	= ECSIPR_LCHNGIP | ECSIPR_ICDIP | ECSIPR_MPDIP,
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003f07ff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  EESIPR_DLCIP | EESIPR_CDIP | EESIPR_TROIP |
+			  EESIPR_RMAFIP | EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_TC1 | EESR_FTC,
 	.eesr_err_check	= EESR_TWB1 | EESR_TWB | EESR_TABT | EESR_RABT |
@@ -814,9 +864,9 @@ static struct sh_eth_cpu_data sh7734_data = {
 	.no_trimd	= 1,
 	.no_ade		= 1,
 	.tsu		= 1,
-	.hw_crc		= 1,
+	.hw_checksum	= 1,
 	.select_mii	= 1,
-	.shift_rd0	= 1,
+	.magic		= 1,
 };
 
 /* SH7763 */
@@ -829,7 +879,13 @@ static struct sh_eth_cpu_data sh7763_data = {
 
 	.ecsr_value	= ECSR_ICD | ECSR_MPD,
 	.ecsipr_value	= ECSIPR_LCHNGIP | ECSIPR_ICDIP | ECSIPR_MPDIP,
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003f07ff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  EESIPR_DLCIP | EESIPR_CDIP | EESIPR_TROIP |
+			  EESIPR_RMAFIP | EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.tx_check	= EESR_TC1 | EESR_FTC,
 	.eesr_err_check	= EESR_TWB1 | EESR_TWB | EESR_TABT | EESR_RABT |
@@ -844,12 +900,20 @@ static struct sh_eth_cpu_data sh7763_data = {
 	.no_ade		= 1,
 	.tsu		= 1,
 	.irq_flags	= IRQF_SHARED,
+	.magic		= 1,
 };
 
 static struct sh_eth_cpu_data sh7619_data = {
 	.register_type	= SH_ETH_REG_FAST_SH3_SH2,
 
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003fffff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  0x0000f000 | EESIPR_CNDIP | EESIPR_DLCIP |
+			  EESIPR_CDIP | EESIPR_TROIP | EESIPR_RMAFIP |
+			  EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 
 	.apr		= 1,
 	.mpr		= 1,
@@ -860,7 +924,14 @@ static struct sh_eth_cpu_data sh7619_data = {
 static struct sh_eth_cpu_data sh771x_data = {
 	.register_type	= SH_ETH_REG_FAST_SH3_SH2,
 
-	.eesipr_value	= DMAC_M_RFRMER | DMAC_M_ECI | 0x003fffff,
+	.eesipr_value	= EESIPR_RFCOFIP | EESIPR_ECIIP |
+			  EESIPR_FTCIP | EESIPR_TDEIP | EESIPR_TFUFIP |
+			  EESIPR_FRIP | EESIPR_RDEIP | EESIPR_RFOFIP |
+			  0x0000f000 | EESIPR_CNDIP | EESIPR_DLCIP |
+			  EESIPR_CDIP | EESIPR_TROIP | EESIPR_RMAFIP |
+			  EESIPR_CEEFIP | EESIPR_CELFIP |
+			  EESIPR_RRFIP | EESIPR_RTLFIP | EESIPR_RTSFIP |
+			  EESIPR_PREIP | EESIPR_CERFIP,
 	.tsu		= 1,
 };
 
@@ -931,7 +1002,7 @@ static int sh_eth_reset(struct net_device *ndev)
 		sh_eth_write(ndev, 0x0, RDFFR);
 
 		/* Reset HW CRC register */
-		if (mdp->cd->hw_crc)
+		if (mdp->cd->hw_checksum)
 			sh_eth_write(ndev, 0x0, CSMR);
 
 		/* Select MII mode */
@@ -1416,7 +1487,7 @@ static int sh_eth_rx(struct net_device *ndev, u32 intr_status, int *quota)
 		 * the RFS bits are from bit 25 to bit 16. So, the
 		 * driver needs right shifting by 16.
 		 */
-		if (mdp->cd->shift_rd0)
+		if (mdp->cd->hw_checksum)
 			desc_status >>= 16;
 
 		skb = mdp->rx_skbuff[entry];
@@ -1534,6 +1605,8 @@ static void sh_eth_emac_interrupt(struct net_device *ndev)
 	sh_eth_write(ndev, felic_stat, ECSR);	/* clear int */
 	if (felic_stat & ECSR_ICD)
 		ndev->stats.tx_carrier_errors++;
+	if (felic_stat & ECSR_MPD)
+		pm_wakeup_event(&mdp->pdev->dev, 0);
 	if (felic_stat & ECSR_LCHNG) {
 		/* Link Changed */
 		if (mdp->cd->no_psr || mdp->no_ether_link)
@@ -1545,10 +1618,10 @@ static void sh_eth_emac_interrupt(struct net_device *ndev)
 			sh_eth_rcv_snd_disable(ndev);
 		} else {
 			/* Link Up */
-			sh_eth_modify(ndev, EESIPR, DMAC_M_ECI, 0);
+			sh_eth_modify(ndev, EESIPR, EESIPR_ECIIP, 0);
 			/* clear int */
 			sh_eth_modify(ndev, ECSR, 0, 0);
-			sh_eth_modify(ndev, EESIPR, DMAC_M_ECI, DMAC_M_ECI);
+			sh_eth_modify(ndev, EESIPR, EESIPR_ECIIP, EESIPR_ECIIP);
 			/* enable tx and rx */
 			sh_eth_rcv_snd_enable(ndev);
 		}
@@ -1648,7 +1721,7 @@ static irqreturn_t sh_eth_interrupt(int irq, void *netdev)
 	 * bit...
 	 */
 	intr_enable = sh_eth_read(ndev, EESIPR);
-	intr_status &= intr_enable | DMAC_M_ECI;
+	intr_status &= intr_enable | EESIPR_ECIIP;
 	if (intr_status & (EESR_RX_CHECK | cd->tx_check | EESR_ECI |
 			   cd->eesr_err_check))
 		ret = IRQ_HANDLED;
@@ -1990,7 +2063,7 @@ static size_t __sh_eth_get_regs(struct net_device *ndev, u32 *buf)
 	add_reg(MAFCR);
 	if (cd->rtrate)
 		add_reg(RTRATE);
-	if (cd->hw_crc)
+	if (cd->hw_checksum)
 		add_reg(CSMR);
 	if (cd->select_mii)
 		add_reg(RMII_MII);
@@ -2202,6 +2275,33 @@ static int sh_eth_set_ringparam(struct net_device *ndev,
 	return 0;
 }
 
+static void sh_eth_get_wol(struct net_device *ndev, struct ethtool_wolinfo *wol)
+{
+	struct sh_eth_private *mdp = netdev_priv(ndev);
+
+	wol->supported = 0;
+	wol->wolopts = 0;
+
+	if (mdp->cd->magic && mdp->clk) {
+		wol->supported = WAKE_MAGIC;
+		wol->wolopts = mdp->wol_enabled ? WAKE_MAGIC : 0;
+	}
+}
+
+static int sh_eth_set_wol(struct net_device *ndev, struct ethtool_wolinfo *wol)
+{
+	struct sh_eth_private *mdp = netdev_priv(ndev);
+
+	if (!mdp->cd->magic || !mdp->clk || wol->wolopts & ~WAKE_MAGIC)
+		return -EOPNOTSUPP;
+
+	mdp->wol_enabled = !!(wol->wolopts & WAKE_MAGIC);
+
+	device_set_wakeup_enable(&mdp->pdev->dev, mdp->wol_enabled);
+
+	return 0;
+}
+
 static const struct ethtool_ops sh_eth_ethtool_ops = {
 	.get_regs_len	= sh_eth_get_regs_len,
 	.get_regs	= sh_eth_get_regs,
@@ -2216,6 +2316,8 @@ static const struct ethtool_ops sh_eth_ethtool_ops = {
 	.set_ringparam	= sh_eth_set_ringparam,
 	.get_link_ksettings = sh_eth_get_link_ksettings,
 	.set_link_ksettings = sh_eth_set_link_ksettings,
+	.get_wol	= sh_eth_get_wol,
+	.set_wol	= sh_eth_set_wol,
 };
 
 /* network device open function */
@@ -3018,6 +3120,11 @@ static int sh_eth_drv_probe(struct platform_device *pdev)
 		goto out_release;
 	}
 
+	/* Get clock, if not found that's OK but Wake-On-Lan is unavailable */
+	mdp->clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(mdp->clk))
+		mdp->clk = NULL;
+
 	ndev->base_addr = res->start;
 
 	spin_lock_init(&mdp->lock);
@@ -3112,6 +3219,9 @@ static int sh_eth_drv_probe(struct platform_device *pdev)
 	if (ret)
 		goto out_napi_del;
 
+	if (mdp->cd->magic && mdp->clk)
+		device_set_wakeup_capable(&pdev->dev, 1);
+
 	/* print device information */
 	netdev_info(ndev, "Base address at 0x%x, %pM, IRQ %d.\n",
 		    (u32)ndev->base_addr, ndev->dev_addr, ndev->irq);
@@ -3151,15 +3261,67 @@ static int sh_eth_drv_remove(struct platform_device *pdev)
 
 #ifdef CONFIG_PM
 #ifdef CONFIG_PM_SLEEP
+static int sh_eth_wol_setup(struct net_device *ndev)
+{
+	struct sh_eth_private *mdp = netdev_priv(ndev);
+
+	/* Only allow ECI interrupts */
+	synchronize_irq(ndev->irq);
+	napi_disable(&mdp->napi);
+	sh_eth_write(ndev, EESIPR_ECIIP, EESIPR);
+
+	/* Enable MagicPacket */
+	sh_eth_modify(ndev, ECMR, ECMR_MPDE, ECMR_MPDE);
+
+	/* Increased clock usage so device won't be suspended */
+	clk_enable(mdp->clk);
+
+	return enable_irq_wake(ndev->irq);
+}
+
+static int sh_eth_wol_restore(struct net_device *ndev)
+{
+	struct sh_eth_private *mdp = netdev_priv(ndev);
+	int ret;
+
+	napi_enable(&mdp->napi);
+
+	/* Disable MagicPacket */
+	sh_eth_modify(ndev, ECMR, ECMR_MPDE, 0);
+
+	/* The device needs to be reset to restore MagicPacket logic
+	 * for next wakeup. If we close and open the device it will
+	 * both be reset and all registers restored. This is what
+	 * happens during suspend and resume without WoL enabled.
+	 */
+	ret = sh_eth_close(ndev);
+	if (ret < 0)
+		return ret;
+	ret = sh_eth_open(ndev);
+	if (ret < 0)
+		return ret;
+
+	/* Restore clock usage count */
+	clk_disable(mdp->clk);
+
+	return disable_irq_wake(ndev->irq);
+}
+
 static int sh_eth_suspend(struct device *dev)
 {
 	struct net_device *ndev = dev_get_drvdata(dev);
+	struct sh_eth_private *mdp = netdev_priv(ndev);
 	int ret = 0;
 
-	if (netif_running(ndev)) {
-		netif_device_detach(ndev);
+	if (!netif_running(ndev))
+		return 0;
+
+	netif_device_detach(ndev);
+
+	if (mdp->wol_enabled)
+		ret = sh_eth_wol_setup(ndev);
+	else
 		ret = sh_eth_close(ndev);
-	}
 
 	return ret;
 }
@@ -3167,14 +3329,21 @@ static int sh_eth_suspend(struct device *dev)
 static int sh_eth_resume(struct device *dev)
 {
 	struct net_device *ndev = dev_get_drvdata(dev);
+	struct sh_eth_private *mdp = netdev_priv(ndev);
 	int ret = 0;
 
-	if (netif_running(ndev)) {
+	if (!netif_running(ndev))
+		return 0;
+
+	if (mdp->wol_enabled)
+		ret = sh_eth_wol_restore(ndev);
+	else
 		ret = sh_eth_open(ndev);
-		if (ret < 0)
-			return ret;
-		netif_device_attach(ndev);
-	}
+
+	if (ret < 0)
+		return ret;
+
+	netif_device_attach(ndev);
 
 	return ret;
 }

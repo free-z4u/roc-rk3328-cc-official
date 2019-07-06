@@ -102,8 +102,8 @@ static int ipvlan_port_create(struct net_device *dev)
 		return -EINVAL;
 	}
 
-	if (netif_is_macvlan_port(dev)) {
-		netdev_err(dev, "Master is a macvlan port.\n");
+	if (netdev_is_rx_handler_busy(dev)) {
+		netdev_err(dev, "Device is already in use.\n");
 		return -EBUSY;
 	}
 
@@ -120,6 +120,7 @@ static int ipvlan_port_create(struct net_device *dev)
 	skb_queue_head_init(&port->backlog);
 	INIT_WORK(&port->wq, ipvlan_process_multicast);
 	ida_init(&port->ida);
+	port->dev_id_start = 1;
 
 	err = netdev_rx_handler_register(dev, ipvlan_handle_frame, port);
 	if (err)
@@ -495,8 +496,8 @@ err:
 	return ret;
 }
 
-static int ipvlan_link_new(struct net *src_net, struct net_device *dev,
-			   struct nlattr *tb[], struct nlattr *data[])
+int ipvlan_link_new(struct net *src_net, struct net_device *dev,
+		    struct nlattr *tb[], struct nlattr *data[])
 {
 	struct ipvl_dev *ipvlan = netdev_priv(dev);
 	struct ipvl_port *port;
@@ -534,15 +535,28 @@ static int ipvlan_link_new(struct net *src_net, struct net_device *dev,
 	ipvlan_adjust_mtu(ipvlan, phy_dev);
 	INIT_LIST_HEAD(&ipvlan->addrs);
 
+	/* If the port-id base is at the MAX value, then wrap it around and
+	 * begin from 0x1 again. This may be due to a busy system where lots
+	 * of slaves are getting created and deleted.
+	 */
+	if (port->dev_id_start == 0xFFFE)
+		port->dev_id_start = 0x1;
+
 	/* Since L2 address is shared among all IPvlan slaves including
 	 * master, use unique 16 bit dev-ids to diffentiate among them.
 	 * Assign IDs between 0x1 and 0xFFFE (used by the master) to each
 	 * slave link [see addrconf_ifid_eui48()].
 	 */
-	err = ida_simple_get(&port->ida, 1, 0xFFFE, GFP_KERNEL);
+	err = ida_simple_get(&port->ida, port->dev_id_start, 0xFFFE,
+			     GFP_KERNEL);
+	if (err < 0)
+		err = ida_simple_get(&port->ida, 0x1, port->dev_id_start,
+				     GFP_KERNEL);
 	if (err < 0)
 		goto destroy_ipvlan_port;
 	dev->dev_id = err;
+	/* Increment id-base to the next slot for the future assignment */
+	port->dev_id_start = err + 1;
 
 	/* TODO Probably put random address here to be presented to the
 	 * world but keep using the physical-dev address for the outgoing
@@ -580,8 +594,9 @@ destroy_ipvlan_port:
 		ipvlan_port_destroy(phy_dev);
 	return err;
 }
+EXPORT_SYMBOL_GPL(ipvlan_link_new);
 
-static void ipvlan_link_delete(struct net_device *dev, struct list_head *head)
+void ipvlan_link_delete(struct net_device *dev, struct list_head *head)
 {
 	struct ipvl_dev *ipvlan = netdev_priv(dev);
 	struct ipvl_addr *addr, *next;
@@ -597,8 +612,9 @@ static void ipvlan_link_delete(struct net_device *dev, struct list_head *head)
 	unregister_netdevice_queue(dev, head);
 	netdev_upper_dev_unlink(ipvlan->phy_dev, dev);
 }
+EXPORT_SYMBOL_GPL(ipvlan_link_delete);
 
-static void ipvlan_link_setup(struct net_device *dev)
+void ipvlan_link_setup(struct net_device *dev)
 {
 	ether_setup(dev);
 
@@ -609,6 +625,7 @@ static void ipvlan_link_setup(struct net_device *dev)
 	dev->header_ops = &ipvlan_header_ops;
 	dev->ethtool_ops = &ipvlan_ethtool_ops;
 }
+EXPORT_SYMBOL_GPL(ipvlan_link_setup);
 
 static const struct nla_policy ipvlan_nl_policy[IFLA_IPVLAN_MAX + 1] =
 {
@@ -619,22 +636,22 @@ static struct rtnl_link_ops ipvlan_link_ops = {
 	.kind		= "ipvlan",
 	.priv_size	= sizeof(struct ipvl_dev),
 
-	.get_size	= ipvlan_nl_getsize,
-	.policy		= ipvlan_nl_policy,
-	.validate	= ipvlan_nl_validate,
-	.fill_info	= ipvlan_nl_fillinfo,
-	.changelink	= ipvlan_nl_changelink,
-	.maxtype	= IFLA_IPVLAN_MAX,
-
 	.setup		= ipvlan_link_setup,
 	.newlink	= ipvlan_link_new,
 	.dellink	= ipvlan_link_delete,
 };
 
-static int ipvlan_link_register(struct rtnl_link_ops *ops)
+int ipvlan_link_register(struct rtnl_link_ops *ops)
 {
+	ops->get_size	= ipvlan_nl_getsize;
+	ops->policy	= ipvlan_nl_policy;
+	ops->validate	= ipvlan_nl_validate;
+	ops->fill_info	= ipvlan_nl_fillinfo;
+	ops->changelink = ipvlan_nl_changelink;
+	ops->maxtype	= IFLA_IPVLAN_MAX;
 	return rtnl_link_register(ops);
 }
+EXPORT_SYMBOL_GPL(ipvlan_link_register);
 
 static int ipvlan_device_event(struct notifier_block *unused,
 			       unsigned long event, void *ptr)

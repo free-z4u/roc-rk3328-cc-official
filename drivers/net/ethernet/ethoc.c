@@ -614,7 +614,7 @@ static int ethoc_poll(struct napi_struct *napi, int budget)
 	tx_work_done = ethoc_tx(priv->netdev, budget);
 
 	if (rx_work_done < budget && tx_work_done < budget) {
-		napi_complete(napi);
+		napi_complete_done(napi, rx_work_done);
 		ethoc_enable_irq(priv, INT_MASK_TX | INT_MASK_RX);
 	}
 
@@ -995,7 +995,7 @@ static int ethoc_set_ringparam(struct net_device *dev,
 	return 0;
 }
 
-const struct ethtool_ops ethoc_ethtool_ops = {
+static const struct ethtool_ops ethoc_ethtool_ops = {
 	.get_regs_len = ethoc_get_regs_len,
 	.get_regs = ethoc_get_regs,
 	.nway_reset = phy_ethtool_nway_reset,
@@ -1031,7 +1031,6 @@ static int ethoc_probe(struct platform_device *pdev)
 	struct ethoc *priv = NULL;
 	int num_bd;
 	int ret = 0;
-	bool random_mac = false;
 	struct ethoc_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	u32 eth_clkfreq = pdata ? pdata->eth_clkfreq : 0;
 
@@ -1169,15 +1168,10 @@ static int ethoc_probe(struct platform_device *pdev)
 	/* Check the MAC again for validity, if it still isn't choose and
 	 * program a random one.
 	 */
-	if (!is_valid_ether_addr(netdev->dev_addr)) {
-		eth_random_addr(netdev->dev_addr);
-		random_mac = true;
-	}
+	if (!is_valid_ether_addr(netdev->dev_addr))
+		eth_hw_addr_random(netdev);
 
 	ethoc_do_set_mac_address(netdev);
-
-	if (random_mac)
-		netdev->addr_assign_type = NET_ADDR_RANDOM;
 
 	/* Allow the platform setup code to adjust MII management bus clock. */
 	if (!eth_clkfreq) {

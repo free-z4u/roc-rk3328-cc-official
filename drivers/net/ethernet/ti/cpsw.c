@@ -357,7 +357,6 @@ struct cpsw_slave {
 	struct phy_device		*phy;
 	struct net_device		*ndev;
 	u32				port_vlan;
-	u32				open_stat;
 };
 
 static inline u32 slave_read(struct cpsw_slave *slave, u32 offset)
@@ -400,6 +399,7 @@ struct cpsw_common {
 	struct cpts			*cpts;
 	int				rx_ch_num, tx_ch_num;
 	int				speed;
+	int				usage_count;
 };
 
 struct cpsw_priv {
@@ -704,18 +704,9 @@ static void cpsw_rx_handler(void *token, int len, int status)
 	cpsw_dual_emac_src_port_detect(cpsw, status, ndev, skb);
 
 	if (unlikely(status < 0) || unlikely(!netif_running(ndev))) {
-		bool ndev_status = false;
-		struct cpsw_slave *slave = cpsw->slaves;
-		int n;
-
-		if (cpsw->data.dual_emac) {
-			/* In dual emac mode check for all interfaces */
-			for (n = cpsw->data.slaves; n; n--, slave++)
-				if (netif_running(slave->ndev))
-					ndev_status = true;
-		}
-
-		if (ndev_status && (status >= 0)) {
+		/* In dual emac mode check for all interfaces */
+		if (cpsw->data.dual_emac && cpsw->usage_count &&
+		    (status >= 0)) {
 			/* The packet received is for the interface which
 			 * is already down and the other interface is up
 			 * and running, instead of freeing which results
@@ -939,7 +930,7 @@ static int cpsw_rx_poll(struct napi_struct *napi_rx, int budget)
 	}
 
 	if (num_rx < budget) {
-		napi_complete(napi_rx);
+		napi_complete_done(napi_rx, num_rx);
 		writel(0xff, &cpsw->wr_regs->rx_en);
 		if (cpsw->quirk_irq && cpsw->rx_irq_disabled) {
 			cpsw->rx_irq_disabled = false;
@@ -1235,21 +1226,6 @@ static void cpsw_get_ethtool_stats(struct net_device *ndev,
 	}
 }
 
-static int cpsw_common_res_usage_state(struct cpsw_common *cpsw)
-{
-	u32 i;
-	u32 usage_count = 0;
-
-	if (!cpsw->data.dual_emac)
-		return 0;
-
-	for (i = 0; i < cpsw->data.slaves; i++)
-		if (cpsw->slaves[i].open_stat)
-			usage_count++;
-
-	return usage_count;
-}
-
 static inline int cpsw_tx_packet_submit(struct cpsw_priv *priv,
 					struct sk_buff *skb,
 					struct cpdma_chan *txch)
@@ -1483,8 +1459,6 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		return ret;
 	}
 
-	if (!cpsw_common_res_usage_state(cpsw))
-		cpsw_intr_disable(cpsw);
 	netif_carrier_off(ndev);
 
 	/* Notify the stack of the actual queue counts. */
@@ -1506,8 +1480,8 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		 CPSW_MAJOR_VERSION(reg), CPSW_MINOR_VERSION(reg),
 		 CPSW_RTL_VERSION(reg));
 
-	/* initialize host and slave ports */
-	if (!cpsw_common_res_usage_state(cpsw))
+	/* Initialize host and slave ports */
+	if (!cpsw->usage_count)
 		cpsw_init_host_port(priv);
 	for_each_slave(priv, cpsw_slave_open, priv);
 
@@ -1518,7 +1492,8 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		cpsw_ale_add_vlan(cpsw->ale, cpsw->data.default_vlan,
 				  ALE_ALL_PORTS, ALE_ALL_PORTS, 0, 0);
 
-	if (!cpsw_common_res_usage_state(cpsw)) {
+	/* initialize shared resources for every ndev */
+	if (!cpsw->usage_count) {
 		/* disable priority elevation */
 		__raw_writel(0, &cpsw->regs->ptype);
 
@@ -1560,9 +1535,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 
 	cpdma_ctlr_start(cpsw->dma);
 	cpsw_intr_enable(cpsw);
-
-	if (cpsw->data.dual_emac)
-		cpsw->slaves[priv->emac_port].open_stat = true;
+	cpsw->usage_count++;
 
 	return 0;
 
@@ -1583,7 +1556,7 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 	netif_tx_stop_all_queues(priv->ndev);
 	netif_carrier_off(priv->ndev);
 
-	if (cpsw_common_res_usage_state(cpsw) <= 1) {
+	if (cpsw->usage_count <= 1) {
 		napi_disable(&cpsw->napi_rx);
 		napi_disable(&cpsw->napi_tx);
 		cpts_unregister(cpsw->cpts);
@@ -1596,9 +1569,8 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 	if (cpsw_need_resplit(cpsw))
 		cpsw_split_res(ndev);
 
+	cpsw->usage_count--;
 	pm_runtime_put_sync(cpsw->dev);
-	if (cpsw->data.dual_emac)
-		cpsw->slaves[priv->emac_port].open_stat = false;
 	return 0;
 }
 
@@ -1611,12 +1583,10 @@ static netdev_tx_t cpsw_ndo_start_xmit(struct sk_buff *skb,
 	struct cpdma_chan *txch;
 	int ret, q_idx;
 
-	netif_trans_update(ndev);
-
 	if (skb_padto(skb, CPSW_MIN_PACKET_SIZE)) {
 		cpsw_err(priv, tx_err, "packet pad failed\n");
 		ndev->stats.tx_dropped++;
-		return NETDEV_TX_OK;
+		return NET_XMIT_DROP;
 	}
 
 	if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP &&
@@ -2368,17 +2338,11 @@ static int cpsw_update_channels(struct cpsw_priv *priv,
 	return 0;
 }
 
-static int cpsw_set_channels(struct net_device *ndev,
-			     struct ethtool_channels *chs)
+static void cpsw_suspend_data_pass(struct net_device *ndev)
 {
-	struct cpsw_priv *priv = netdev_priv(ndev);
-	struct cpsw_common *cpsw = priv->cpsw;
+	struct cpsw_common *cpsw = ndev_to_cpsw(ndev);
 	struct cpsw_slave *slave;
-	int i, ret;
-
-	ret = cpsw_check_ch_settings(cpsw, chs);
-	if (ret < 0)
-		return ret;
+	int i;
 
 	/* Disable NAPI scheduling */
 	cpsw_intr_disable(cpsw);
@@ -2396,6 +2360,51 @@ static int cpsw_set_channels(struct net_device *ndev,
 
 	/* Handle rest of tx packets and stop cpdma channels */
 	cpdma_ctlr_stop(cpsw->dma);
+}
+
+static int cpsw_resume_data_pass(struct net_device *ndev)
+{
+	struct cpsw_priv *priv = netdev_priv(ndev);
+	struct cpsw_common *cpsw = priv->cpsw;
+	struct cpsw_slave *slave;
+	int i, ret;
+
+	/* Allow rx packets handling */
+	for (i = cpsw->data.slaves, slave = cpsw->slaves; i; i--, slave++)
+		if (slave->ndev && netif_running(slave->ndev))
+			netif_dormant_off(slave->ndev);
+
+	/* After this receive is started */
+	if (cpsw->usage_count) {
+		ret = cpsw_fill_rx_channels(priv);
+		if (ret)
+			return ret;
+
+		cpdma_ctlr_start(cpsw->dma);
+		cpsw_intr_enable(cpsw);
+	}
+
+	/* Resume transmit for every affected interface */
+	for (i = cpsw->data.slaves, slave = cpsw->slaves; i; i--, slave++)
+		if (slave->ndev && netif_running(slave->ndev))
+			netif_tx_start_all_queues(slave->ndev);
+
+	return 0;
+}
+
+static int cpsw_set_channels(struct net_device *ndev,
+			     struct ethtool_channels *chs)
+{
+	struct cpsw_priv *priv = netdev_priv(ndev);
+	struct cpsw_common *cpsw = priv->cpsw;
+	struct cpsw_slave *slave;
+	int i, ret;
+
+	ret = cpsw_check_ch_settings(cpsw, chs);
+	if (ret < 0)
+		return ret;
+
+	cpsw_suspend_data_pass(ndev);
 	ret = cpsw_update_channels(priv, chs);
 	if (ret)
 		goto err;
@@ -2418,30 +2427,14 @@ static int cpsw_set_channels(struct net_device *ndev,
 			dev_err(priv->dev, "cannot set real number of rx queues\n");
 			goto err;
 		}
-
-		/* Enable rx packets handling */
-		netif_dormant_off(slave->ndev);
 	}
 
-	if (cpsw_common_res_usage_state(cpsw)) {
-		ret = cpsw_fill_rx_channels(priv);
-		if (ret)
-			goto err;
-
+	if (cpsw->usage_count)
 		cpsw_split_res(ndev);
 
-		/* After this receive is started */
-		cpdma_ctlr_start(cpsw->dma);
-		cpsw_intr_enable(cpsw);
-	}
-
-	/* Resume transmit for every affected interface */
-	for (i = cpsw->data.slaves, slave = cpsw->slaves; i; i--, slave++) {
-		if (!(slave->ndev && netif_running(slave->ndev)))
-			continue;
-		netif_tx_start_all_queues(slave->ndev);
-	}
-	return 0;
+	ret = cpsw_resume_data_pass(ndev);
+	if (!ret)
+		return 0;
 err:
 	dev_err(priv->dev, "cannot update channels number, closing device\n");
 	dev_close(ndev);
@@ -2502,8 +2495,7 @@ static int cpsw_set_ringparam(struct net_device *ndev,
 {
 	struct cpsw_priv *priv = netdev_priv(ndev);
 	struct cpsw_common *cpsw = priv->cpsw;
-	struct cpsw_slave *slave;
-	int i, ret;
+	int ret;
 
 	/* ignore ering->tx_pending - only rx_pending adjustment is supported */
 
@@ -2515,54 +2507,18 @@ static int cpsw_set_ringparam(struct net_device *ndev,
 	if (ering->rx_pending == cpdma_get_num_rx_descs(cpsw->dma))
 		return 0;
 
-	/* Disable NAPI scheduling */
-	cpsw_intr_disable(cpsw);
-
-	/* Stop all transmit queues for every network device.
-	 * Disable re-using rx descriptors with dormant_on.
-	 */
-	for (i = cpsw->data.slaves, slave = cpsw->slaves; i; i--, slave++) {
-		if (!(slave->ndev && netif_running(slave->ndev)))
-			continue;
-
-		netif_tx_stop_all_queues(slave->ndev);
-		netif_dormant_on(slave->ndev);
-	}
-
-	/* Handle rest of tx packets and stop cpdma channels */
-	cpdma_ctlr_stop(cpsw->dma);
+	cpsw_suspend_data_pass(ndev);
 
 	cpdma_set_num_rx_descs(cpsw->dma, ering->rx_pending);
 
-	for (i = cpsw->data.slaves, slave = cpsw->slaves; i; i--, slave++) {
-		if (!(slave->ndev && netif_running(slave->ndev)))
-			continue;
-
-		/* Enable rx packets handling */
-		netif_dormant_off(slave->ndev);
-	}
-
-	if (cpsw_common_res_usage_state(cpsw)) {
+	if (cpsw->usage_count)
 		cpdma_chan_split_pool(cpsw->dma);
 
-		ret = cpsw_fill_rx_channels(priv);
-		if (ret)
-			goto err;
+	ret = cpsw_resume_data_pass(ndev);
+	if (!ret)
+		return 0;
 
-		/* After this receive is started */
-		cpdma_ctlr_start(cpsw->dma);
-		cpsw_intr_enable(cpsw);
-	}
-
-	/* Resume transmit for every affected interface */
-	for (i = cpsw->data.slaves, slave = cpsw->slaves; i; i--, slave++) {
-		if (!(slave->ndev && netif_running(slave->ndev)))
-			continue;
-		netif_tx_start_all_queues(slave->ndev);
-	}
-	return 0;
-err:
-	dev_err(priv->dev, "cannot set ring params, closing device\n");
+	dev_err(&ndev->dev, "cannot set ring params, closing device\n");
 	dev_close(ndev);
 	return ret;
 }
@@ -3076,7 +3032,7 @@ static int cpsw_probe(struct platform_device *pdev)
 		goto clean_dma_ret;
 	}
 
-	ale_params.dev			= &ndev->dev;
+	ale_params.dev			= &pdev->dev;
 	ale_params.ale_ageout		= ale_ageout;
 	ale_params.ale_entries		= data->ale_entries;
 	ale_params.ale_ports		= data->slaves;
