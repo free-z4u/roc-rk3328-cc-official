@@ -51,6 +51,15 @@ allowed_warnings = set([
     "sctp.h:659", # include/uapi/linux/sctp.h:634:26: warning: ‘spp_address’ offset 4 in ‘struct sctp_paddrparams’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "sctp.h:772", # include/uapi/linux/sctp.h:747:1: warning: alignment 4 of ‘struct sctp_paddrinfo’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:766", # include/uapi/linux/sctp.h:741:26: warning: ‘spinfo_address’ offset 4 in ‘struct sctp_paddrinfo’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    # remove after merge
+    "compat.c:535", # warning: alignment 4 of ‘struct compat_group_req’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:533", # warning: ‘gr_group’ offset 4 in ‘struct compat_group_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:543", # warning: alignment 4 of ‘struct compat_group_source_req’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:539", # warning: ‘gsr_group’ offset 4 in ‘struct compat_group_source_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:541", # warning: ‘gsr_source’ offset 132 in ‘struct compat_group_source_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    "compat.c:553", # warning: alignment 4 of ‘struct compat_group_filter’ is less than 8 [-Wpacked-not-aligned]
+    "compat.c:547", # warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
+    # end remove
     "compat.c:532", # net/compat.c:532:35: warning: ‘gf_group’ offset 4 in ‘struct compat_group_filter’ isn’t aligned to 8 [-Wpacked-not-aligned]
     "compat.c:534", # net/compat.c:534:1: warning: alignment 4 of ‘struct compat_group_req’ is less than 8 [-Wpacked-not-aligned]
     "compat.c:538", # net/compat.c:522:35: warning: ‘gsr_group’ offset 4 in ‘struct compat_group_source_req’ isn’t aligned to 8 [-Wpacked-not-aligned]
