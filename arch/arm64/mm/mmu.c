@@ -366,8 +366,8 @@ static void __init __map_memblock(pgd_t *pgd, phys_addr_t start,
 				  phys_addr_t end, pgprot_t prot,
 				  bool allow_block_mappings)
 {
-	unsigned long kernel_start = __pa(_text);
-	unsigned long kernel_end = __pa(__init_begin);
+	unsigned long kernel_start = __pa_symbol(_text);
+	unsigned long kernel_end = __pa_symbol(__init_begin);
 
 	/*
 	 * Take care not to create a writable alias for the
@@ -481,8 +481,7 @@ void mark_rodata_ro(void)
 	 * to cover NOTES and EXCEPTION_TABLE.
 	 */
 	section_size = (unsigned long)__init_begin - (unsigned long)__start_rodata;
-	create_mapping_late(__pa_symbol(__start_rodata),
-			    (unsigned long)__start_rodata,
+	create_mapping_late(__pa_symbol(__start_rodata), (unsigned long)__start_rodata,
 			    section_size, PAGE_KERNEL_RO);
 
 	/* flush the TLBs after updating live kernel mappings */
@@ -604,7 +603,7 @@ void __init paging_init(void)
 	 */
 	cpu_replace_ttbr1(__va(pgd_phys));
 	memcpy(swapper_pg_dir, pgd, PAGE_SIZE);
-	cpu_replace_ttbr1(swapper_pg_dir);
+	cpu_replace_ttbr1(lm_alias(swapper_pg_dir));
 
 	pgd_clear_fixmap();
 	memblock_free(pgd_phys, PAGE_SIZE);
@@ -752,8 +751,7 @@ void __init early_fixmap_init(void)
 		pud = pud_offset_kimg(pgd, addr);
 	} else {
 		if (pgd_none(*pgd))
-			__pgd_populate(pgd, __pa_symbol(bm_pud),
-				       PUD_TYPE_TABLE);
+			__pgd_populate(pgd, __pa_symbol(bm_pud), PUD_TYPE_TABLE);
 		pud = fixmap_pud(addr);
 	}
 	if (pud_none(*pud))

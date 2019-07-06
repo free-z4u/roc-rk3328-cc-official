@@ -285,7 +285,6 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 #endif /* CONFIG_NUMA */
 
 #ifdef CONFIG_HAVE_ARCH_PFN_VALID
-
 int pfn_valid(unsigned long pfn)
 {
 	return memblock_is_map_memory(pfn << PAGE_SHIFT);
@@ -670,7 +669,8 @@ void __init mem_init(void)
 
 void free_initmem(void)
 {
-	free_reserved_area(__va(__pa(__init_begin)), __va(__pa(__init_end)),
+	free_reserved_area(lm_alias(__init_begin),
+			   lm_alias(__init_end),
 			   0, "unused kernel");
 	/*
 	 * Unmap the __init region but leave the VM area in place. This
