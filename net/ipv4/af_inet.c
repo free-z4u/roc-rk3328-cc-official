@@ -1833,8 +1833,6 @@ static int __init inet_init(void)
 
 	ip_init();
 
-	tcp_v4_init();
-
 	/* Setup TCP slab cache for open requests. */
 	tcp_init();
 
