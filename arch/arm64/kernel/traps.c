@@ -572,7 +572,12 @@ asmlinkage void __exception do_sysinstr(unsigned int esr, struct pt_regs *regs)
 			return;
 		}
 
-	force_signal_inject(SIGILL, ILL_ILLOPC, regs, 0);
+	/*
+	 * New SYS instructions may previously have been undefined at EL0. Fall
+	 * back to our usual undefined instruction handler so that we handle
+	 * these consistently.
+	 */
+	do_undefinstr(regs);
 }
 #endif
 
