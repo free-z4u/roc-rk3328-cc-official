@@ -59,6 +59,7 @@ int dwc3_host_init(struct dwc3 *dwc)
 	int			ret, irq;
 	struct resource		*res;
 	struct platform_device	*dwc3_pdev = to_platform_device(dwc->dev);
+	int			prop_idx = 0;
 
 	irq = dwc3_host_get_irq(dwc);
 	if (irq < 0)
@@ -98,17 +99,25 @@ int dwc3_host_init(struct dwc3 *dwc)
 
 	memset(props, 0, sizeof(struct property_entry) * ARRAY_SIZE(props));
 
-	if (dwc->dis_u3_autosuspend_quirk) {
-		props[0].name = "dis-u3-autosuspend";
-		ret = platform_device_add_properties(xhci, props);
-		if (ret) {
-			dev_err(dwc->dev, "failed to add properties to xHCI\n");
-			goto err1;
-		}
-	}
+	if (dwc->dis_u3_autosuspend_quirk)
+		props[prop_idx++].name = "dis-u3-autosuspend";
 
-	if (dwc->usb3_lpm_capable) {
-		props[0].name = "usb3-lpm-capable";
+	if (dwc->usb3_lpm_capable)
+		props[prop_idx++].name = "usb3-lpm-capable";
+
+	/**
+	 * WORKAROUND: dwc3 revisions <=3.00a have a limitation
+	 * where Port Disable command doesn't work.
+	 *
+	 * The suggested workaround is that we avoid Port Disable
+	 * completely.
+	 *
+	 * This following flag tells XHCI to do just that.
+	 */
+	if (dwc->revision <= DWC3_REVISION_300A)
+		props[prop_idx++].name = "quirk-broken-port-ped";
+
+	if (prop_idx) {
 		ret = platform_device_add_properties(xhci, props);
 		if (ret) {
 			dev_err(dwc->dev, "failed to add properties to xHCI\n");
