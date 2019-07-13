@@ -35,19 +35,13 @@
 
 #include "drm_crtc_internal.h"
 
-static void crtc_commit_free(struct kref *kref)
+void __drm_crtc_commit_free(struct kref *kref)
 {
 	struct drm_crtc_commit *commit =
 		container_of(kref, struct drm_crtc_commit, ref);
 
 	kfree(commit);
 }
-
-void drm_crtc_commit_put(struct drm_crtc_commit *commit)
-{
-	kref_put(&commit->ref, crtc_commit_free);
-}
-EXPORT_SYMBOL(drm_crtc_commit_put);
 
 /**
  * drm_atomic_state_default_release -
@@ -1421,6 +1415,7 @@ drm_atomic_add_affected_connectors(struct drm_atomic_state *state,
 	struct drm_mode_config *config = &state->dev->mode_config;
 	struct drm_connector *connector;
 	struct drm_connector_state *conn_state;
+	struct drm_connector_list_iter conn_iter;
 	int ret;
 
 	ret = drm_modeset_lock(&config->connection_mutex, state->acquire_ctx);
@@ -1434,14 +1429,18 @@ drm_atomic_add_affected_connectors(struct drm_atomic_state *state,
 	 * Changed connectors are already in @state, so only need to look at the
 	 * current configuration.
 	 */
-	drm_for_each_connector(connector, state->dev) {
+	drm_connector_list_iter_get(state->dev, &conn_iter);
+	drm_for_each_connector_iter(connector, &conn_iter) {
 		if (connector->state->crtc != crtc)
 			continue;
 
 		conn_state = drm_atomic_get_connector_state(state, connector);
-		if (IS_ERR(conn_state))
+		if (IS_ERR(conn_state)) {
+			drm_connector_list_iter_put(&conn_iter);
 			return PTR_ERR(conn_state);
+		}
 	}
+	drm_connector_list_iter_put(&conn_iter);
 
 	return 0;
 }
@@ -1699,6 +1698,7 @@ void drm_state_dump(struct drm_device *dev, struct drm_printer *p)
 	struct drm_plane *plane;
 	struct drm_crtc *crtc;
 	struct drm_connector *connector;
+	struct drm_connector_list_iter conn_iter;
 
 	if (!drm_core_check_feature(dev, DRIVER_ATOMIC))
 		return;
@@ -1709,8 +1709,10 @@ void drm_state_dump(struct drm_device *dev, struct drm_printer *p)
 	list_for_each_entry(crtc, &config->crtc_list, head)
 		drm_atomic_crtc_print_state(p, crtc->state);
 
-	list_for_each_entry(connector, &config->connector_list, head)
+	drm_connector_list_iter_get(dev, &conn_iter);
+	drm_for_each_connector_iter(connector, &conn_iter)
 		drm_atomic_connector_print_state(p, connector->state);
+	drm_connector_list_iter_put(&conn_iter);
 }
 EXPORT_SYMBOL(drm_state_dump);
 
@@ -2205,10 +2207,6 @@ retry:
 		goto out;
 
 	if (arg->flags & DRM_MODE_ATOMIC_TEST_ONLY) {
-		/*
-		 * Unlike commit, check_only does not clean up state.
-		 * Below we call drm_atomic_state_put for it.
-		 */
 		ret = drm_atomic_check_only(state);
 	} else if (arg->flags & DRM_MODE_ATOMIC_NONBLOCK) {
 		ret = drm_atomic_nonblocking_commit(state);

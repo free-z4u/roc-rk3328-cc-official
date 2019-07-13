@@ -613,13 +613,11 @@ static int rockchip_lvds_bind(struct device *dev, struct device *master,
 		}
 		lvds->connector.port = dev->of_node;
 	} else {
-		lvds->bridge->encoder = encoder;
-		ret = drm_bridge_attach(drm_dev, lvds->bridge);
+		ret = drm_bridge_attach(encoder, lvds->bridge, NULL);
 		if (ret) {
 			DRM_ERROR("Failed to attach bridge to drm\n");
 			goto err_free_encoder;
 		}
-		encoder->bridge = lvds->bridge;
 	}
 
 	pm_runtime_enable(dev);

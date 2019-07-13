@@ -192,24 +192,11 @@ void rockchip_unregister_crtc_funcs(struct drm_crtc *crtc)
 	priv->crtc_funcs[pipe] = NULL;
 }
 
-static struct drm_crtc *rockchip_crtc_from_pipe(struct drm_device *drm,
-						int pipe)
-{
-	struct drm_crtc *crtc;
-	int i = 0;
-
-	list_for_each_entry(crtc, &drm->mode_config.crtc_list, head)
-		if (i++ == pipe)
-			return crtc;
-
-	return NULL;
-}
-
 static int rockchip_drm_crtc_enable_vblank(struct drm_device *dev,
 					   unsigned int pipe)
 {
 	struct rockchip_drm_private *priv = dev->dev_private;
-	struct drm_crtc *crtc = rockchip_crtc_from_pipe(dev, pipe);
+	struct drm_crtc *crtc = drm_crtc_from_index(dev, pipe);
 
 	if (crtc && priv->crtc_funcs[pipe] &&
 	    priv->crtc_funcs[pipe]->enable_vblank)
@@ -222,7 +209,7 @@ static void rockchip_drm_crtc_disable_vblank(struct drm_device *dev,
 					     unsigned int pipe)
 {
 	struct rockchip_drm_private *priv = dev->dev_private;
-	struct drm_crtc *crtc = rockchip_crtc_from_pipe(dev, pipe);
+	struct drm_crtc *crtc = drm_crtc_from_index(dev, pipe);
 
 	if (crtc && priv->crtc_funcs[pipe] &&
 	    priv->crtc_funcs[pipe]->enable_vblank)
@@ -292,24 +279,24 @@ static void rockchip_iommu_cleanup(struct drm_device *drm_dev)
 }
 
 #ifdef CONFIG_DEBUG_FS
-static int rockchip_drm_mm_dump(struct seq_file *s, void *data)
+static int rockchip_drm_mm_dump(struct seq_file *m, void *data)
 {
-	struct drm_info_node *node = s->private;
+	struct drm_info_node *node = m->private;
 	struct drm_minor *minor = node->minor;
 	struct drm_device *drm_dev = minor->dev;
 	struct rockchip_drm_private *priv = drm_dev->dev_private;
-	int ret;
+	struct drm_printer p = drm_seq_file_printer(m);
 
 	if (!priv->domain)
 		return 0;
 
 	mutex_lock(&priv->mm_lock);
 
-	ret = drm_mm_dump_table(s, &priv->mm);
+	drm_mm_print(&priv->mm, &p);
 
 	mutex_unlock(&priv->mm_lock);
 
-	return ret;
+	return 0;
 }
 
 static int rockchip_drm_summary_show(struct seq_file *s, void *data)

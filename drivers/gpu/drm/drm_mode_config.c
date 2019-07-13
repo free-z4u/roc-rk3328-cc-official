@@ -20,6 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
+#include <drm/drm_encoder.h>
 #include <drm/drm_mode_config.h>
 #include <drm/drmP.h>
 
@@ -93,6 +94,7 @@ int drm_mode_getresources(struct drm_device *dev, void *data,
 	uint32_t __user *crtc_id;
 	uint32_t __user *connector_id;
 	uint32_t __user *encoder_id;
+	struct drm_connector_list_iter conn_iter;
 
 	if (!drm_core_check_feature(dev, DRIVER_MODESET))
 		return -EINVAL;
@@ -112,9 +114,6 @@ int drm_mode_getresources(struct drm_device *dev, void *data,
 	card_res->count_fbs = count;
 	mutex_unlock(&file_priv->fbs_lock);
 
-	/* mode_config.mutex protects the connector list against e.g. DP MST
-	 * connector hot-adding. CRTC/Plane lists are invariant. */
-	mutex_lock(&dev->mode_config.mutex);
 	card_res->max_height = dev->mode_config.max_height;
 	card_res->min_height = dev->mode_config.min_height;
 	card_res->max_width = dev->mode_config.max_width;
@@ -124,10 +123,8 @@ int drm_mode_getresources(struct drm_device *dev, void *data,
 	crtc_id = u64_to_user_ptr(card_res->crtc_id_ptr);
 	drm_for_each_crtc(crtc, dev) {
 		if (count < card_res->count_crtcs &&
-		    put_user(crtc->base.id, crtc_id + count)) {
-			ret = -EFAULT;
-			goto out;
-		}
+		    put_user(crtc->base.id, crtc_id + count))
+			return -EFAULT;
 		count++;
 	}
 	card_res->count_crtcs = count;
@@ -136,28 +133,26 @@ int drm_mode_getresources(struct drm_device *dev, void *data,
 	encoder_id = u64_to_user_ptr(card_res->encoder_id_ptr);
 	drm_for_each_encoder(encoder, dev) {
 		if (count < card_res->count_encoders &&
-		    put_user(encoder->base.id, encoder_id + count)) {
-			ret = -EFAULT;
-			goto out;
-		}
+		    put_user(encoder->base.id, encoder_id + count))
+			return -EFAULT;
 		count++;
 	}
 	card_res->count_encoders = count;
 
+	drm_connector_list_iter_get(dev, &conn_iter);
 	count = 0;
 	connector_id = u64_to_user_ptr(card_res->connector_id_ptr);
-	drm_for_each_connector(connector, dev) {
+	drm_for_each_connector_iter(connector, &conn_iter) {
 		if (count < card_res->count_connectors &&
 		    put_user(connector->base.id, connector_id + count)) {
-			ret = -EFAULT;
-			goto out;
+			drm_connector_list_iter_put(&conn_iter);
+			return -EFAULT;
 		}
 		count++;
 	}
 	card_res->count_connectors = count;
+	drm_connector_list_iter_put(&conn_iter);
 
-out:
-	mutex_unlock(&dev->mode_config.mutex);
 	return ret;
 }
 
@@ -175,6 +170,7 @@ void drm_mode_config_reset(struct drm_device *dev)
 	struct drm_plane *plane;
 	struct drm_encoder *encoder;
 	struct drm_connector *connector;
+	struct drm_connector_list_iter conn_iter;
 
 	drm_for_each_plane(plane, dev)
 		if (plane->funcs->reset)
@@ -188,11 +184,11 @@ void drm_mode_config_reset(struct drm_device *dev)
 		if (encoder->funcs->reset)
 			encoder->funcs->reset(encoder);
 
-	mutex_lock(&dev->mode_config.mutex);
-	drm_for_each_connector(connector, dev)
+	drm_connector_list_iter_get(dev, &conn_iter);
+	drm_for_each_connector_iter(connector, &conn_iter)
 		if (connector->funcs->reset)
 			connector->funcs->reset(connector);
-	mutex_unlock(&dev->mode_config.mutex);
+	drm_connector_list_iter_put(&conn_iter);
 }
 EXPORT_SYMBOL(drm_mode_config_reset);
 
@@ -385,10 +381,9 @@ void drm_mode_config_init(struct drm_device *dev)
 	idr_init(&dev->mode_config.crtc_idr);
 	idr_init(&dev->mode_config.tile_idr);
 	ida_init(&dev->mode_config.connector_ida);
+	spin_lock_init(&dev->mode_config.connector_list_lock);
 
-	drm_modeset_lock_all(dev);
 	drm_mode_create_standard_properties(dev);
-	drm_modeset_unlock_all(dev);
 
 	/* Just to be sure */
 	dev->mode_config.num_fb = 0;
@@ -415,7 +410,8 @@ EXPORT_SYMBOL(drm_mode_config_init);
  */
 void drm_mode_config_cleanup(struct drm_device *dev)
 {
-	struct drm_connector *connector, *ot;
+	struct drm_connector *connector;
+	struct drm_connector_list_iter conn_iter;
 	struct drm_crtc *crtc, *ct;
 	struct drm_encoder *encoder, *enct;
 	struct drm_framebuffer *fb, *fbt;
@@ -428,10 +424,16 @@ void drm_mode_config_cleanup(struct drm_device *dev)
 		encoder->funcs->destroy(encoder);
 	}
 
-	list_for_each_entry_safe(connector, ot,
-				 &dev->mode_config.connector_list, head) {
-		connector->funcs->destroy(connector);
+	drm_connector_list_iter_get(dev, &conn_iter);
+	drm_for_each_connector_iter(connector, &conn_iter) {
+		/* drm_connector_list_iter holds an full reference to the
+		 * current connector itself, which means it is inherently safe
+		 * against unreferencing the current connector - but not against
+		 * deleting it right away. */
+		drm_connector_unreference(connector);
 	}
+	drm_connector_list_iter_put(&conn_iter);
+	WARN_ON(!list_empty(&dev->mode_config.connector_list));
 
 	list_for_each_entry_safe(property, pt, &dev->mode_config.property_list,
 				 head) {

@@ -541,7 +541,7 @@ static int find_compression_threshold(struct drm_i915_private *dev_priv,
 	    IS_SKYLAKE(dev_priv) || IS_KABYLAKE(dev_priv))
 		end = ggtt->stolen_size - 8 * 1024 * 1024;
 	else
-		end = ggtt->stolen_usable_size;
+		end = U64_MAX;
 
 	/* HACK: This code depends on what we will do in *_enable_fbc. If that
 	 * code changes, this code needs to change as well.
@@ -1284,7 +1284,7 @@ void intel_fbc_init_pipe_state(struct drm_i915_private *dev_priv)
 
 	for_each_intel_crtc(&dev_priv->drm, crtc)
 		if (intel_crtc_active(crtc) &&
-		    to_intel_plane_state(crtc->base.primary->state)->base.visible)
+		    crtc->base.primary->state->visible)
 			dev_priv->fbc.visible_pipes_mask |= (1 << crtc->pipe);
 }
 
@@ -1305,7 +1305,7 @@ static int intel_sanitize_fbc_option(struct drm_i915_private *dev_priv)
 	if (!HAS_FBC(dev_priv))
 		return 0;
 
-	if (IS_BROADWELL(dev_priv))
+	if (IS_BROADWELL(dev_priv) || INTEL_GEN(dev_priv) >= 9)
 		return 1;
 
 	return 0;
