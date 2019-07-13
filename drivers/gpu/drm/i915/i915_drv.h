@@ -1027,7 +1027,7 @@ struct intel_fbc {
 		} plane;
 
 		struct {
-			uint32_t pixel_format;
+			const struct drm_format_info *format;
 			unsigned int stride;
 		} fb;
 	} state_cache;
@@ -1042,7 +1042,7 @@ struct intel_fbc {
 		} crtc;
 
 		struct {
-			uint32_t pixel_format;
+			const struct drm_format_info *format;
 			unsigned int stride;
 		} fb;
 
@@ -1058,7 +1058,7 @@ struct intel_fbc {
 	const char *no_fbc_reason;
 };
 
-/**
+/*
  * HIGH_RR is the highest eDP panel refresh rate read from EDID
  * LOW_RR is the lowest eDP panel refresh rate found from EDID
  * parsing for same resolution.

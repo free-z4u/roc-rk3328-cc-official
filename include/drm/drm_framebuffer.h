@@ -170,12 +170,6 @@ struct drm_framebuffer {
 	 */
 	unsigned int height;
 	/**
-	 * @depth: Depth in bits per pixel for RGB formats. 0 for everything
-	 * else. Legacy information derived from @pixel_format, it's suggested to use
-	 * the DRM FOURCC codes and helper functions directly instead.
-	 */
-	unsigned int depth;
-	/**
 	 * @bits_per_pixel: Storage used bits per pixel for RGB formats. 0 for
 	 * everything else. Legacy information derived from @pixel_format, it's
 	 * suggested to use the DRM FOURCC codes and helper functions directly
@@ -286,4 +280,10 @@ static inline void drm_framebuffer_assign(struct drm_framebuffer **p,
 					  struct drm_framebuffer, head);	\
 	     &fb->head != (&(dev)->mode_config.fb_list);			\
 	     fb = list_next_entry(fb, head))
+
+int drm_framebuffer_plane_width(int width,
+				const struct drm_framebuffer *fb, int plane);
+int drm_framebuffer_plane_height(int height,
+				 const struct drm_framebuffer *fb, int plane);
+
 #endif
