@@ -2453,7 +2453,7 @@ u32 intel_compute_tile_offset(int *x, int *y,
 	u32 alignment;
 
 	/* AUX_DIST needs only 4K alignment */
-	if (fb->pixel_format == DRM_FORMAT_NV12 && plane == 1)
+	if (fb->format->format == DRM_FORMAT_NV12 && plane == 1)
 		alignment = 4096;
 	else
 		alignment = intel_surf_alignment(dev_priv, fb->modifier);
@@ -2699,7 +2699,7 @@ intel_alloc_initial_plane_obj(struct intel_crtc *crtc,
 	if (plane_config->tiling == I915_TILING_X)
 		obj->tiling_and_stride = fb->pitches[0] | I915_TILING_X;
 
-	mode_cmd.pixel_format = fb->pixel_format;
+	mode_cmd.pixel_format = fb->format->format;
 	mode_cmd.width = fb->width;
 	mode_cmd.height = fb->height;
 	mode_cmd.pitches[0] = fb->pitches[0];
@@ -2990,7 +2990,7 @@ int skl_check_plane_surface(struct intel_plane_state *plane_state)
 	 * Handle the AUX surface first since
 	 * the main surface setup depends on it.
 	 */
-	if (fb->pixel_format == DRM_FORMAT_NV12) {
+	if (fb->format->format == DRM_FORMAT_NV12) {
 		ret = skl_check_nv12_aux_surface(plane_state);
 		if (ret)
 			return ret;
@@ -3045,7 +3045,7 @@ static void i9xx_update_primary_plane(struct drm_plane *primary,
 		I915_WRITE(PRIMCNSTALPHA(plane), 0);
 	}
 
-	switch (fb->pixel_format) {
+	switch (fb->format->format) {
 	case DRM_FORMAT_C8:
 		dspcntr |= DISPPLANE_8BPP;
 		break;
@@ -3160,7 +3160,7 @@ static void ironlake_update_primary_plane(struct drm_plane *primary,
 	if (IS_HASWELL(dev_priv) || IS_BROADWELL(dev_priv))
 		dspcntr |= DISPPLANE_PIPE_CSC_ENABLE;
 
-	switch (fb->pixel_format) {
+	switch (fb->format->format) {
 	case DRM_FORMAT_C8:
 		dspcntr |= DISPPLANE_8BPP;
 		break;
@@ -3279,7 +3279,7 @@ u32 skl_plane_stride(const struct drm_framebuffer *fb, int plane,
 		stride /= intel_tile_height(dev_priv, fb->modifier, cpp);
 	} else {
 		stride /= intel_fb_stride_alignment(dev_priv, fb->modifier,
-						    fb->pixel_format);
+						    fb->format->format);
 	}
 
 	return stride;
@@ -3393,7 +3393,7 @@ static void skylake_update_primary_plane(struct drm_plane *plane,
 		    PLANE_CTL_PIPE_GAMMA_ENABLE |
 		    PLANE_CTL_PIPE_CSC_ENABLE;
 
-	plane_ctl |= skl_plane_ctl_format(fb->pixel_format);
+	plane_ctl |= skl_plane_ctl_format(fb->format->format);
 	plane_ctl |= skl_plane_ctl_tiling(fb->modifier);
 	plane_ctl |= PLANE_CTL_PLANE_GAMMA_DISABLE;
 	plane_ctl |= skl_plane_ctl_rotation(rotation);
@@ -4765,7 +4765,7 @@ static int skl_update_scaler_plane(struct intel_crtc_state *crtc_state,
 	}
 
 	/* Check src format */
-	switch (fb->pixel_format) {
+	switch (fb->format->format) {
 	case DRM_FORMAT_RGB565:
 	case DRM_FORMAT_XBGR8888:
 	case DRM_FORMAT_XRGB8888:
@@ -4781,7 +4781,7 @@ static int skl_update_scaler_plane(struct intel_crtc_state *crtc_state,
 	default:
 		DRM_DEBUG_KMS("[PLANE:%d:%s] FB:%d unsupported scaling format 0x%x\n",
 			      intel_plane->base.base.id, intel_plane->base.name,
-			      fb->base.id, fb->pixel_format);
+			      fb->base.id, fb->format->format);
 		return -EINVAL;
 	}
 
@@ -8706,8 +8706,6 @@ i9xx_get_initial_plane_config(struct intel_crtc *crtc,
 
 	pixel_format = val & DISPPLANE_PIXFORMAT_MASK;
 	fourcc = i9xx_format_to_fourcc(pixel_format);
-	fb->pixel_format = fourcc;
-	fb->bits_per_pixel = drm_format_plane_cpp(fourcc, 0) * 8;
 	fb->format = drm_format_info(fourcc);
 
 	if (INTEL_GEN(dev_priv) >= 4) {
@@ -8729,14 +8727,14 @@ i9xx_get_initial_plane_config(struct intel_crtc *crtc,
 	fb->pitches[0] = val & 0xffffffc0;
 
 	aligned_height = intel_fb_align_height(dev, fb->height,
-					       fb->pixel_format,
+					       fb->format->format,
 					       fb->modifier);
 
 	plane_config->size = fb->pitches[0] * aligned_height;
 
 	DRM_DEBUG_KMS("pipe/plane %c/%d with fb: size=%dx%d@%d, offset=%x, pitch %d, size 0x%x\n",
 		      pipe_name(pipe), plane, fb->width, fb->height,
-		      fb->bits_per_pixel, base, fb->pitches[0],
+		      fb->format->cpp[0] * 8, base, fb->pitches[0],
 		      plane_config->size);
 
 	plane_config->fb = intel_fb;
@@ -9738,8 +9736,6 @@ skylake_get_initial_plane_config(struct intel_crtc *crtc,
 	fourcc = skl_format_to_fourcc(pixel_format,
 				      val & PLANE_CTL_ORDER_RGBX,
 				      val & PLANE_CTL_ALPHA_MASK);
-	fb->pixel_format = fourcc;
-	fb->bits_per_pixel = drm_format_plane_cpp(fourcc, 0) * 8;
 	fb->format = drm_format_info(fourcc);
 
 	tiling = val & PLANE_CTL_TILED_MASK;
@@ -9773,18 +9769,18 @@ skylake_get_initial_plane_config(struct intel_crtc *crtc,
 
 	val = I915_READ(PLANE_STRIDE(pipe, 0));
 	stride_mult = intel_fb_stride_alignment(dev_priv, fb->modifier,
-						fb->pixel_format);
+						fb->format->format);
 	fb->pitches[0] = (val & 0x3ff) * stride_mult;
 
 	aligned_height = intel_fb_align_height(dev, fb->height,
-					       fb->pixel_format,
+					       fb->format->format,
 					       fb->modifier);
 
 	plane_config->size = fb->pitches[0] * aligned_height;
 
 	DRM_DEBUG_KMS("pipe %c with fb: size=%dx%d@%d, offset=%x, pitch %d, size 0x%x\n",
 		      pipe_name(pipe), fb->width, fb->height,
-		      fb->bits_per_pixel, base, fb->pitches[0],
+		      fb->format->cpp[0] * 8, base, fb->pitches[0],
 		      plane_config->size);
 
 	plane_config->fb = intel_fb;
@@ -9854,8 +9850,6 @@ ironlake_get_initial_plane_config(struct intel_crtc *crtc,
 
 	pixel_format = val & DISPPLANE_PIXFORMAT_MASK;
 	fourcc = i9xx_format_to_fourcc(pixel_format);
-	fb->pixel_format = fourcc;
-	fb->bits_per_pixel = drm_format_plane_cpp(fourcc, 0) * 8;
 	fb->format = drm_format_info(fourcc);
 
 	base = I915_READ(DSPSURF(pipe)) & 0xfffff000;
@@ -9877,14 +9871,14 @@ ironlake_get_initial_plane_config(struct intel_crtc *crtc,
 	fb->pitches[0] = val & 0xffffffc0;
 
 	aligned_height = intel_fb_align_height(dev, fb->height,
-					       fb->pixel_format,
+					       fb->format->format,
 					       fb->modifier);
 
 	plane_config->size = fb->pitches[0] * aligned_height;
 
 	DRM_DEBUG_KMS("pipe %c with fb: size=%dx%d@%d, offset=%x, pitch %d, size 0x%x\n",
 		      pipe_name(pipe), fb->width, fb->height,
-		      fb->bits_per_pixel, base, fb->pitches[0],
+		      fb->format->cpp[0] * 8, base, fb->pitches[0],
 		      plane_config->size);
 
 	plane_config->fb = intel_fb;
@@ -11043,7 +11037,7 @@ mode_fits_in_fbdev(struct drm_device *dev,
 
 	fb = &dev_priv->fbdev->fb->base;
 	if (fb->pitches[0] < intel_framebuffer_pitch_for_width(mode->hdisplay,
-							       fb->bits_per_pixel))
+							       fb->format->cpp[0] * 8))
 		return NULL;
 
 	if (obj->base.size < mode->vdisplay * fb->pitches[0])
@@ -12146,7 +12140,7 @@ static int intel_crtc_page_flip(struct drm_crtc *crtc,
 		return -EBUSY;
 
 	/* Can't change pixel format via MI display flips. */
-	if (fb->pixel_format != crtc->primary->fb->pixel_format)
+	if (fb->format->format != crtc->primary->fb->format->format)
 		return -EINVAL;
 
 	/*
@@ -12846,7 +12840,7 @@ static void intel_dump_pipe_config(struct intel_crtc *crtc,
 		DRM_DEBUG_KMS("[PLANE:%d:%s] FB:%d, fb = %ux%u format = %s\n",
 			      plane->base.id, plane->name,
 			      fb->base.id, fb->width, fb->height,
-			      drm_get_format_name(fb->pixel_format, &format_name));
+			      drm_get_format_name(fb->format->format, &format_name));
 		if (INTEL_GEN(dev_priv) >= 9)
 			DRM_DEBUG_KMS("\tscaler:%d src %dx%d+%d+%d dst %dx%d+%d+%d\n",
 				      state->scaler_id,

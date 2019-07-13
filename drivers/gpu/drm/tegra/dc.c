@@ -511,7 +511,7 @@ static int tegra_plane_atomic_check(struct drm_plane *plane,
 	if (!state->crtc)
 		return 0;
 
-	err = tegra_dc_format(state->fb->pixel_format, &plane_state->format,
+	err = tegra_dc_format(state->fb->format->format, &plane_state->format,
 			      &plane_state->swap);
 	if (err < 0)
 		return err;
@@ -568,7 +568,7 @@ static void tegra_plane_atomic_update(struct drm_plane *plane,
 	window.dst.y = plane->state->crtc_y;
 	window.dst.w = plane->state->crtc_w;
 	window.dst.h = plane->state->crtc_h;
-	window.bits_per_pixel = fb->bits_per_pixel;
+	window.bits_per_pixel = fb->format->cpp[0] * 8;
 	window.bottom_up = tegra_fb_is_bottom_up(fb);
 
 	/* copy from state */

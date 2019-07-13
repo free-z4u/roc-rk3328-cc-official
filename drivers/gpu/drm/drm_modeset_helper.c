@@ -82,10 +82,7 @@ void drm_helper_mode_fill_fb_struct(struct drm_device *dev,
 		DRM_DEBUG_KMS("non-RGB pixel format %s\n",
 		              drm_get_format_name(mode_cmd->pixel_format,
 		                                  &format_name));
-
-		fb->bits_per_pixel = 0;
 	} else {
-		fb->bits_per_pixel = info->cpp[0] * 8;
 	}
 
 	fb->dev = dev;
@@ -97,7 +94,6 @@ void drm_helper_mode_fill_fb_struct(struct drm_device *dev,
 		fb->offsets[i] = mode_cmd->offsets[i];
 	}
 	fb->modifier = mode_cmd->modifier[0];
-	fb->pixel_format = mode_cmd->pixel_format;
 	fb->flags = mode_cmd->flags;
 }
 EXPORT_SYMBOL(drm_helper_mode_fill_fb_struct);
