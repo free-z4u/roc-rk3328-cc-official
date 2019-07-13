@@ -169,8 +169,7 @@ void armada_drm_plane_calc_addrs(u32 *addrs, struct drm_framebuffer *fb,
 	int x, int y)
 {
 	u32 addr = drm_fb_obj(fb)->dev_addr;
-	u32 pixel_format = fb->pixel_format;
-	int num_planes = drm_format_num_planes(pixel_format);
+	int num_planes = fb->format->num_planes;
 	int i;
 
 	if (num_planes > 3)
@@ -178,7 +177,7 @@ void armada_drm_plane_calc_addrs(u32 *addrs, struct drm_framebuffer *fb,
 
 	for (i = 0; i < num_planes; i++)
 		addrs[i] = addr + fb->offsets[i] + y * fb->pitches[i] +
-			     x * drm_format_plane_cpp(pixel_format, i);
+			     x * fb->format->cpp[i];
 	for (; i < 3; i++)
 		addrs[i] = 0;
 }

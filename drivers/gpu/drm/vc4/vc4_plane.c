@@ -296,7 +296,7 @@ static int vc4_plane_setup_clipping_and_scaling(struct drm_plane_state *state)
 	struct drm_gem_cma_object *bo = drm_fb_cma_get_gem_obj(fb, 0);
 	u32 subpixel_src_mask = (1 << 16) - 1;
 	u32 format = fb->pixel_format;
-	int num_planes = drm_format_num_planes(format);
+	int num_planes = fb->format->num_planes;
 	u32 h_subsample = 1;
 	u32 v_subsample = 1;
 	int i;
@@ -369,7 +369,7 @@ static int vc4_plane_setup_clipping_and_scaling(struct drm_plane_state *state)
 	 */
 	if (vc4_state->crtc_x < 0) {
 		for (i = 0; i < num_planes; i++) {
-			u32 cpp = drm_format_plane_cpp(fb->pixel_format, i);
+			u32 cpp = fb->format->cpp[i];
 			u32 subs = ((i == 0) ? 1 : h_subsample);
 
 			vc4_state->offsets[i] += (cpp *
