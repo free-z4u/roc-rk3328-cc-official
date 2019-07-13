@@ -121,6 +121,9 @@ static struct rockchip_pmu *dmc_pmu;
 	.active_wakeup = wakeup,			\
 }
 
+#define DOMAIN_PX30(pwr, status, req, wakeup)		\
+	DOMAIN_M(pwr, status, req, (req) + 16, req, wakeup)
+
 #define DOMAIN_RK3288(pwr, status, req, wakeup)		\
 	DOMAIN(pwr, status, req, req, (req) + 16, wakeup)
 
