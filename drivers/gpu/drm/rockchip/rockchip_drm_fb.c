@@ -108,7 +108,7 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 	if (!rockchip_fb)
 		return ERR_PTR(-ENOMEM);
 
-	drm_helper_mode_fill_fb_struct(&rockchip_fb->fb, mode_cmd);
+	drm_helper_mode_fill_fb_struct(dev, &rockchip_fb->fb, mode_cmd);
 
 	ret = drm_framebuffer_init(dev, &rockchip_fb->fb,
 				   &rockchip_drm_fb_funcs);
