@@ -1811,7 +1811,6 @@ static void hdmi_config_vendor_specific_infoframe(struct dw_hdmi *hdmi,
 static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 {
 	struct hdmi_drm_infoframe frame;
-	struct drm_connector_state *conn_state = hdmi->connector.state;
 
 	/* Dynamic Range and Mastering Infoframe is introduced in v2.11a. */
 	if (hdmi->version < 0x211a) {
@@ -1869,9 +1868,6 @@ static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 	hdmi_writeb(hdmi, 1, HDMI_FC_DRM_UP);
 	hdmi_modb(hdmi, HDMI_FC_PACKET_DRM_TX_EN,
 		  HDMI_FC_PACKET_DRM_TX_EN_MASK, HDMI_FC_PACKET_TX_EN);
-
-	if (conn_state->hdr_metadata_changed)
-		conn_state->hdr_metadata_changed = false;
 }
 
 static unsigned int
@@ -2611,9 +2607,6 @@ dw_hdmi_connector_atomic_flush(struct drm_connector *connector,
 		dw_hdmi_setup(hdmi, &hdmi->previous_mode);
 		hdmi_writeb(hdmi, HDMI_FC_GCP_CLEAR_AVMUTE, HDMI_FC_GCP);
 		hdmi->hdmi_data.update = false;
-	} else if (connector->state->hdr_metadata_changed &&
-		   hdmi->sink_is_hdmi) {
-		hdmi_config_hdr_infoframe(hdmi);
 	}
 }
 

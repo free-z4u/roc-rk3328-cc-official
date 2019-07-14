@@ -3324,11 +3324,6 @@ __drm_atomic_helper_connector_duplicate_state(struct drm_connector *connector,
 					    struct drm_connector_state *state)
 {
 	memcpy(state, connector->state, sizeof(*state));
-
-	if (state->hdr_source_metadata_blob_ptr)
-		drm_property_reference_blob(state->hdr_source_metadata_blob_ptr);
-
-	state->hdr_metadata_changed = false;
 	if (state->crtc)
 		drm_connector_reference(connector);
 }
@@ -3455,13 +3450,6 @@ EXPORT_SYMBOL(drm_atomic_helper_duplicate_state);
 void
 __drm_atomic_helper_connector_destroy_state(struct drm_connector_state *state)
 {
-	/*
-	 * This is currently a placeholder so that drivers that subclass the
-	 * state will automatically do the right thing if code is ever added
-	 * to this function.
-	 */
-	if (state->hdr_source_metadata_blob_ptr)
-		drm_property_unreference_blob(state->hdr_source_metadata_blob_ptr);
 	if (state->crtc)
 		drm_connector_unreference(state->connector);
 }
