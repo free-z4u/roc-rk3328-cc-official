@@ -195,7 +195,6 @@ struct dw_hdmi_phy_data {
 
 struct dw_hdmi {
 	struct drm_connector connector;
-	struct drm_encoder *encoder;
 	struct drm_bridge bridge;
 	struct platform_device *hdcp_dev;
 	enum dw_hdmi_devtype dev_type;
@@ -3013,9 +3012,8 @@ static void dw_hdmi_destroy_properties(struct dw_hdmi *hdmi)
 					       hdmi->plat_data->phy_data);
 }
 
-static int dw_hdmi_register(struct drm_device *drm, struct dw_hdmi *hdmi)
+static int dw_hdmi_register(struct drm_encoder *encoder, struct dw_hdmi *hdmi)
 {
-	struct drm_encoder *encoder = hdmi->encoder;
 	struct drm_bridge *bridge = &hdmi->bridge;
 	int ret;
 
@@ -3033,7 +3031,7 @@ static int dw_hdmi_register(struct drm_device *drm, struct dw_hdmi *hdmi)
 	drm_connector_helper_add(&hdmi->connector,
 				 &dw_hdmi_connector_helper_funcs);
 
-	drm_connector_init(drm, &hdmi->connector,
+	drm_connector_init(encoder->dev, &hdmi->connector,
 			   &dw_hdmi_connector_funcs,
 			   DRM_MODE_CONNECTOR_HDMIA);
 
@@ -3395,7 +3393,6 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	hdmi->dev = dev;
 	hdmi->dev_type = plat_data->dev_type;
 	hdmi->sample_rate = 48000;
-	hdmi->encoder = encoder;
 	hdmi->disabled = true;
 	hdmi->rxsense = true;
 	hdmi->phy_mask = (u8)~(HDMI_PHY_HPD | HDMI_PHY_RX_SENSE);
@@ -3573,7 +3570,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	else
 		hdmi->connector.ycbcr_420_allowed = true;
 
-	ret = dw_hdmi_register(encoder->dev, hdmi);
+	ret = dw_hdmi_register(encoder, hdmi);
 	if (ret)
 		goto err_iahb;
 
