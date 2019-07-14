@@ -3365,15 +3365,16 @@ static void dw_hdmi_register_hdcp(struct device *dev, struct dw_hdmi *hdmi,
 		hdmi->hdcp = hdmi->hdcp_dev->dev.platform_data;
 }
 
-int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
-		 struct resource *iores, int irq,
+int dw_hdmi_bind(struct platform_device *pdev, struct drm_encoder *encoder,
 		 const struct dw_hdmi_plat_data *plat_data)
 {
-	struct device_node *np = dev->of_node;
+	struct device_node *np = pdev->dev.of_node;
 	struct platform_device_info pdevinfo;
 	struct device_node *ddc_node;
 	struct dw_hdmi_cec_data cec;
 	struct dw_hdmi *hdmi;
+	struct resource *iores;
+	int irq;
 	int ret;
 	u8 prod_id0;
 	u8 prod_id1;
@@ -3382,7 +3383,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	u8 config3;
 	bool hdcp1x_enable = false;
 
-	hdmi = devm_kzalloc(dev, sizeof(*hdmi), GFP_KERNEL);
+	hdmi = devm_kzalloc(&pdev->dev, sizeof(*hdmi), GFP_KERNEL);
 	if (!hdmi)
 		return -ENOMEM;
 
@@ -3390,7 +3391,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	hdmi->connector.stereo_allowed = 1;
 
 	hdmi->plat_data = plat_data;
-	hdmi->dev = dev;
+	hdmi->dev = &pdev->dev;
 	hdmi->dev_type = plat_data->dev_type;
 	hdmi->sample_rate = 48000;
 	hdmi->disabled = true;
@@ -3415,7 +3416,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 		hdmi->read = dw_hdmi_readb;
 		break;
 	default:
-		dev_err(dev, "reg-io-width must be 1 or 4\n");
+		dev_err(&pdev->dev, "reg-io-width must be 1 or 4\n");
 		return -EINVAL;
 	}
 
@@ -3432,7 +3433,8 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 		dev_dbg(hdmi->dev, "no ddc property found\n");
 	}
 
-	hdmi->regs = devm_ioremap_resource(dev, iores);
+	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	hdmi->regs = devm_ioremap_resource(&pdev->dev, iores);
 	if (IS_ERR(hdmi->regs)) {
 		ret = PTR_ERR(hdmi->regs);
 		goto err_res;
@@ -3492,7 +3494,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 
 	if (prod_id0 != HDMI_PRODUCT_ID0_HDMI_TX ||
 	    (prod_id1 & ~HDMI_PRODUCT_ID1_HDCP) != HDMI_PRODUCT_ID1_HDMI_TX) {
-		dev_err(dev, "Unsupported HDMI controller (%04x:%02x:%02x)\n",
+		dev_err(hdmi->dev, "Unsupported HDMI controller (%04x:%02x:%02x)\n",
 			hdmi->version, prod_id0, prod_id1);
 		ret = -ENODEV;
 		goto err_iahb;
@@ -3502,7 +3504,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	if (ret < 0)
 		goto err_iahb;
 
-	dev_info(dev, "Detected HDMI TX controller v%x.%03x %s HDCP (%s)\n",
+	dev_info(hdmi->dev, "Detected HDMI TX controller v%x.%03x %s HDCP (%s)\n",
 		 hdmi->version >> 12, hdmi->version & 0xfff,
 		 prod_id1 & HDMI_PRODUCT_ID1_HDCP ? "with" : "without",
 		 hdmi->phy.name);
@@ -3517,13 +3519,17 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	init_hpd_work(hdmi);
 	initialize_hdmi_ih_mutes(hdmi);
 
-	ret = devm_request_threaded_irq(dev, irq, dw_hdmi_hardirq,
+	irq = platform_get_irq(pdev, 0);
+	if (irq < 0)
+		goto err_iahb;
+
+	ret = devm_request_threaded_irq(hdmi->dev, irq, dw_hdmi_hardirq,
 					dw_hdmi_irq, IRQF_SHARED,
-					dev_name(dev), hdmi);
+					dev_name(hdmi->dev), hdmi);
 	if (ret)
 		goto err_iahb;
 
-	hdmi->cec_notifier = cec_notifier_get(dev);
+	hdmi->cec_notifier = cec_notifier_get(hdmi->dev);
 	if (!hdmi->cec_notifier) {
 		ret = -ENOMEM;
 		goto err_iahb;
@@ -3587,7 +3593,7 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 		dw_hdmi_i2c_init(hdmi);
 
 	memset(&pdevinfo, 0, sizeof(pdevinfo));
-	pdevinfo.parent = dev;
+	pdevinfo.parent = hdmi->dev;
 	pdevinfo.id = PLATFORM_DEVID_AUTO;
 
 	config0 = hdmi_readb(hdmi, HDMI_CONFIG0_ID);
@@ -3639,16 +3645,16 @@ int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 	if (hdmi->i2c)
 		dw_hdmi_i2c_init(hdmi);
 
-	dev_set_drvdata(dev, hdmi);
+	platform_set_drvdata(pdev, hdmi);
 
-	dw_hdmi_register_debugfs(dev, hdmi);
+	dw_hdmi_register_debugfs(hdmi->dev, hdmi);
 
 	if (of_property_read_bool(np, "scramble-low-rates"))
 		hdmi->scramble_low_rates = true;
 
 	if (of_property_read_bool(np, "hdcp1x-enable"))
 		hdcp1x_enable = true;
-	dw_hdmi_register_hdcp(dev, hdmi, val, hdcp1x_enable);
+	dw_hdmi_register_hdcp(hdmi->dev, hdmi, val, hdcp1x_enable);
 
 	return 0;
 

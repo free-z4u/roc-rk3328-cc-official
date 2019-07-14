@@ -1189,8 +1189,6 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	struct drm_device *drm = data;
 	struct drm_encoder *encoder;
 	struct rockchip_hdmi *hdmi;
-	struct resource *iores;
-	int irq;
 	int ret;
 
 	if (!pdev->dev.of_node)
@@ -1205,14 +1203,6 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	hdmi->dev = &pdev->dev;
 	hdmi->dev_type = plat_data->dev_type;
 	encoder = &hdmi->encoder;
-
-	irq = platform_get_irq(pdev, 0);
-	if (irq < 0)
-		return irq;
-
-	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!iores)
-		return -ENXIO;
 
 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
 	/*
@@ -1257,7 +1247,7 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	drm_encoder_init(drm, encoder, &dw_hdmi_rockchip_encoder_funcs,
 			 DRM_MODE_ENCODER_TMDS, NULL);
 
-	ret = dw_hdmi_bind(dev, encoder, iores, irq, plat_data);
+	ret = dw_hdmi_bind(pdev, encoder, plat_data);
 
 	/*
 	 * If dw_hdmi_bind() fails we'll never call dw_hdmi_unbind(),
