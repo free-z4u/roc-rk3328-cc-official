@@ -3374,12 +3374,10 @@ static void dw_hdmi_register_hdcp(struct device *dev, struct dw_hdmi *hdmi,
 		hdmi->hdcp = hdmi->hdcp_dev->dev.platform_data;
 }
 
-int dw_hdmi_bind(struct device *dev, struct device *master,
-		 void *data, struct drm_encoder *encoder,
+int dw_hdmi_bind(struct device *dev, struct drm_encoder *encoder,
 		 struct resource *iores, int irq,
 		 const struct dw_hdmi_plat_data *plat_data)
 {
-	struct drm_device *drm = data;
 	struct device_node *np = dev->of_node;
 	struct platform_device_info pdevinfo;
 	struct device_node *ddc_node;
@@ -3582,7 +3580,7 @@ int dw_hdmi_bind(struct device *dev, struct device *master,
 	else
 		hdmi->connector.ycbcr_420_allowed = true;
 
-	ret = dw_hdmi_register(drm, hdmi);
+	ret = dw_hdmi_register(encoder->dev, hdmi);
 	if (ret)
 		goto err_iahb;
 
@@ -3685,7 +3683,7 @@ err_res:
 }
 EXPORT_SYMBOL_GPL(dw_hdmi_bind);
 
-void dw_hdmi_unbind(struct device *dev, struct device *master, void *data)
+void dw_hdmi_unbind(struct device *dev)
 {
 	struct dw_hdmi *hdmi = dev_get_drvdata(dev);
 

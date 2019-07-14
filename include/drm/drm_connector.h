@@ -507,7 +507,7 @@ struct drm_connector_funcs {
 	 * &drm_mode_config_funcs) will be cleaned up by calling the
 	 * @atomic_destroy_state hook in this structure.
 	 *
-	 * Atomic drivers which don't subclass struct &drm_connector_state should use
+	 * Atomic drivers which don't subclass &struct drm_connector_state should use
 	 * drm_atomic_helper_connector_duplicate_state(). Drivers that subclass the
 	 * state structure to extend it with driver-private state should use
 	 * __drm_atomic_helper_connector_duplicate_state() to make sure shared state is
@@ -610,7 +610,7 @@ struct drm_connector_funcs {
 	/**
 	 * @atomic_print_state:
 	 *
-	 * If driver subclasses struct &drm_connector_state, it should implement
+	 * If driver subclasses &struct drm_connector_state, it should implement
 	 * this optional hook for printing additional driver specific state.
 	 *
 	 * Do not call this directly, use drm_atomic_connector_print_state()
@@ -972,11 +972,7 @@ void drm_mode_put_tile_group(struct drm_device *dev,
  * deprecated. Use drm_for_each_connector_iter() instead.
  */
 #define drm_for_each_connector(connector, dev) \
-	for (assert_drm_connector_list_read_locked(&(dev)->mode_config),	\
-	     connector = list_first_entry(&(dev)->mode_config.connector_list,	\
-					  struct drm_connector, head);		\
-	     &connector->head != (&(dev)->mode_config.connector_list);		\
-	     connector = list_next_entry(connector, head))
+	list_for_each_entry(connector, &(dev)->mode_config.connector_list, head)
 
 /**
  * struct drm_connector_list_iter - connector_list iterator
@@ -1001,8 +997,8 @@ void drm_connector_list_iter_put(struct drm_connector_list_iter *iter);
 
 /**
  * drm_for_each_connector_iter - connector_list iterator macro
- * @connector: struct &drm_connector pointer used as cursor
- * @iter: struct &drm_connector_list_iter
+ * @connector: &struct drm_connector pointer used as cursor
+ * @iter: &struct drm_connector_list_iter
  *
  * Note that @connector is only valid within the list body, if you want to use
  * @connector after calling drm_connector_list_iter_put() then you need to grab

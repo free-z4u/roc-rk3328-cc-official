@@ -123,7 +123,7 @@ struct ast_private {
 };
 
 int ast_driver_load(struct drm_device *dev, unsigned long flags);
-int ast_driver_unload(struct drm_device *dev);
+void ast_driver_unload(struct drm_device *dev);
 
 struct ast_gem_object;
 

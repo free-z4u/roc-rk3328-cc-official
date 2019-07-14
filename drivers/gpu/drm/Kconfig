@@ -6,7 +6,7 @@
 #
 menuconfig DRM
 	tristate "Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)"
-	depends on (AGP || AGP=n) && !EMULATED_CMPXCHG && MMU && HAS_DMA
+	depends on (AGP || AGP=n) && !EMULATED_CMPXCHG && HAS_DMA
 	select HDMI
 	select FB_CMDLINE
 	select I2C
@@ -118,7 +118,7 @@ config DRM_LOAD_EDID_FIRMWARE
 
 config DRM_TTM
 	tristate
-	depends on DRM
+	depends on DRM && MMU
 	help
 	  GPU memory management subsystem for devices with multiple
 	  GPU memory types. Will be enabled automatically if a device driver
@@ -155,13 +155,17 @@ config DRM_DMA_SYNC
 	  Choose this option if you want to use fences and reservations for
 	  synchronization of shared dma-buf access between different drivers.
 
+config DRM_VM
+	bool
+	depends on DRM && MMU
+
 source "drivers/gpu/drm/i2c/Kconfig"
 
 source "drivers/gpu/drm/arm/Kconfig"
 
 config DRM_RADEON
 	tristate "ATI Radeon"
-	depends on DRM && PCI
+	depends on DRM && PCI && MMU
 	select FW_LOADER
         select DRM_KMS_HELPER
         select DRM_TTM
@@ -181,7 +185,7 @@ source "drivers/gpu/drm/radeon/Kconfig"
 
 config DRM_AMDGPU
 	tristate "AMD GPU"
-	depends on DRM && PCI
+	depends on DRM && PCI && MMU
 	select FW_LOADER
         select DRM_KMS_HELPER
         select DRM_TTM
@@ -282,7 +286,8 @@ source "drivers/gpu/drm/meson/Kconfig"
 
 menuconfig DRM_LEGACY
 	bool "Enable legacy drivers (DANGEROUS)"
-	depends on DRM
+	depends on DRM && MMU
+	select DRM_VM
 	help
 	  Enable legacy DRI1 drivers. Those drivers expose unsafe and dangerous
 	  APIs to user-space, which can be used to circumvent access
