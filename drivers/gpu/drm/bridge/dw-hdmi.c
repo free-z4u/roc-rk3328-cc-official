@@ -40,10 +40,10 @@
 #include <uapi/linux/media-bus-format.h>
 #include <uapi/linux/videodev2.h>
 
-#include "dw-hdmi.h"
-#include "dw-hdmi-audio.h"
-#include "dw-hdmi-cec.h"
-#include "dw-hdmi-hdcp.h"
+#include "synopsys/dw-hdmi.h"
+#include "synopsys/dw-hdmi-audio.h"
+#include "synopsys/dw-hdmi-cec.h"
+#include "synopsys/dw-hdmi-hdcp.h"
 
 #define HDMI_EDID_LEN		512
 #define DDC_SEGMENT_ADDR       0x30

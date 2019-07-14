@@ -1,5 +1,6 @@
 ccflags-y := -Iinclude/drm
 
+obj-$(CONFIG_DRM_DW_HDMI) += dw-hdmi.o
 obj-$(CONFIG_DRM_ANALOGIX_ANX78XX) += analogix-anx78xx.o
 obj-$(CONFIG_DRM_DUMB_VGA_DAC) += dumb-vga-dac.o
 obj-$(CONFIG_DRM_NXP_PTN3460) += nxp-ptn3460.o
