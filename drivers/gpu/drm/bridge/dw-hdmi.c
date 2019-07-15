@@ -1564,6 +1564,7 @@ static int dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data,
 		dw_hdmi_phy_sel_data_en_pol(hdmi, 1);
 		dw_hdmi_phy_sel_interface_control(hdmi, 0);
 
+		/* Enable CSC */
 		ret = hdmi_phy_configure(hdmi);
 		if (ret)
 			return ret;
