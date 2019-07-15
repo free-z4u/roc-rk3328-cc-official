@@ -2467,7 +2467,7 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 				ret++;
 			}
 		}
-		dev_info(hdmi->dev, "failed to get edid\n");
+		dev_dbg(hdmi->dev, "failed to get edid\n");
 	}
 
 	return ret;
@@ -3388,7 +3388,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 		const struct dw_hdmi_plat_data *plat_data)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *np = pdev->dev.of_node;
+	struct device_node *np = dev->of_node;
 	struct platform_device_info pdevinfo;
 	struct device_node *ddc_node;
 	struct dw_hdmi_cec_data cec;
@@ -3396,9 +3396,9 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	struct resource *iores;
 	int irq;
 	int ret;
+	u32 val = 1;
 	u8 prod_id0;
 	u8 prod_id1;
-	u32 val = 1;
 	u8 config0;
 	u8 config3;
 	bool hdcp1x_enable = false;
@@ -3408,7 +3408,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 		return ERR_PTR(-ENOMEM);
 
 	hdmi->plat_data = plat_data;
-	hdmi->dev = &pdev->dev;
+	hdmi->dev = dev;
 	hdmi->dev_type = plat_data->dev_type;
 	hdmi->sample_rate = 48000;
 	hdmi->disabled = true;
@@ -3451,7 +3451,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	}
 
 	iores = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	hdmi->regs = devm_ioremap_resource(&pdev->dev, iores);
+	hdmi->regs = devm_ioremap_resource(dev, iores);
 	if (IS_ERR(hdmi->regs)) {
 		ret = PTR_ERR(hdmi->regs);
 		goto err_res;
@@ -3511,7 +3511,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 
 	if (prod_id0 != HDMI_PRODUCT_ID0_HDMI_TX ||
 	    (prod_id1 & ~HDMI_PRODUCT_ID1_HDCP) != HDMI_PRODUCT_ID1_HDMI_TX) {
-		dev_err(hdmi->dev, "Unsupported HDMI controller (%04x:%02x:%02x)\n",
+		dev_err(dev, "Unsupported HDMI controller (%04x:%02x:%02x)\n",
 			hdmi->version, prod_id0, prod_id1);
 		ret = -ENODEV;
 		goto err_iahb;
@@ -3521,7 +3521,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	if (ret < 0)
 		goto err_iahb;
 
-	dev_info(hdmi->dev, "Detected HDMI TX controller v%x.%03x %s HDCP (%s)\n",
+	dev_info(dev, "Detected HDMI TX controller v%x.%03x %s HDCP (%s)\n",
 		 hdmi->version >> 12, hdmi->version & 0xfff,
 		 prod_id1 & HDMI_PRODUCT_ID1_HDCP ? "with" : "without",
 		 hdmi->phy.name);
@@ -3542,9 +3542,9 @@ __dw_hdmi_probe(struct platform_device *pdev,
 		goto err_iahb;
 	}
 
-	ret = devm_request_threaded_irq(hdmi->dev, irq, dw_hdmi_hardirq,
+	ret = devm_request_threaded_irq(dev, irq, dw_hdmi_hardirq,
 					dw_hdmi_irq, IRQF_SHARED,
-					dev_name(hdmi->dev), hdmi);
+					dev_name(dev), hdmi);
 	if (ret)
 		goto err_iahb;
 
@@ -3584,7 +3584,9 @@ __dw_hdmi_probe(struct platform_device *pdev,
 
 	hdmi->bridge.driver_private = hdmi;
 	hdmi->bridge.funcs = &dw_hdmi_bridge_funcs;
+#ifdef CONFIG_OF
 	hdmi->bridge.of_node = pdev->dev.of_node;
+#endif
 
 	ret = dw_hdmi_fb_registered(hdmi);
 	if (ret)
@@ -3595,6 +3597,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	switch_dev_register(&hdmi->switchdev);
 #endif
 
+	/* Unmute interrupts */
 	hdmi_writeb(hdmi, ~(HDMI_IH_PHY_STAT0_HPD | HDMI_IH_PHY_STAT0_RX_SENSE),
 		    HDMI_IH_MUTE_PHY_STAT0);
 
@@ -3603,7 +3606,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 		dw_hdmi_i2c_init(hdmi);
 
 	memset(&pdevinfo, 0, sizeof(pdevinfo));
-	pdevinfo.parent = hdmi->dev;
+	pdevinfo.parent = dev;
 	pdevinfo.id = PLATFORM_DEVID_AUTO;
 
 	config0 = hdmi_readb(hdmi, HDMI_CONFIG0_ID);
@@ -3784,6 +3787,7 @@ int dw_hdmi_bind(struct platform_device *pdev, struct drm_encoder *encoder,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(dw_hdmi_bind);
 
 void dw_hdmi_unbind(struct device *dev)
 {
@@ -3791,6 +3795,7 @@ void dw_hdmi_unbind(struct device *dev)
 
 	__dw_hdmi_remove(hdmi);
 }
+EXPORT_SYMBOL_GPL(dw_hdmi_unbind);
 
 static void dw_hdmi_reg_initial(struct dw_hdmi *hdmi)
 {
