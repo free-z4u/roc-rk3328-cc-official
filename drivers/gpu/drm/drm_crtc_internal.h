@@ -177,7 +177,6 @@ int drm_mode_dirtyfb_ioctl(struct drm_device *dev,
 #ifdef CONFIG_DEBUG_FS
 struct drm_minor;
 int drm_atomic_debugfs_init(struct drm_minor *minor);
-int drm_atomic_debugfs_cleanup(struct drm_minor *minor);
 #endif
 
 int drm_atomic_get_property(struct drm_mode_object *obj,
@@ -208,3 +207,6 @@ int drm_mode_cursor2_ioctl(struct drm_device *dev,
 			   void *data, struct drm_file *file_priv);
 int drm_mode_page_flip_ioctl(struct drm_device *dev,
 			     void *data, struct drm_file *file_priv);
+
+/* drm_edid.c */
+void drm_mode_fixup_1366x768(struct drm_display_mode *mode);

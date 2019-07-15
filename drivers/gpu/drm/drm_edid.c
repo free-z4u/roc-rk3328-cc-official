@@ -39,6 +39,8 @@
 #include <drm/drm_displayid.h>
 #include <drm/drm_scdc_helper.h>
 
+#include "drm_crtc_internal.h"
+
 #define version_greater(edid, maj, min) \
 	(((edid)->version > (maj)) || \
 	 ((edid)->version == (maj) && (edid)->revision > (min)))

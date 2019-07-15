@@ -307,9 +307,8 @@ static s32 __user *get_out_fence_for_crtc(struct drm_atomic_state *state,
  * @state: the CRTC whose incoming state to update
  * @mode: kernel-internal mode to use for the CRTC, or NULL to disable
  *
- * Set a mode (originating from the kernel) on the desired CRTC state. Does
- * not change any other state properties, including enable, active, or
- * mode_changed.
+ * Set a mode (originating from the kernel) on the desired CRTC state and update
+ * the enable property.
  *
  * RETURNS:
  * Zero on success, error code on failure. Cannot return -EDEADLK.
@@ -1733,13 +1732,6 @@ int drm_atomic_debugfs_init(struct drm_minor *minor)
 	return drm_debugfs_create_files(drm_atomic_debugfs_list,
 			ARRAY_SIZE(drm_atomic_debugfs_list),
 			minor->debugfs_root, minor);
-}
-
-int drm_atomic_debugfs_cleanup(struct drm_minor *minor)
-{
-	return drm_debugfs_remove_files(drm_atomic_debugfs_list,
-					ARRAY_SIZE(drm_atomic_debugfs_list),
-					minor);
 }
 #endif
 
