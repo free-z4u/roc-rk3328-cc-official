@@ -27,7 +27,7 @@
 #include <linux/soc/rockchip/rk_vendor_storage.h>
 #include <drm/bridge/dw_hdmi.h>
 
-#include "dw-hdmi.h"
+#include "../dw-hdmi.h"
 #include "dw-hdmi-hdcp.h"
 
 #define HDCP_KEY_SIZE		308
