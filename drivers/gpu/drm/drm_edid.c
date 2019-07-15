@@ -2383,7 +2383,7 @@ drm_dmt_modes_for_range(struct drm_connector *connector, struct edid *edid,
 /* fix up 1366x768 mode from 1368x768;
  * GFT/CVT can't express 1366 width which isn't dividable by 8
  */
-static void fixup_mode_1366x768(struct drm_display_mode *mode)
+void drm_mode_fixup_1366x768(struct drm_display_mode *mode)
 {
 	if (mode->hdisplay == 1368 && mode->vdisplay == 768) {
 		mode->hdisplay = 1366;
@@ -2407,7 +2407,7 @@ drm_gtf_modes_for_range(struct drm_connector *connector, struct edid *edid,
 		if (!newmode)
 			return modes;
 
-		fixup_mode_1366x768(newmode);
+		drm_mode_fixup_1366x768(newmode);
 		if (!mode_in_range(newmode, edid, timing) ||
 		    !valid_inferred_mode(connector, newmode)) {
 			drm_mode_destroy(dev, newmode);
@@ -2436,7 +2436,7 @@ drm_cvt_modes_for_range(struct drm_connector *connector, struct edid *edid,
 		if (!newmode)
 			return modes;
 
-		fixup_mode_1366x768(newmode);
+		drm_mode_fixup_1366x768(newmode);
 		if (!mode_in_range(newmode, edid, timing) ||
 		    !valid_inferred_mode(connector, newmode)) {
 			drm_mode_destroy(dev, newmode);
@@ -3133,16 +3133,7 @@ add_alternate_cea_modes(struct drm_connector *connector, struct edid *edid)
 	return modes;
 }
 
-static u8 svd_to_vic(u8 svd)
-{
-	/* 0-6 bit vic, 7th bit native mode indicator */
-	if ((svd >= 1 &&  svd <= 64) || (svd >= 129 && svd <= 192))
-		return svd & 127;
-
-	return svd;
-}
-
-struct drm_display_mode *
+static struct drm_display_mode *
 drm_display_mode_from_vic_index(struct drm_connector *connector,
 				const u8 *video_db, u8 video_len,
 				u8 video_index)
@@ -3155,7 +3146,7 @@ drm_display_mode_from_vic_index(struct drm_connector *connector,
 		return NULL;
 
 	/* CEA modes are numbered 1..127 */
-	vic = svd_to_vic(video_db[video_index]);
+	vic = (video_db[video_index] & 127);
 	if (!drm_valid_cea_vic(vic))
 		return NULL;
 
@@ -3167,7 +3158,15 @@ drm_display_mode_from_vic_index(struct drm_connector *connector,
 
 	return newmode;
 }
-EXPORT_SYMBOL(drm_display_mode_from_vic_index);
+
+static u8 svd_to_vic(u8 svd)
+{
+	/* 0-6 bit vic, 7th bit native mode indicator */
+	if ((svd >= 1 &&  svd <= 64) || (svd >= 129 && svd <= 192))
+		return svd & 127;
+
+	return svd;
+}
 
 /*
  * do_y420vdb_modes - Parse YCBCR 420 only modes
