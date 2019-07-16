@@ -224,15 +224,6 @@ static int rockchip_drm_bandwidth_atomic_check(struct drm_device *dev,
 			*bandwidth += funcs->bandwidth(crtc, crtc_state);
 	}
 
-	/*
-	 * Check ddr frequency support here here.
-	 */
-	if (priv->dmc_support && !priv->devfreq) {
-		priv->devfreq = devfreq_get_devfreq_by_phandle(dev->dev, 0);
-		if (IS_ERR(priv->devfreq))
-			priv->devfreq = NULL;
-	}
-
 	if (priv->devfreq)
 		ret = rockchip_dmcfreq_vop_bandwidth_request(priv->devfreq,
 							     *bandwidth);
@@ -273,11 +264,6 @@ rockchip_atomic_commit_complete(struct rockchip_atomic_commit *commit)
 
 	drm_atomic_helper_commit_modeset_enables(dev, state);
 
-	if (prv->dmc_support && !prv->devfreq) {
-		prv->devfreq = devfreq_get_devfreq_by_phandle(dev->dev, 0);
-		if (IS_ERR(prv->devfreq))
-			prv->devfreq = NULL;
-	}
 	if (prv->devfreq)
 		rockchip_dmcfreq_vop_bandwidth_update(prv->devfreq, bandwidth);
 
@@ -293,15 +279,6 @@ rockchip_atomic_commit_complete(struct rockchip_atomic_commit *commit)
 	drm_atomic_helper_commit_cleanup_done(state);
 
 	kfree(commit);
-}
-
-void rockchip_drm_atomic_work(struct work_struct *work)
-{
-	struct rockchip_drm_private *private = container_of(work,
-				struct rockchip_drm_private, commit_work);
-
-	rockchip_atomic_commit_complete(private->commit);
-	private->commit = NULL;
 }
 
 int rockchip_drm_atomic_commit(struct drm_device *dev,

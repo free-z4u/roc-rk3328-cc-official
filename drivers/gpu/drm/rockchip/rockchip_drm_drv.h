@@ -54,26 +54,10 @@ struct rockchip_crtc_funcs {
 					   int output_type);
 };
 
-struct drm_rockchip_subdrv {
-	struct list_head list;
-	struct device *dev;
-	struct drm_device *drm_dev;
-
-	int (*open)(struct drm_device *drm_dev, struct device *dev,
-		    struct drm_file *file);
-	void (*close)(struct drm_device *drm_dev, struct device *dev,
-		      struct drm_file *file);
-};
-
 struct rockchip_atomic_commit {
 	struct drm_atomic_state *state;
 	struct drm_device *dev;
 	size_t bandwidth;
-};
-
-struct rockchip_dclk_pll {
-	struct clk *pll;
-	unsigned int use_count;
 };
 
 struct rockchip_sdr2hdr_state {
@@ -137,16 +121,6 @@ struct rockchip_crtc_state {
 		container_of(s, struct rockchip_crtc_state, base)
 
 /*
- * Rockchip drm_file private structure.
- *
- * @gem_cpu_acquire_list: list of GEM objects we hold acquires on
- */
-struct rockchip_drm_file_private {
-	struct list_head		gem_cpu_acquire_list;
-	struct rockchip_drm_rga_private *rga_priv;
-};
-
-/*
  * Rockchip drm private structure.
  *
  * @crtc: array of enabled CRTCs, used to map from "pipe" to drm_crtc.
@@ -170,25 +144,14 @@ struct rockchip_drm_private {
 	/* protect async commit */
 	struct mutex commit_lock;
 	struct work_struct commit_work;
-	struct iommu_domain *domain;
 	struct gen_pool *secure_buffer_pool;
 #ifdef CONFIG_DRM_DMA_SYNC
 	unsigned int cpu_fence_context;
 	atomic_t cpu_fence_seqno;
 #endif
-	/* protect drm_mm on multi-threads */
-	struct mutex mm_lock;
-	struct drm_mm mm;
-	struct rockchip_dclk_pll default_pll;
-	struct rockchip_dclk_pll hdmi_pll;
 	struct devfreq *devfreq;
-	bool dmc_support;
 };
 
-#ifndef MODULE
-void rockchip_free_loader_memory(struct drm_device *drm);
-#endif
-void rockchip_drm_atomic_work(struct work_struct *work);
 int rockchip_register_crtc_funcs(struct drm_crtc *crtc,
 				 const struct rockchip_crtc_funcs *crtc_funcs);
 void rockchip_unregister_crtc_funcs(struct drm_crtc *crtc);
@@ -198,8 +161,5 @@ void rockchip_drm_dma_detach_device(struct drm_device *drm_dev,
 				    struct device *dev);
 int rockchip_drm_wait_line_flag(struct drm_crtc *crtc, unsigned int line_num,
 				unsigned int mstimeout);
-
-int rockchip_drm_register_subdrv(struct drm_rockchip_subdrv *subdrv);
-int rockchip_drm_unregister_subdrv(struct drm_rockchip_subdrv *subdrv);
 
 #endif /* _ROCKCHIP_DRM_DRV_H_ */
