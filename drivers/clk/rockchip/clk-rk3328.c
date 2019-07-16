@@ -149,6 +149,7 @@ static const struct rockchip_cpuclk_reg_data rk3328_cpuclk_data = {
 
 PNAME(mux_pll_p)		= { "xin24m" };
 PNAME(mux_hdmiphy_gpll_p)	= { "hdmiphy", "gpll" };
+
 PNAME(mux_2plls_p)		= { "cpll", "gpll" };
 PNAME(mux_gpll_cpll_p)		= { "gpll", "cpll" };
 PNAME(mux_cpll_gpll_apll_p)	= { "cpll", "gpll", "apll" };
@@ -932,5 +933,4 @@ static void __init rk3328_clk_init(struct device_node *np)
 	atomic_notifier_chain_register(&panic_notifier_list,
 				       &rk3328_clk_panic_block);
 }
-
 CLK_OF_DECLARE(rk3328_cru, "rockchip,rk3328-cru", rk3328_clk_init);
