@@ -372,7 +372,7 @@ rockchip_drm_framebuffer_init(struct drm_device *dev,
 
 	fb = rockchip_fb_alloc(dev, mode_cmd, &obj, 1);
 	if (IS_ERR(fb))
-		return NULL;
+		return ERR_CAST(fb);
 
 	return fb;
 }
