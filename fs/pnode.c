@@ -302,7 +302,6 @@ int propagate_mnt(struct mount *dest_mnt, struct mountpoint *dest_mp,
 	 * propagate_one(); everything is serialized by namespace_sem,
 	 * so globals will do just fine.
 	 */
-	user_ns = current->nsproxy->mnt_ns->user_ns;
 	last_dest = dest_mnt;
 	first_source = source_mnt;
 	last_source = source_mnt;
