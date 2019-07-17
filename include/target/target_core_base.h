@@ -398,7 +398,6 @@ struct se_tmr_req {
 	void 			*fabric_tmr_ptr;
 	struct se_cmd		*task_cmd;
 	struct se_device	*tmr_dev;
-	struct se_lun		*tmr_lun;
 	struct list_head	tmr_list;
 };
 
@@ -489,8 +488,6 @@ struct se_cmd {
 #define CMD_T_COMPLETE		(1 << 2)
 #define CMD_T_SENT		(1 << 4)
 #define CMD_T_STOP		(1 << 5)
-#define CMD_T_DEV_ACTIVE	(1 << 7)
-#define CMD_T_BUSY		(1 << 9)
 #define CMD_T_TAS		(1 << 10)
 #define CMD_T_FABRIC_STOP	(1 << 11)
 #define CMD_T_PRE_EXECUTE	(1 << 12)
@@ -771,6 +768,8 @@ struct se_device {
 	u32			dev_index;
 	u64			creation_time;
 	atomic_long_t		num_resets;
+	atomic_long_t		aborts_complete;
+	atomic_long_t		aborts_no_task;
 	atomic_long_t		num_cmds;
 	atomic_long_t		read_bytes;
 	atomic_long_t		write_bytes;
