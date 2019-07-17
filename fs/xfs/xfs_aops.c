@@ -103,9 +103,9 @@ xfs_finish_page_writeback(
 	unsigned int		bsize;
 
 	ASSERT(bvec->bv_offset < PAGE_SIZE);
-	ASSERT((bvec->bv_offset & ((1 << inode->i_blkbits) - 1)) == 0);
+	ASSERT((bvec->bv_offset & (i_blocksize(inode) - 1)) == 0);
 	ASSERT(end < PAGE_SIZE);
-	ASSERT((bvec->bv_len & ((1 << inode->i_blkbits) - 1)) == 0);
+	ASSERT((bvec->bv_len & (i_blocksize(inode) - 1)) == 0);
 
 	bh = head = page_buffers(bvec->bv_page);
 
@@ -846,7 +846,7 @@ xfs_writepage_map(
 	LIST_HEAD(submit_list);
 	struct xfs_ioend	*ioend, *next;
 	struct buffer_head	*bh, *head;
-	ssize_t			len = 1 << inode->i_blkbits;
+	ssize_t			len = i_blocksize(inode);
 	int			error = 0;
 	int			count = 0;
 	int			uptodate = 1;
