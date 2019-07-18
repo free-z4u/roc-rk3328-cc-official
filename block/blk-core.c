@@ -578,8 +578,6 @@ void blk_cleanup_queue(struct request_queue *q)
 		q->queue_lock = &q->__queue_lock;
 	spin_unlock_irq(lock);
 
-	put_disk_devt(q->disk_devt);
-
 	/* @q is and will stay empty, shutdown and put */
 	blk_put_queue(q);
 }
@@ -2019,7 +2017,7 @@ blk_qc_t generic_make_request(struct bio *bio)
 	do {
 		struct request_queue *q = bdev_get_queue(bio->bi_bdev);
 
-		if (likely(blk_queue_enter(q, __GFP_DIRECT_RECLAIM) == 0)) {
+		if (likely(blk_queue_enter(q, false) == 0)) {
 			struct bio_list lower, same;
 
 			/* Create a fresh bio_list for all subordinate requests */
@@ -2028,6 +2026,7 @@ blk_qc_t generic_make_request(struct bio *bio)
 			ret = q->make_request_fn(q, bio);
 
 			blk_queue_exit(q);
+
 			/* sort new bios into those for a lower level
 			 * and those for the same level
 			 */
