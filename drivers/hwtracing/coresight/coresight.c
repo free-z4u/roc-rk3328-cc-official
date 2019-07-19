@@ -417,14 +417,13 @@ struct coresight_device *coresight_get_enabled_sink(bool deactivate)
 /**
  * _coresight_build_path - recursively build a path from a @csdev to a sink.
  * @csdev:	The device to start from.
- * @sink:	The name of the sink this path should connect with.
  * @path:	The list to add devices to.
  *
- * The tree of Coresight device is traversed until an activated sink or
- * the one specified by @sink is found.
- * From there the sink is added to the list along with all the devices that
- * led to that point - the end result is a list from source to sink. In that
- * list the source is the first device and the sink the last one.
+ * The tree of Coresight device is traversed until an activated sink is
+ * found.  From there the sink is added to the list along with all the
+ * devices that led to that point - the end result is a list from source
+ * to sink. In that list the source is the first device and the sink the
+ * last one.
  */
 static int _coresight_build_path(struct coresight_device *csdev,
 				 struct coresight_device *sink,

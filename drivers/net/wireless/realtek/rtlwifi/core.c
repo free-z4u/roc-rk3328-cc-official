@@ -130,6 +130,7 @@ found_alt:
 		       firmware->size);
 		rtlpriv->rtlhal.wowlan_fwsize = firmware->size;
 	}
+	rtlpriv->rtlhal.fwsize = firmware->size;
 	release_firmware(firmware);
 }
 
