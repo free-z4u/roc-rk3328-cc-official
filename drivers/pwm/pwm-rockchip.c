@@ -105,7 +105,7 @@ static void rockchip_pwm_get_state(struct pwm_chip *chip,
 }
 
 static void rockchip_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
-				struct pwm_state *state)
+			       struct pwm_state *state)
 {
 	struct rockchip_pwm_chip *pc = to_rockchip_pwm_chip(chip);
 	unsigned long period, duty;
@@ -203,7 +203,7 @@ static int rockchip_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	struct rockchip_pwm_chip *pc = to_rockchip_pwm_chip(chip);
 	struct pwm_state curstate;
 	bool enabled;
-	int ret;
+	int ret = 0;
 
 	ret = clk_enable(pc->pclk);
 	if (ret)
@@ -311,8 +311,8 @@ static const struct rockchip_pwm_data pwm_data_v3 = {
 static const struct of_device_id rockchip_pwm_dt_ids[] = {
 	{ .compatible = "rockchip,rk2928-pwm", .data = &pwm_data_v1},
 	{ .compatible = "rockchip,rk3288-pwm", .data = &pwm_data_v2},
-	{ .compatible = "rockchip,rk3328-pwm", .data = &pwm_data_v3},
 	{ .compatible = "rockchip,vop-pwm", .data = &pwm_data_vop},
+	{ .compatible = "rockchip,rk3328-pwm", .data = &pwm_data_v3},
 	{ .compatible = "rockchip,rk3399-pwm", .data = &pwm_data_v2},
 	{ /* sentinel */ }
 };
