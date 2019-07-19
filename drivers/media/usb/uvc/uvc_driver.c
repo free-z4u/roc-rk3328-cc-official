@@ -2099,10 +2099,7 @@ static int uvc_probe(struct usb_interface *intf,
 	}
 
 	uvc_trace(UVC_TRACE_PROBE, "UVC device initialized.\n");
-	if (udev->quirks & USB_QUIRK_AUTO_SUSPEND)
-		uvc_printk(KERN_INFO, "auto-suspend is blacklisted for this device\n");
-	else
-		usb_enable_autosuspend(udev);
+	usb_enable_autosuspend(udev);
 	return 0;
 
 error:
