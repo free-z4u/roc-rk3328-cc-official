@@ -2603,17 +2603,17 @@ static int nl80211_dump_interface(struct sk_buff *skb, struct netlink_callback *
 	int filter_wiphy = -1;
 	struct cfg80211_registered_device *rdev;
 	struct wireless_dev *wdev;
+	int ret;
 
 	rtnl_lock();
 	if (!cb->args[2]) {
 		struct nl80211_dump_wiphy_state state = {
 			.filter_wiphy = -1,
 		};
-		int ret;
 
 		ret = nl80211_dump_wiphy_parse(skb, cb, &state);
 		if (ret)
-			return ret;
+			goto out_unlock;
 
 		filter_wiphy = state.filter_wiphy;
 
@@ -2658,12 +2658,14 @@ static int nl80211_dump_interface(struct sk_buff *skb, struct netlink_callback *
 		wp_idx++;
 	}
  out:
-	rtnl_unlock();
-
 	cb->args[0] = wp_idx;
 	cb->args[1] = if_idx;
 
-	return skb->len;
+	ret = skb->len;
+ out_unlock:
+	rtnl_unlock();
+
+	return ret;
 }
 
 static int nl80211_get_interface(struct sk_buff *skb, struct genl_info *info)
@@ -11555,7 +11557,7 @@ static int nl80211_prepare_vendor_dump(struct sk_buff *skb,
 	if (IS_ERR(*wdev))
 		*wdev = NULL;
 
-	*rdev = __cfg80211_rdev_from_attrs(sock_net(skb->sk), attrbuf);   
+	*rdev = __cfg80211_rdev_from_attrs(sock_net(skb->sk), attrbuf);
 	if (IS_ERR(*rdev))
 		return PTR_ERR(*rdev);
 
