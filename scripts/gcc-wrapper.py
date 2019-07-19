@@ -40,8 +40,8 @@ import subprocess
 # force LANG to be set to en_US.UTF-8 to get consistent warnings.
 
 allowed_warnings = set([
-    "vdso.c:128", # arch/arm64/kernel/vdso.c:119:6: warning: ‘memcmp’ reading 4 bytes from a region of size 1 [-Wstringop-overflow=]
-    "regcache-rbtree.c:36", # drivers/base/regmap/regcache-rbtree.c:36:1: warning: alignment 1 of ‘struct regcache_rbtree_node’ is less than 8 [-Wpacked-not-aligned]
+    "vdso.c:128", #  warning: ‘memcmp’ reading 4 bytes from a region of size 1 [-Wstringop-overflow=]
+    "regcache-rbtree.c:36", # warning: alignment 1 of ‘struct regcache_rbtree_node’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:344", # warning: alignment 4 of ‘struct sctp_paddr_change’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:634", # warning: alignment 4 of ‘struct sctp_setpeerprim’ is less than 8 [-Wpacked-not-aligned]
     "sctp.h:633", # warning: ‘sspp_addr’ offset 4 in ‘struct sctp_setpeerprim’ isn’t aligned to 8 [-Wpacked-not-aligned]
@@ -68,6 +68,7 @@ allowed_warnings = set([
     "virtio_net.c:796", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
     "secureboot.c:17", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
     "secureboot.c:20", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
+    "rx.c:219", # warning: alignment 1 of ‘struct <anonymous>’ is less than 2 [-Wpacked-not-aligned]
  ])
 
 # Capture the name of the object file, can find it.
