@@ -152,9 +152,7 @@ int rockchip_drm_fbdev_init(struct drm_device *dev)
 	if (!dev->mode_config.num_crtc || !dev->mode_config.num_connector)
 		return -EINVAL;
 
-	helper = devm_kzalloc(dev->dev, sizeof(*helper), GFP_KERNEL);
-	if (!helper)
-		return -ENOMEM;
+	helper = &private->fbdev_helper;
 
 	drm_fb_helper_prepare(dev, helper, &rockchip_drm_fb_helper_funcs);
 
@@ -178,8 +176,6 @@ int rockchip_drm_fbdev_init(struct drm_device *dev)
 		goto err_drm_fb_helper_fini;
 	}
 
-	private->fbdev_helper = helper;
-
 	return 0;
 
 err_drm_fb_helper_fini:
@@ -190,10 +186,9 @@ err_drm_fb_helper_fini:
 void rockchip_drm_fbdev_fini(struct drm_device *dev)
 {
 	struct rockchip_drm_private *private = dev->dev_private;
-	struct drm_fb_helper *helper = private->fbdev_helper;
+	struct drm_fb_helper *helper;
 
-	if (!helper)
-		return;
+	helper = &private->fbdev_helper;
 
 	drm_fb_helper_unregister_fbi(helper);
 	drm_fb_helper_release_fbi(helper);
