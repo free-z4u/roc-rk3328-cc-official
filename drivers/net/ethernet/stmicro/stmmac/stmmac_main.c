@@ -51,7 +51,7 @@
 #include <linux/of_mdio.h>
 #include "dwmac1000.h"
 
-#define	STMMAC_ALIGN(x)		__ALIGN_KERNEL(x, SMP_CACHE_BYTES)
+#define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
 #define	TSO_MAX_BUFF_SIZE	(SZ_16K - 1)
 
 /* Module parameters */
@@ -279,13 +279,7 @@ bool stmmac_eee_init(struct stmmac_priv *priv)
 {
 	struct net_device *ndev = priv->dev;
 	unsigned long flags;
-	int interface = priv->plat->interface;
 	bool ret = false;
-
-	if ((interface != PHY_INTERFACE_MODE_MII) &&
-	    (interface != PHY_INTERFACE_MODE_GMII) &&
-	    !phy_interface_mode_is_rgmii(interface))
-		goto out;
 
 	/* Using PCS we cannot dial with the phy registers at this stage
 	 * so we do not support extra feature like EEE.
@@ -1563,9 +1557,6 @@ static void stmmac_check_ether_addr(struct stmmac_priv *priv)
 	if (!is_valid_ether_addr(priv->dev->dev_addr)) {
 		priv->hw->mac->get_umac_addr(priv->hw,
 					     priv->dev->dev_addr, 0);
-		if (likely(priv->plat->get_eth_addr))
-			priv->plat->get_eth_addr(priv->plat->bsp_priv,
-				priv->dev->dev_addr);
 		if (!is_valid_ether_addr(priv->dev->dev_addr))
 			eth_hw_addr_random(priv->dev);
 		netdev_info(priv->dev, "device MAC address %pM\n",
@@ -1728,12 +1719,10 @@ static int stmmac_hw_setup(struct net_device *dev, bool init_ptp)
 	}
 
 #ifdef CONFIG_DEBUG_FS
-	if (init_ptp) {
-		ret = stmmac_init_fs(dev);
-		if (ret < 0)
-			netdev_warn(priv->dev, "%s: failed debugFS registration\n",
-				    __func__);
-	}
+	ret = stmmac_init_fs(dev);
+	if (ret < 0)
+		netdev_warn(priv->dev, "%s: failed debugFS registration\n",
+			    __func__);
 #endif
 	/* Start the ball rolling... */
 	netdev_dbg(priv->dev, "DMA RX/TX processes started...\n");
@@ -3419,12 +3408,12 @@ int stmmac_suspend(struct device *dev)
 	if (ndev->phydev)
 		phy_stop(ndev->phydev);
 
+	spin_lock_irqsave(&priv->lock, flags);
+
 	netif_device_detach(ndev);
 	netif_stop_queue(ndev);
 
 	napi_disable(&priv->napi);
-
-	spin_lock_irqsave(&priv->lock, flags);
 
 	/* Stop TX/RX DMA */
 	priv->hw->dma->stop_tx(priv->ioaddr);
@@ -3486,7 +3475,7 @@ int stmmac_resume(struct device *dev)
 			stmmac_mdio_reset(priv->mii);
 	}
 
-	spin_lock_irqsave(&priv->lock, flags);
+	netif_device_attach(ndev);
 
 	spin_lock_irqsave(&priv->lock, flags);
 
@@ -3508,8 +3497,6 @@ int stmmac_resume(struct device *dev)
 	napi_enable(&priv->napi);
 
 	netif_start_queue(ndev);
-
-	netif_device_attach(ndev);
 
 	spin_unlock_irqrestore(&priv->lock, flags);
 
