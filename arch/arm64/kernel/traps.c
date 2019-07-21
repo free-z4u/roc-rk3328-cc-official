@@ -36,7 +36,6 @@
 #include <linux/mm_types.h>
 
 #include <asm/atomic.h>
-#include <asm/barrier.h>
 #include <asm/bug.h>
 #include <asm/debug-monitors.h>
 #include <asm/esr.h>
@@ -55,7 +54,7 @@ static const char *handler[]= {
 	"Error"
 };
 
-int show_unhandled_signals = 0;
+int show_unhandled_signals = 1;
 
 /*
  * Dump out the contents of some kernel memory nicely...
@@ -117,7 +116,7 @@ static void __dump_instr(const char *lvl, struct pt_regs *regs)
 	for (i = -4; i < 1; i++) {
 		unsigned int val, bad;
 
-		bad = get_user(val, &((u32 *)addr)[i]);
+		bad = __get_user(val, &((u32 *)addr)[i]);
 
 		if (!bad)
 			p += sprintf(p, i == 0 ? "(%08x) " : "%08x ", val);
@@ -163,9 +162,6 @@ static void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 		irq_stack_ptr = IRQ_STACK_PTR(smp_processor_id());
 	else
 		irq_stack_ptr = 0;
-
-	if (!try_get_task_stack(tsk))
-		return;
 
 	if (tsk == current) {
 		frame.fp = (unsigned long)__builtin_frame_address(0);
@@ -446,8 +442,6 @@ int cpu_enable_cache_maint_trap(void *__unused)
 	return 0;
 }
 
-#if 0
-// revert after 6126ce0588eb5a0752d5c8b5796a7fca324fd887
 #define __user_cache_maint(insn, address, res)			\
 	if (address >= user_addr_max()) {			\
 		res = -EFAULT;					\
@@ -500,42 +494,7 @@ static void user_cache_maint_handler(unsigned int esr, struct pt_regs *regs)
 	else
 		regs->pc += 4;
 }
-#endif
 
-static void cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
-{
-	int rt = (esr & ESR_ELx_SYS64_ISS_RT_MASK) >> ESR_ELx_SYS64_ISS_RT_SHIFT;
-
-	isb();
-	if (rt != 31)
-		regs->regs[rt] = arch_counter_get_cntvct();
-	regs->pc += 4;
-}
-
-static void cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
-{
-	int rt = (esr & ESR_ELx_SYS64_ISS_RT_MASK) >> ESR_ELx_SYS64_ISS_RT_SHIFT;
-
-	if (rt != 31)
-		regs->regs[rt] = read_sysreg(cntfrq_el0);
-	regs->pc += 4;
-}
-
-asmlinkage void __exception do_sysinstr(unsigned int esr, struct pt_regs *regs)
-{
-	if ((esr & ESR_ELx_SYS64_ISS_SYS_OP_MASK) == ESR_ELx_SYS64_ISS_SYS_CNTVCT) {
-		cntvct_read_handler(esr, regs);
-		return;
-	} else if ((esr & ESR_ELx_SYS64_ISS_SYS_OP_MASK) == ESR_ELx_SYS64_ISS_SYS_CNTFRQ) {
-		cntfrq_read_handler(esr, regs);
-		return;
-	}
-
-	do_undefinstr(regs);
-}
-
-#if 0
-// revert after 6126ce0588eb5a0752d5c8b5796a7fca324fd887
 static void ctr_read_handler(unsigned int esr, struct pt_regs *regs)
 {
 	int rt = (esr & ESR_ELx_SYS64_ISS_RT_MASK) >> ESR_ELx_SYS64_ISS_RT_SHIFT;
@@ -612,7 +571,6 @@ asmlinkage void __exception do_sysinstr(unsigned int esr, struct pt_regs *regs)
 	 */
 	do_undefinstr(regs);
 }
-#endif
 
 long compat_arm_syscall(struct pt_regs *regs);
 
