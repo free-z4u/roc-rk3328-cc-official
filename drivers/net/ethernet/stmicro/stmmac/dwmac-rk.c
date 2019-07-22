@@ -1333,17 +1333,12 @@ static void rk_fix_speed(void *priv, unsigned int speed)
 	}
 }
 
-void __weak rk_devinfo_get_eth_mac(u8 *mac)
-{
-}
-
 void rk_get_eth_addr(void *priv, unsigned char *addr)
 {
 	int ret;
 	struct rk_priv_data *bsp_priv = priv;
 	struct device *dev = &bsp_priv->pdev->dev;
 
-	rk_devinfo_get_eth_mac(addr);
 	if (is_valid_ether_addr(addr))
 		goto out;
 

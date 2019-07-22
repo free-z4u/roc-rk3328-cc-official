@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 #ifndef _LINUX_XFRM_H
 #define _LINUX_XFRM_H
 
@@ -495,6 +496,13 @@ struct xfrm_address_filter {
 	__u8				splen;
 	__u8				dplen;
 };
+
+struct xfrm_user_offload {
+	int				ifindex;
+	__u8				flags;
+};
+#define XFRM_OFFLOAD_IPV6	1
+#define XFRM_OFFLOAD_INBOUND	2
 
 #ifndef __KERNEL__
 /* backwards compatibility for userspace */
