@@ -66,8 +66,8 @@ allowed_warnings = set([
     "cfg80211.c:4174", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
     "virtio_net.c:382", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
     "virtio_net.c:796", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
-    "secureboot.c:17", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
-    "secureboot.c:20", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
+    "secureboot.c:19", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
+    "secureboot.c:22", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
     "rx.c:219", # warning: alignment 1 of ‘struct <anonymous>’ is less than 2 [-Wpacked-not-aligned]
  ])
 
