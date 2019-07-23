@@ -557,6 +557,11 @@ static void dw_mipi_dsi_phy_pll_init(struct dw_mipi_dsi *dsi)
 			      LOOP_DIV_HIGH_SEL(dsi->dphy.feedback_div) |
 			      HIGH_PROGRAM_EN);
 	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
+
+	dw_mipi_dsi_phy_write(dsi, 0x22, LOW_PROGRAM_EN |
+					 BIASEXTR_SEL(BIASEXTR_127_7));
+	dw_mipi_dsi_phy_write(dsi, 0x22, HIGH_PROGRAM_EN |
+					 BANDGAP_SEL(BANDGAP_96_10));
 }
 
 static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
@@ -596,10 +601,6 @@ static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 					 SETRD_MAX | POWER_MANAGE |
 					 TER_RESISTORS_ON);
 
-	dw_mipi_dsi_phy_write(dsi, 0x22, LOW_PROGRAM_EN |
-					 BIASEXTR_SEL(BIASEXTR_127_7));
-	dw_mipi_dsi_phy_write(dsi, 0x22, HIGH_PROGRAM_EN |
-					 BANDGAP_SEL(BANDGAP_96_10));
 
 	dw_mipi_dsi_phy_write(dsi, 0x70, TLP_PROGRAM_EN | 0xf);
 	dw_mipi_dsi_phy_write(dsi, 0x71, THS_PRE_PROGRAM_EN | 0x2d);
