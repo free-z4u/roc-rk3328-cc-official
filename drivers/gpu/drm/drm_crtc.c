@@ -282,7 +282,7 @@ int drm_crtc_init_with_planes(struct drm_device *dev, struct drm_crtc *crtc,
 	spin_lock_init(&crtc->commit_lock);
 
 	drm_modeset_lock_init(&crtc->mutex);
-	ret = drm_mode_object_get(dev, &crtc->base, DRM_MODE_OBJECT_CRTC);
+	ret = drm_mode_object_add(dev, &crtc->base, DRM_MODE_OBJECT_CRTC);
 	if (ret)
 		return ret;
 
@@ -685,7 +685,7 @@ out:
 	if (connector_set) {
 		for (i = 0; i < crtc_req->count_connectors; i++) {
 			if (connector_set[i])
-				drm_connector_unreference(connector_set[i]);
+				drm_connector_put(connector_set[i]);
 		}
 	}
 	kfree(connector_set);
