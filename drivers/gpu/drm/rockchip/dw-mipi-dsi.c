@@ -354,7 +354,6 @@ struct dw_mipi_dsi {
 	u32 channel;
 	u32 lanes;
 	u32 format;
-	struct drm_display_mode mode;
 
 	const struct dw_mipi_dsi_plat_data *pdata;
 };
@@ -611,7 +610,8 @@ static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 	return 0;
 }
 
-static unsigned long dw_mipi_dsi_calc_bandwidth(struct dw_mipi_dsi *dsi)
+static unsigned long dw_mipi_dsi_calc_bandwidth(struct dw_mipi_dsi *dsi,
+						struct drm_display_mode *mode)
 {
 	int bpp;
 	unsigned long mpclk, tmp;
@@ -636,7 +636,7 @@ static unsigned long dw_mipi_dsi_calc_bandwidth(struct dw_mipi_dsi *dsi)
 
 	lanes = dsi->slave ? dsi->lanes * 2 : dsi->lanes;
 
-	mpclk = DIV_ROUND_UP(dsi->mode.clock, MSEC_PER_SEC);
+	mpclk = DIV_ROUND_UP(mode->clock, MSEC_PER_SEC);
 	if (mpclk) {
 		/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
 		tmp = mpclk * (bpp / lanes) * 10 / 9;
@@ -649,7 +649,8 @@ static unsigned long dw_mipi_dsi_calc_bandwidth(struct dw_mipi_dsi *dsi)
 	return target_mbps;
 }
 
-static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
+static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi,
+				    struct drm_display_mode *mode)
 {
 	unsigned int i, pre;
 	unsigned long pllref, tmp;
@@ -659,7 +660,7 @@ static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
 	if (dsi->master)
 		return 0;
 
-	target_mbps = dw_mipi_dsi_calc_bandwidth(dsi);
+	target_mbps = dw_mipi_dsi_calc_bandwidth(dsi, mode);
 
 	pllref = DIV_ROUND_UP(clk_get_rate(dsi->dphy.ref_clk), USEC_PER_SEC);
 	tmp = pllref;
@@ -687,13 +688,14 @@ static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
 	return 0;
 }
 
-static void dw_mipi_dsi_set_hs_clk(struct dw_mipi_dsi *dsi)
+static void dw_mipi_dsi_set_hs_clk(struct dw_mipi_dsi *dsi,
+				   struct drm_display_mode *mode)
 {
 	int ret;
 	unsigned long target_mbps;
 	unsigned long bw, rate;
 
-	target_mbps = dw_mipi_dsi_calc_bandwidth(dsi);
+	target_mbps = dw_mipi_dsi_calc_bandwidth(dsi, mode);
 	bw = target_mbps * USEC_PER_SEC;
 
 	rate = clk_round_rate(dsi->dphy.hs_clk, bw);
@@ -723,7 +725,6 @@ static int dw_mipi_dsi_host_attach(struct mipi_dsi_host *host,
 	dsi->channel = device->channel;
 	dsi->format = device->format;
 	dsi->mode_flags = device->mode_flags;
-
 	dsi->panel = of_drm_find_panel(device->dev.of_node);
 	if (!dsi->panel) {
 		DRM_ERROR("failed to find panel\n");
@@ -1100,18 +1101,6 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 	regmap_write(dsi->regmap, DSI_INT_MSK1, 0);
 }
 
-static void dw_mipi_dsi_encoder_mode_set(struct drm_encoder *encoder,
-					struct drm_display_mode *mode,
-					struct drm_display_mode *adjusted_mode)
-{
-	struct dw_mipi_dsi *dsi = encoder_to_dsi(encoder);
-
-	drm_mode_copy(&dsi->mode, adjusted_mode);
-
-	if (dsi->slave)
-		drm_mode_copy(&dsi->slave->mode, adjusted_mode);
-}
-
 static void dw_mipi_dsi_disable(struct dw_mipi_dsi *dsi)
 {
 	dw_mipi_dsi_set_mode(dsi, DSI_COMMAND_MODE);
@@ -1151,36 +1140,39 @@ static void dw_mipi_dsi_encoder_disable(struct drm_encoder *encoder)
 	dw_mipi_dsi_post_disable(dsi);
 }
 
-static void dw_mipi_dsi_pre_init(struct dw_mipi_dsi *dsi)
+static void dw_mipi_dsi_pre_init(struct dw_mipi_dsi *dsi,
+				 struct drm_display_mode *mode)
 {
 	if (dsi->dphy.phy)
-		dw_mipi_dsi_set_hs_clk(dsi);
+		dw_mipi_dsi_set_hs_clk(dsi, mode);
 	else
-		dw_mipi_dsi_get_lane_bps(dsi);
+		dw_mipi_dsi_get_lane_bps(dsi, mode);
 
 	dev_info(dsi->dev, "final DSI-Link bandwidth: %u x %d Mbps\n",
 		 dsi->lane_mbps, dsi->lanes);
 }
 
-static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi)
+static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi,
+				  struct drm_display_mode *mode)
 {
 	dw_mipi_dsi_init(dsi);
-	dw_mipi_dsi_dpi_config(dsi, &dsi->mode);
+	dw_mipi_dsi_dpi_config(dsi, mode);
 	dw_mipi_dsi_packet_handler_config(dsi);
 	dw_mipi_dsi_video_mode_config(dsi);
-	dw_mipi_dsi_video_packet_config(dsi, &dsi->mode);
+	dw_mipi_dsi_video_packet_config(dsi, mode);
 	dw_mipi_dsi_command_mode_config(dsi);
 	dw_mipi_dsi_set_mode(dsi, DSI_COMMAND_MODE);
-	dw_mipi_dsi_line_timer_config(dsi, &dsi->mode);
-	dw_mipi_dsi_vertical_timing_config(dsi, &dsi->mode);
+	dw_mipi_dsi_line_timer_config(dsi, mode);
+	dw_mipi_dsi_vertical_timing_config(dsi, mode);
 	dw_mipi_dsi_dphy_timing_config(dsi);
 	dw_mipi_dsi_dphy_interface_config(dsi);
 	dw_mipi_dsi_clear_err(dsi);
 }
 
-static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
+static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi,
+				   struct drm_display_mode *mode)
 {
-	dw_mipi_dsi_pre_init(dsi);
+	dw_mipi_dsi_pre_init(dsi, mode);
 
 	clk_prepare_enable(dsi->dphy.cfg_clk);
 	clk_prepare_enable(dsi->dphy.ref_clk);
@@ -1195,13 +1187,13 @@ static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
 	reset_control_deassert(dsi->rst);
 	udelay(10);
 
-	dw_mipi_dsi_host_init(dsi);
+	dw_mipi_dsi_host_init(dsi, mode);
 	mipi_dphy_init(dsi);
 	mipi_dphy_power_on(dsi);
 	dw_mipi_dsi_host_power_on(dsi);
 
 	if (dsi->slave)
-		dw_mipi_dsi_pre_enable(dsi->slave);
+		dw_mipi_dsi_pre_enable(dsi->slave, mode);
 }
 
 static void dw_mipi_dsi_enable(struct dw_mipi_dsi *dsi)
@@ -1226,10 +1218,11 @@ static void dw_mipi_dsi_vop_routing(struct dw_mipi_dsi *dsi)
 static void dw_mipi_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct dw_mipi_dsi *dsi = encoder_to_dsi(encoder);
+	struct drm_display_mode *mode = &encoder->crtc->state->adjusted_mode;
 
 	dw_mipi_dsi_vop_routing(dsi);
 
-	dw_mipi_dsi_pre_enable(dsi);
+	dw_mipi_dsi_pre_enable(dsi, mode);
 
 	if (dsi->panel)
 		drm_panel_prepare(dsi->panel);
@@ -1285,7 +1278,6 @@ dw_mipi_dsi_encoder_atomic_check(struct drm_encoder *encoder,
 
 static const struct drm_encoder_helper_funcs
 dw_mipi_dsi_encoder_helper_funcs = {
-	.mode_set = dw_mipi_dsi_encoder_mode_set,
 	.enable = dw_mipi_dsi_encoder_enable,
 	.disable = dw_mipi_dsi_encoder_disable,
 	.atomic_check = dw_mipi_dsi_encoder_atomic_check,
