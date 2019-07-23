@@ -96,7 +96,7 @@ static int rockchip_drm_fbdev_create(struct drm_fb_helper *helper,
 	if (IS_ERR(fbi)) {
 		dev_err(dev->dev, "Failed to create framebuffer info.\n");
 		ret = PTR_ERR(fbi);
-		goto err_rockchip_gem_free_object;
+		goto out;
 	}
 
 	helper->fb = rockchip_drm_framebuffer_init(dev, &mode_cmd,
@@ -104,7 +104,7 @@ static int rockchip_drm_fbdev_create(struct drm_fb_helper *helper,
 	if (IS_ERR(helper->fb)) {
 		dev_err(dev->dev, "Failed to allocate DRM framebuffer.\n");
 		ret = PTR_ERR(helper->fb);
-		goto err_release_fbi;
+		goto out;
 	}
 
 	fbi->par = helper;
@@ -132,9 +132,7 @@ static int rockchip_drm_fbdev_create(struct drm_fb_helper *helper,
 
 	return 0;
 
-err_release_fbi:
-	drm_fb_helper_release_fbi(helper);
-err_rockchip_gem_free_object:
+out:
 	rockchip_gem_free_object(&rk_obj->base);
 	return ret;
 }
@@ -191,7 +189,6 @@ void rockchip_drm_fbdev_fini(struct drm_device *dev)
 	helper = &private->fbdev_helper;
 
 	drm_fb_helper_unregister_fbi(helper);
-	drm_fb_helper_release_fbi(helper);
 
 	if (helper->fb)
 		drm_framebuffer_unreference(helper->fb);
