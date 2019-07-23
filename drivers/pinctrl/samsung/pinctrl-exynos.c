@@ -773,6 +773,7 @@ exynos_retention_init(struct samsung_pinctrl_drv_data *drvdata,
 {
 	struct samsung_retention_ctrl *ctrl;
 	struct regmap *pmu_regs;
+	int i;
 
 	ctrl = devm_kzalloc(drvdata->dev, sizeof(*ctrl), GFP_KERNEL);
 	if (!ctrl)
@@ -789,6 +790,10 @@ exynos_retention_init(struct samsung_pinctrl_drv_data *drvdata,
 	ctrl->refcnt = data->refcnt;
 	ctrl->enable = exynos_retention_enable;
 	ctrl->disable = exynos_retention_disable;
+
+	/* Ensure that retention is disabled on driver init */
+	for (i = 0; i < ctrl->nr_regs; i++)
+		regmap_write(pmu_regs, ctrl->regs[i], ctrl->value);
 
 	return ctrl;
 }
@@ -1542,6 +1547,54 @@ static const struct samsung_pin_bank_data exynos5433_pin_banks9[] __initconst = 
 	EXYNOS5433_PIN_BANK_EINTG(3, 0x000, "gpj1", 0x00),
 };
 
+/* PMU pin retention groups registers for Exynos5433 (without audio & fsys) */
+static const u32 exynos5433_retention_regs[] = {
+	EXYNOS5433_PAD_RETENTION_TOP_OPTION,
+	EXYNOS5433_PAD_RETENTION_UART_OPTION,
+	EXYNOS5433_PAD_RETENTION_EBIA_OPTION,
+	EXYNOS5433_PAD_RETENTION_EBIB_OPTION,
+	EXYNOS5433_PAD_RETENTION_SPI_OPTION,
+	EXYNOS5433_PAD_RETENTION_MIF_OPTION,
+	EXYNOS5433_PAD_RETENTION_USBXTI_OPTION,
+	EXYNOS5433_PAD_RETENTION_BOOTLDO_OPTION,
+	EXYNOS5433_PAD_RETENTION_UFS_OPTION,
+	EXYNOS5433_PAD_RETENTION_FSYSGENIO_OPTION,
+};
+
+static const struct samsung_retention_data exynos5433_retention_data __initconst = {
+	.regs	 = exynos5433_retention_regs,
+	.nr_regs = ARRAY_SIZE(exynos5433_retention_regs),
+	.value	 = EXYNOS_WAKEUP_FROM_LOWPWR,
+	.refcnt	 = &exynos_shared_retention_refcnt,
+	.init	 = exynos_retention_init,
+};
+
+/* PMU retention control for audio pins can be tied to audio pin bank */
+static const u32 exynos5433_audio_retention_regs[] = {
+	EXYNOS5433_PAD_RETENTION_AUD_OPTION,
+};
+
+static const struct samsung_retention_data exynos5433_audio_retention_data __initconst = {
+	.regs	 = exynos5433_audio_retention_regs,
+	.nr_regs = ARRAY_SIZE(exynos5433_audio_retention_regs),
+	.value	 = EXYNOS_WAKEUP_FROM_LOWPWR,
+	.init	 = exynos_retention_init,
+};
+
+/* PMU retention control for mmc pins can be tied to fsys pin bank */
+static const u32 exynos5433_fsys_retention_regs[] = {
+	EXYNOS5433_PAD_RETENTION_MMC0_OPTION,
+	EXYNOS5433_PAD_RETENTION_MMC1_OPTION,
+	EXYNOS5433_PAD_RETENTION_MMC2_OPTION,
+};
+
+static const struct samsung_retention_data exynos5433_fsys_retention_data __initconst = {
+	.regs	 = exynos5433_fsys_retention_regs,
+	.nr_regs = ARRAY_SIZE(exynos5433_fsys_retention_regs),
+	.value	 = EXYNOS_WAKEUP_FROM_LOWPWR,
+	.init	 = exynos_retention_init,
+};
+
 /*
  * Samsung pinctrl driver data for Exynos5433 SoC. Exynos5433 SoC includes
  * ten gpio/pin-mux/pinconfig controllers.
@@ -1555,6 +1608,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
 		.nr_ext_resources = 1,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 1 data */
 		.pin_banks	= exynos5433_pin_banks1,
@@ -1562,6 +1616,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_audio_retention_data,
 	}, {
 		/* pin-controller instance 2 data */
 		.pin_banks	= exynos5433_pin_banks2,
@@ -1569,6 +1624,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 3 data */
 		.pin_banks	= exynos5433_pin_banks3,
@@ -1576,6 +1632,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 4 data */
 		.pin_banks	= exynos5433_pin_banks4,
@@ -1583,6 +1640,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 5 data */
 		.pin_banks	= exynos5433_pin_banks5,
@@ -1590,6 +1648,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_fsys_retention_data,
 	}, {
 		/* pin-controller instance 6 data */
 		.pin_banks	= exynos5433_pin_banks6,
@@ -1597,6 +1656,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 7 data */
 		.pin_banks	= exynos5433_pin_banks7,
@@ -1604,6 +1664,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 8 data */
 		.pin_banks	= exynos5433_pin_banks8,
@@ -1611,6 +1672,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	}, {
 		/* pin-controller instance 9 data */
 		.pin_banks	= exynos5433_pin_banks9,
@@ -1618,6 +1680,7 @@ const struct samsung_pin_ctrl exynos5433_pin_ctrl[] __initconst = {
 		.eint_gpio_init = exynos_eint_gpio_init,
 		.suspend	= exynos_pinctrl_suspend,
 		.resume		= exynos_pinctrl_resume,
+		.retention_data	= &exynos5433_retention_data,
 	},
 };
 
