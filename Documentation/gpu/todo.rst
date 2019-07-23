@@ -63,6 +63,29 @@ do by directly using the new atomic helper driver callbacks.
 
 Contact: Daniel Vetter, respective driver maintainers
 
+Clean up the clipped coordination confusion around planes
+---------------------------------------------------------
+
+We have a helper to get this right with drm_plane_helper_check_update(), but
+it's not consistently used. This should be fixed, preferrably in the atomic
+helpers (and drivers then moved over to clipped coordinates). Probably the
+helper should also be moved from drm_plane_helper.c to the atomic helpers, to
+avoid confusion - the other helpers in that file are all deprecated legacy
+helpers.
+
+Contact: Ville Syrjälä, Daniel Vetter, driver maintainers
+
+Implement deferred fbdev setup in the helper
+--------------------------------------------
+
+Many (especially embedded drivers) want to delay fbdev setup until there's a
+real screen plugged in. This is to avoid the dreaded fallback to the low-res
+fbdev default. Many drivers have a hacked-up (and often broken) version of this,
+better to do it once in the shared helpers. Thierry has a patch series, but that
+one needs to be rebased and final polish applied.
+
+Contact: Thierry Reding, Daniel Vetter, driver maintainers
+
 Convert early atomic drivers to async commit helpers
 ----------------------------------------------------
 
