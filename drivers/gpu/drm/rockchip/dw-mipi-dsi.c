@@ -747,27 +747,16 @@ static int dw_mipi_dsi_host_detach(struct mipi_dsi_host *host,
 static void dw_mipi_message_config(struct dw_mipi_dsi *dsi,
 				   const struct mipi_dsi_msg *msg)
 {
+	bool lpm = msg->flags & MIPI_DSI_MSG_USE_LPM;
 	u32 val = 0;
 
 	if (msg->flags & MIPI_DSI_MSG_REQ_ACK)
 		val |= EN_ACK_RQST;
-	if (msg->flags & MIPI_DSI_MSG_USE_LPM)
+	if (lpm)
 		val |= CMD_MODE_ALL_LP;
 
+	regmap_write(dsi->regmap, DSI_LPCLK_CTRL, lpm ? 0 : PHY_TXREQUESTCLKHS);
 	regmap_write(dsi->regmap, DSI_CMD_MODE_CFG, val);
-}
-
-static void dw_mipi_dsi_set_transfer_mode(struct dw_mipi_dsi *dsi,
-					  const struct mipi_dsi_msg *msg)
-{
-	dw_mipi_message_config(dsi, msg);
-	if (msg->flags & MIPI_DSI_MSG_USE_LPM) {
-		regmap_update_bits(dsi->regmap, DSI_LPCLK_CTRL,
-				   PHY_TXREQUESTCLKHS, 0);
-	} else {
-		regmap_update_bits(dsi->regmap, DSI_LPCLK_CTRL,
-				   PHY_TXREQUESTCLKHS, PHY_TXREQUESTCLKHS);
-	}
 }
 
 static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
@@ -834,7 +823,7 @@ static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 		return ret;
 	}
 
-	dw_mipi_dsi_set_transfer_mode(dsi, msg);
+	dw_mipi_message_config(dsi, msg);
 
 	/* Send payload */
 	while (DIV_ROUND_UP(packet.payload_length, 4)) {
