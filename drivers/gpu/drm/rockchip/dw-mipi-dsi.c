@@ -1026,43 +1026,44 @@ static void dw_mipi_dsi_command_mode_config(struct dw_mipi_dsi *dsi)
 
 /* Get lane byte clock cycles. */
 static u32 dw_mipi_dsi_get_hcomponent_lbcc(struct dw_mipi_dsi *dsi,
+					   struct drm_display_mode *mode,
 					   u32 hcomponent)
 {
 	u32 lbcc;
 
 	lbcc = hcomponent * dsi->lane_mbps * MSEC_PER_SEC / 8;
 
-	if (dsi->mode.clock == 0) {
+	if (mode->clock == 0) {
 		dev_err(dsi->dev, "dsi mode clock is 0!\n");
 		return 0;
 	}
 
-	return DIV_ROUND_CLOSEST_ULL(lbcc, dsi->mode.clock);
+	return DIV_ROUND_CLOSEST_ULL(lbcc, mode->clock);
 }
 
-static void dw_mipi_dsi_line_timer_config(struct dw_mipi_dsi *dsi)
+static void dw_mipi_dsi_line_timer_config(struct dw_mipi_dsi *dsi,
+					  struct drm_display_mode *mode)
 {
 	u32 htotal, hsa, hbp, lbcc;
-	struct drm_display_mode *mode = &dsi->mode;
 
 	htotal = mode->htotal;
 	hsa = mode->hsync_end - mode->hsync_start;
 	hbp = mode->htotal - mode->hsync_end;
 
-	lbcc = dw_mipi_dsi_get_hcomponent_lbcc(dsi, htotal);
+	lbcc = dw_mipi_dsi_get_hcomponent_lbcc(dsi, mode, htotal);
 	regmap_write(dsi->regmap, DSI_VID_HLINE_TIME, lbcc);
 
-	lbcc = dw_mipi_dsi_get_hcomponent_lbcc(dsi, hsa);
+	lbcc = dw_mipi_dsi_get_hcomponent_lbcc(dsi, mode, hsa);
 	regmap_write(dsi->regmap, DSI_VID_HSA_TIME, lbcc);
 
-	lbcc = dw_mipi_dsi_get_hcomponent_lbcc(dsi, hbp);
+	lbcc = dw_mipi_dsi_get_hcomponent_lbcc(dsi, mode, hbp);
 	regmap_write(dsi->regmap, DSI_VID_HBP_TIME, lbcc);
 }
 
-static void dw_mipi_dsi_vertical_timing_config(struct dw_mipi_dsi *dsi)
+static void dw_mipi_dsi_vertical_timing_config(struct dw_mipi_dsi *dsi,
+					       struct drm_display_mode *mode)
 {
 	u32 vactive, vsa, vfp, vbp;
-	struct drm_display_mode *mode = &dsi->mode;
 
 	vactive = mode->vdisplay;
 	vsa = mode->vsync_end - mode->vsync_start;
@@ -1170,8 +1171,8 @@ static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi)
 	dw_mipi_dsi_video_packet_config(dsi, &dsi->mode);
 	dw_mipi_dsi_command_mode_config(dsi);
 	dw_mipi_dsi_set_mode(dsi, DSI_COMMAND_MODE);
-	dw_mipi_dsi_line_timer_config(dsi);
-	dw_mipi_dsi_vertical_timing_config(dsi);
+	dw_mipi_dsi_line_timer_config(dsi, &dsi->mode);
+	dw_mipi_dsi_vertical_timing_config(dsi, &dsi->mode);
 	dw_mipi_dsi_dphy_timing_config(dsi);
 	dw_mipi_dsi_dphy_interface_config(dsi);
 	dw_mipi_dsi_clear_err(dsi);
