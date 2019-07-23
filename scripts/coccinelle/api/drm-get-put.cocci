@@ -32,6 +32,24 @@ expression object;
 |
 - drm_framebuffer_unreference(object)
 + drm_framebuffer_put(object)
+|
+- drm_gem_object_reference(object)
++ drm_gem_object_get(object)
+|
+- drm_gem_object_unreference(object)
++ drm_gem_object_put(object)
+|
+- __drm_gem_object_unreference(object)
++ __drm_gem_object_put(object)
+|
+- drm_gem_object_unreference_unlocked(object)
++ drm_gem_object_put_unlocked(object)
+|
+- drm_property_reference_blob(object)
++ drm_property_blob_get(object)
+|
+- drm_property_unreference_blob(object)
++ drm_property_blob_put(object)
 )
 
 @r depends on report@
@@ -51,6 +69,18 @@ drm_connector_reference@p(object)
 drm_framebuffer_unreference@p(object)
 |
 drm_framebuffer_reference@p(object)
+|
+drm_gem_object_unreference@p(object)
+|
+drm_gem_object_reference@p(object)
+|
+__drm_gem_object_unreference(object)
+|
+drm_gem_object_unreference_unlocked(object)
+|
+drm_property_unreference_blob@p(object)
+|
+drm_property_reference_blob@p(object)
 )
 
 @script:python depends on report@
