@@ -357,8 +357,8 @@ struct dw_mipi_dsi {
 };
 
 enum dw_mipi_dsi_mode {
-	DSI_COMMAND_MODE,
-	DSI_VIDEO_MODE,
+	DW_MIPI_DSI_CMD_MODE,
+	DW_MIPI_DSI_VID_MODE,
 };
 
 struct dphy_pll_testdin_map {
@@ -476,7 +476,7 @@ static int genif_wait_write_fifo_empty(struct dw_mipi_dsi *dsi)
 }
 
 static void dw_mipi_dsi_phy_write(struct dw_mipi_dsi *dsi, u8 test_code,
-				 u8 test_data)
+				  u8 test_data)
 {
 	/*
 	 * With the falling edge on TESTCLK, the TESTDIN[7:0] signal content
@@ -915,7 +915,7 @@ static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
 static void dw_mipi_dsi_set_mode(struct dw_mipi_dsi *dsi,
 				 enum dw_mipi_dsi_mode mode)
 {
-	if (mode == DSI_COMMAND_MODE) {
+	if (mode == DW_MIPI_DSI_CMD_MODE) {
 		regmap_write(dsi->regmap, DSI_MODE_CFG, ENABLE_CMD_MODE);
 	} else {
 		regmap_write(dsi->regmap, DSI_PWR_UP, RESET);
@@ -1103,7 +1103,7 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_disable(struct dw_mipi_dsi *dsi)
 {
-	dw_mipi_dsi_set_mode(dsi, DSI_COMMAND_MODE);
+	dw_mipi_dsi_set_mode(dsi, DW_MIPI_DSI_CMD_MODE);
 
 	if (dsi->slave)
 		dw_mipi_dsi_disable(dsi->slave);
@@ -1161,7 +1161,7 @@ static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi,
 	dw_mipi_dsi_video_mode_config(dsi);
 	dw_mipi_dsi_video_packet_config(dsi, mode);
 	dw_mipi_dsi_command_mode_config(dsi);
-	dw_mipi_dsi_set_mode(dsi, DSI_COMMAND_MODE);
+	dw_mipi_dsi_set_mode(dsi, DW_MIPI_DSI_CMD_MODE);
 	dw_mipi_dsi_line_timer_config(dsi, mode);
 	dw_mipi_dsi_vertical_timing_config(dsi, mode);
 	dw_mipi_dsi_dphy_timing_config(dsi);
@@ -1198,7 +1198,7 @@ static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi,
 
 static void dw_mipi_dsi_enable(struct dw_mipi_dsi *dsi)
 {
-	dw_mipi_dsi_set_mode(dsi, DSI_VIDEO_MODE);
+	dw_mipi_dsi_set_mode(dsi, DW_MIPI_DSI_VID_MODE);
 
 	if (dsi->slave)
 		dw_mipi_dsi_enable(dsi->slave);
