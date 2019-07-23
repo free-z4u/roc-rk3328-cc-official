@@ -87,6 +87,7 @@ enum subpixel_order {
 	SubPixelVerticalRGB,
 	SubPixelVerticalBGR,
 	SubPixelNone,
+
 };
 
 /**
@@ -132,6 +133,7 @@ struct drm_scdc {
  * This information is available in CEA-861-F extension blocks (like HF-VSDB).
  */
 struct drm_hdmi_info {
+	/** @scdc: sink's scdc support and capabilities */
 	struct drm_scdc scdc;
 
 	/**
@@ -160,7 +162,23 @@ struct drm_hdmi_info {
 	u32 colorimetry;
 };
 
-/*
+/**
+ * enum drm_link_status - connector's link_status property value
+ *
+ * This enum is used as the connector's link status property value.
+ * It is set to the values defined in uapi.
+ *
+ * @DRM_LINK_STATUS_GOOD: DP Link is Good as a result of successful
+ *                        link training
+ * @DRM_LINK_STATUS_BAD: DP Link is BAD as a result of link training
+ *                       failure
+ */
+enum drm_link_status {
+	DRM_LINK_STATUS_GOOD = DRM_MODE_LINK_STATUS_GOOD,
+	DRM_LINK_STATUS_BAD = DRM_MODE_LINK_STATUS_BAD,
+};
+
+/**
  * struct drm_display_info - runtime data about the connected sink
  *
  * Describes a given display (e.g. CRT or flat panel) and its limitations. For
@@ -319,6 +337,12 @@ struct drm_connector_state {
 	struct drm_crtc *crtc;
 
 	struct drm_encoder *best_encoder;
+
+	/**
+	 * @link_status: Connector link_status to keep track of whether link is
+	 * GOOD or BAD to notify userspace if retraining is necessary.
+	 */
+	enum drm_link_status link_status;
 
 	struct drm_atomic_state *state;
 
@@ -926,6 +950,8 @@ int drm_mode_connector_set_path_property(struct drm_connector *connector,
 int drm_mode_connector_set_tile_property(struct drm_connector *connector);
 int drm_mode_connector_update_edid_property(struct drm_connector *connector,
 					    const struct edid *edid);
+void drm_mode_connector_set_link_status_property(struct drm_connector *connector,
+						 uint64_t link_status);
 
 /**
  * struct drm_tile_group - Tile group metadata
