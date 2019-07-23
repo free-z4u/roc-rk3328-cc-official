@@ -138,8 +138,6 @@
 #define DSI_GEN_HDR			0x6c
 #define GEN_HDATA(data)			(((data) & 0xffff) << 8)
 #define GEN_HDATA_MASK			(0xffff << 8)
-#define GEN_HTYPE(type)			(((type) & 0xff) << 0)
-#define GEN_HTYPE_MASK			0xff
 
 #define DSI_GEN_PLD_DATA		0x70
 
