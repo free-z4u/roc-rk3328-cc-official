@@ -2946,9 +2946,8 @@ static int dw_hdmi_detect_phy(struct dw_hdmi *hdmi)
 	 * RK3228 and RK3328 phy_type is DW_HDMI_PHY_DWC_HDMI20_TX_PHY,
 	 * but it has a vedor phy.
 	 */
-	if (phy_type == DW_HDMI_PHY_VENDOR_PHY ||
-	    hdmi->dev_type == RK3328_HDMI ||
-	    hdmi->dev_type == RK3228_HDMI) {
+	//if (phy_type == DW_HDMI_PHY_VENDOR_PHY
+	{
 		/* Vendor PHYs require support from the glue layer. */
 		if (!hdmi->plat_data->phy_ops || !hdmi->plat_data->phy_name) {
 			dev_err(hdmi->dev,
@@ -3215,9 +3214,6 @@ dw_hdmi_ctrl_write(struct file *file, const char __user *buf,
 	u32 reg, val;
 	char kbuf[25];
 
-	if (hdmi->dev_type == RK3228_HDMI)
-		return -EFAULT;
-
 	if (copy_from_user(kbuf, buf, count))
 		return -EFAULT;
 	if (sscanf(kbuf, "%x%x", &reg, &val) == -1)
@@ -3304,11 +3300,6 @@ static void dw_hdmi_register_debugfs(struct device *dev, struct dw_hdmi *hdmi)
 
 	debugfs_create_file("ctrl", 0400, hdmi->debugfs_dir,
 			    hdmi, &dw_hdmi_ctrl_fops);
-
-	if (hdmi->dev_type != RK3228_HDMI &&
-	    hdmi->dev_type != RK3328_HDMI)
-		debugfs_create_file("phy", 0400, hdmi->debugfs_dir,
-				    hdmi, &dw_hdmi_phy_fops);
 }
 
 static void dw_hdmi_register_hdcp(struct device *dev, struct dw_hdmi *hdmi,
@@ -3534,7 +3525,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 			hdmi->i2c->scl_low_ns = 4916;
 	}
 
-	if (hdmi->dev_type == RK3288_HDMI && hdmi->version == 0x200a)
+	if (hdmi->version == 0x200a)
 		hdmi->connector.ycbcr_420_allowed = false;
 	else
 		hdmi->connector.ycbcr_420_allowed = true;

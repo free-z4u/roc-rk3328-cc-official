@@ -85,12 +85,7 @@ enum {
 enum dw_hdmi_devtype {
 	IMX6Q_HDMI,
 	IMX6DL_HDMI,
-	RK3228_HDMI,
 	RK3288_HDMI,
-	RK3328_HDMI,
-	RK3366_HDMI,
-	RK3368_HDMI,
-	RK3399_HDMI,
 };
 
 struct dw_hdmi_audio_tmds_n {
