@@ -205,4 +205,8 @@ void dw_hdmi_set_high_tmds_clock_ratio(struct dw_hdmi *hdmi);
 void dw_hdmi_phy_i2c_write(struct dw_hdmi *hdmi, unsigned short data,
 			   unsigned char addr);
 
+/* PHY configuration */
+void dw_hdmi_phy_i2c_write(struct dw_hdmi *hdmi, unsigned short data,
+			   unsigned char addr);
+
 #endif /* __IMX_HDMI_H__ */

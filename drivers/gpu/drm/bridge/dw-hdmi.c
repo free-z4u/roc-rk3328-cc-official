@@ -1472,6 +1472,7 @@ static int hdmi_phy_configure_dwc_hdmi_3d_tx(struct dw_hdmi *hdmi,
 	/* Override and disable clock termination. */
 	dw_hdmi_phy_i2c_write(hdmi, HDMI_3D_TX_PHY_CKCALCTRL_OVERRIDE,
 			      HDMI_3D_TX_PHY_CKCALCTRL);
+
 	return 0;
 }
 
