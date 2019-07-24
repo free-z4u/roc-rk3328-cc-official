@@ -43,8 +43,8 @@
 #include "synopsys/dw-hdmi-cec.h"
 #include "synopsys/dw-hdmi-hdcp.h"
 
+#define DDC_SEGMENT_ADDR	0x30
 #define HDMI_EDID_LEN		512
-#define DDC_SEGMENT_ADDR       0x30
 
 enum hdmi_datamap {
 	RGB444_8B = 0x01,
@@ -1228,32 +1228,6 @@ static inline void hdmi_phy_test_clear(struct dw_hdmi *hdmi,
 		  HDMI_PHY_TST0_TSTCLR_MASK, HDMI_PHY_TST0);
 }
 
-static inline void hdmi_phy_test_enable(struct dw_hdmi *hdmi,
-					unsigned char bit)
-{
-	hdmi_modb(hdmi, bit << HDMI_PHY_TST0_TSTEN_OFFSET,
-		  HDMI_PHY_TST0_TSTEN_MASK, HDMI_PHY_TST0);
-}
-
-static inline void hdmi_phy_test_clock(struct dw_hdmi *hdmi,
-				       unsigned char bit)
-{
-	hdmi_modb(hdmi, bit << HDMI_PHY_TST0_TSTCLK_OFFSET,
-		  HDMI_PHY_TST0_TSTCLK_MASK, HDMI_PHY_TST0);
-}
-
-static inline void hdmi_phy_test_din(struct dw_hdmi *hdmi,
-				     unsigned char bit)
-{
-	hdmi_writeb(hdmi, bit, HDMI_PHY_TST1);
-}
-
-static inline void hdmi_phy_test_dout(struct dw_hdmi *hdmi,
-				      unsigned char bit)
-{
-	hdmi_writeb(hdmi, bit, HDMI_PHY_TST2);
-}
-
 static bool hdmi_phy_wait_i2c_done(struct dw_hdmi *hdmi, int msec)
 {
 	u32 val;
@@ -1562,7 +1536,6 @@ static int dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data,
 		dw_hdmi_phy_sel_data_en_pol(hdmi, 1);
 		dw_hdmi_phy_sel_interface_control(hdmi, 0);
 
-		/* Enable CSC */
 		ret = hdmi_phy_configure(hdmi);
 		if (ret)
 			return ret;
