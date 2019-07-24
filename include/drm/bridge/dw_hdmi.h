@@ -82,12 +82,6 @@ enum {
 	DW_HDMI_RES_MAX,
 };
 
-enum dw_hdmi_devtype {
-	IMX6Q_HDMI,
-	IMX6DL_HDMI,
-	RK3288_HDMI,
-};
-
 struct dw_hdmi_audio_tmds_n {
 	unsigned long tmds;
 	unsigned int n_32k;
@@ -151,7 +145,6 @@ struct dw_hdmi_property_ops {
 };
 
 struct dw_hdmi_plat_data {
-	enum dw_hdmi_devtype dev_type;
 	enum drm_mode_status (*mode_valid)(struct drm_connector *connector,
 					   struct drm_display_mode *mode);
 	const struct dw_hdmi_audio_tmds_n *tmds_n_table;

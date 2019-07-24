@@ -77,7 +77,6 @@ struct rockchip_hdmi {
 	struct regmap *regmap;
 	void __iomem *hdmiphy;
 	struct drm_encoder encoder;
-	enum dw_hdmi_devtype dev_type;
 	struct clk *vpll_clk;
 	struct clk *grf_clk;
 	struct clk *hclk_vio;
@@ -1111,7 +1110,6 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	match = of_match_node(dw_hdmi_rockchip_dt_ids, pdev->dev.of_node);
 	plat_data = (struct dw_hdmi_plat_data *)match->data;
 	hdmi->dev = &pdev->dev;
-	hdmi->dev_type = plat_data->dev_type;
 	encoder = &hdmi->encoder;
 
 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
