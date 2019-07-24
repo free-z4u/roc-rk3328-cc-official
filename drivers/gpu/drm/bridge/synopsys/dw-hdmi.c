@@ -41,8 +41,8 @@
 
 #include "dw-hdmi.h"
 #include "dw-hdmi-audio.h"
-#include "synopsys/dw-hdmi-cec.h"
-#include "synopsys/dw-hdmi-hdcp.h"
+#include "dw-hdmi-cec.h"
+#include "dw-hdmi-hdcp.h"
 
 #define DDC_SEGMENT_ADDR	0x30
 #define HDMI_EDID_LEN		512

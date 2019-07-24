@@ -1,7 +1,7 @@
-# SPDX-License-Identifier: GPL-2.0
 config DRM_DW_HDMI
 	tristate
 	select DRM_KMS_HELPER
+	select REGMAP_MMIO
 	select CEC_CORE if CEC_NOTIFIER
 
 config DRM_DW_HDMI_AHB_AUDIO
@@ -32,3 +32,9 @@ config DRM_DW_HDMI_CEC
 	help
 	  Support the CE interface which is part of the Synopsys
 	  Designware HDMI block.
+
+config DRM_DW_MIPI_DSI
+	tristate
+	select DRM_KMS_HELPER
+	select DRM_MIPI_DSI
+	select DRM_PANEL_BRIDGE
