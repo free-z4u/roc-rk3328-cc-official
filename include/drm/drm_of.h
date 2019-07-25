@@ -13,18 +13,18 @@ struct drm_bridge;
 struct device_node;
 
 #ifdef CONFIG_OF
-extern uint32_t drm_of_find_possible_crtcs(struct drm_device *dev,
-					   struct device_node *port);
-extern void drm_of_component_match_add(struct device *master,
-				       struct component_match **matchptr,
-				       int (*compare)(struct device *, void *),
-				       struct device_node *node);
-extern int drm_of_component_probe(struct device *dev,
-				  int (*compare_of)(struct device *, void *),
-				  const struct component_master_ops *m_ops);
-extern int drm_of_encoder_active_endpoint(struct device_node *node,
-					  struct drm_encoder *encoder,
-					  struct of_endpoint *endpoint);
+uint32_t drm_of_find_possible_crtcs(struct drm_device *dev,
+				    struct device_node *port);
+void drm_of_component_match_add(struct device *master,
+				struct component_match **matchptr,
+				int (*compare)(struct device *, void *),
+				struct device_node *node);
+int drm_of_component_probe(struct device *dev,
+			   int (*compare_of)(struct device *, void *),
+			   const struct component_master_ops *m_ops);
+int drm_of_encoder_active_endpoint(struct device_node *node,
+				   struct drm_encoder *encoder,
+				   struct of_endpoint *endpoint);
 int drm_of_find_panel_or_bridge(const struct device_node *np,
 				int port, int endpoint,
 				struct drm_panel **panel,
