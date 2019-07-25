@@ -126,24 +126,6 @@ int drm_panel_detach(struct drm_panel *panel)
 }
 EXPORT_SYMBOL(drm_panel_detach);
 
-struct drm_panel *drm_find_panel_by_connector(struct drm_connector *connector)
-{
-	struct drm_panel *panel;
-
-	mutex_lock(&panel_lock);
-
-	list_for_each_entry(panel, &panel_list, list) {
-		if (panel->connector == connector) {
-			mutex_unlock(&panel_lock);
-			return panel;
-		}
-	}
-
-	mutex_unlock(&panel_lock);
-	return NULL;
-}
-EXPORT_SYMBOL(drm_find_panel_by_connector);
-
 #ifdef CONFIG_OF
 /**
  * of_drm_find_panel - look up a panel using a device tree node
