@@ -74,7 +74,6 @@
 static DEFINE_MUTEX(core_lock);
 static DEFINE_IDR(i2c_adapter_idr);
 
-static struct device_type i2c_client_type;
 static int i2c_check_addr_ex(struct i2c_adapter *adapter, int addr);
 static int i2c_detect(struct i2c_adapter *adapter, struct i2c_driver *driver);
 
@@ -1154,11 +1153,12 @@ struct bus_type i2c_bus_type = {
 };
 EXPORT_SYMBOL_GPL(i2c_bus_type);
 
-static struct device_type i2c_client_type = {
+struct device_type i2c_client_type = {
 	.groups		= i2c_dev_groups,
 	.uevent		= i2c_device_uevent,
 	.release	= i2c_client_dev_release,
 };
+EXPORT_SYMBOL_GPL(i2c_client_type);
 
 
 /**
@@ -1339,6 +1339,32 @@ static void i2c_dev_set_name(struct i2c_adapter *adap,
 			i2c_encode_flags_to_addr(client), status);
 }
 
+static int i2c_dev_irq_from_resources(const struct resource *resources,
+				      unsigned int num_resources)
+{
+	struct irq_data *irqd;
+	int i;
+
+	for (i = 0; i < num_resources; i++) {
+		const struct resource *r = &resources[i];
+
+		if (resource_type(r) != IORESOURCE_IRQ)
+			continue;
+
+		if (r->flags & IORESOURCE_BITS) {
+			irqd = irq_get_irq_data(r->start);
+			if (!irqd)
+				break;
+
+			irqd_set_trigger_type(irqd, r->flags & IORESOURCE_BITS);
+		}
+
+		return r->start;
+	}
+
+	return 0;
+}
+
 /**
  * i2c_new_device - instantiate an i2c device
  * @adap: the adapter managing the device
@@ -1374,7 +1400,11 @@ i2c_new_device(struct i2c_adapter *adap, struct i2c_board_info const *info)
 
 	client->flags = info->flags;
 	client->addr = info->addr;
+
 	client->irq = info->irq;
+	if (!client->irq)
+		client->irq = i2c_dev_irq_from_resources(info->resources,
+							 info->num_resources);
 
 	strlcpy(client->name, info->type, sizeof(client->name));
 
