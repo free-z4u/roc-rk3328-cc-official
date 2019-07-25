@@ -459,10 +459,20 @@ mode_fixup(struct drm_atomic_state *state)
  *
  * Check the state object to see if the requested state is physically possible.
  * This does all the crtc and connector related computations for an atomic
- * update and adds any additional connectors needed for full modesets and calls
- * down into &drm_crtc_helper_funcs.mode_fixup and
- * &drm_encoder_helper_funcs.mode_fixup or
- * &drm_encoder_helper_funcs.atomic_check functions of the driver backend.
+ * update and adds any additional connectors needed for full modesets. It calls
+ * the various per-object callbacks in the follow order:
+ *
+ * 1. &drm_connector_helper_funcs.atomic_best_encoder for determining the new encoder.
+ * 2. &drm_connector_helper_funcs.atomic_check to validate the connector state.
+ * 3. If it's determined a modeset is needed then all connectors on the affected crtc
+ *    crtc are added and &drm_connector_helper_funcs.atomic_check is run on them.
+ * 4. &drm_bridge_funcs.mode_fixup is called on all encoder bridges.
+ * 5. &drm_encoder_helper_funcs.atomic_check is called to validate any encoder state.
+ *    This function is only called when the encoder will be part of a configured crtc,
+ *    it must not be used for implementing connector property validation.
+ *    If this function is NULL, &drm_atomic_encoder_helper_funcs.mode_fixup is called
+ *    instead.
+ * 6. &drm_crtc_helper_funcs.mode_fixup is called last, to fix up the mode with crtc constraints.
  *
  * &drm_crtc_state.mode_changed is set when the input mode is changed.
  * &drm_crtc_state.connectors_changed is set when a connector is added or
@@ -492,8 +502,12 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 	struct drm_connector *connector;
 	struct drm_connector_state *old_connector_state, *new_connector_state;
 	int i, ret;
+	unsigned connectors_mask = 0;
 
 	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
+		bool has_connectors =
+			!!new_crtc_state->connector_mask;
+
 		if (!drm_mode_equal(&old_crtc_state->mode, &new_crtc_state->mode)) {
 			DRM_DEBUG_ATOMIC("[CRTC:%d:%s] mode changed\n",
 					 crtc->base.id, crtc->name);
@@ -515,13 +529,28 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 			new_crtc_state->mode_changed = true;
 			new_crtc_state->connectors_changed = true;
 		}
+
+		if (old_crtc_state->active != new_crtc_state->active) {
+			DRM_DEBUG_ATOMIC("[CRTC:%d:%s] active changed\n",
+					 crtc->base.id, crtc->name);
+			new_crtc_state->active_changed = true;
+		}
+
+		if (new_crtc_state->enable != has_connectors) {
+			DRM_DEBUG_ATOMIC("[CRTC:%d:%s] enabled/connectors mismatch\n",
+					 crtc->base.id, crtc->name);
+
+			return -EINVAL;
+		}
 	}
 
-	ret = handle_conflicting_encoders(state, state->legacy_set_config);
+	ret = handle_conflicting_encoders(state, false);
 	if (ret)
 		return ret;
 
 	for_each_oldnew_connector_in_state(state, connector, old_connector_state, new_connector_state, i) {
+		const struct drm_connector_helper_funcs *funcs = connector->helper_private;
+
 		/*
 		 * This only sets crtc->connectors_changed for routing changes,
 		 * drivers must set crtc->connectors_changed themselves when
@@ -539,6 +568,13 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 			    new_connector_state->link_status)
 				new_crtc_state->connectors_changed = true;
 		}
+
+		if (funcs->atomic_check)
+			ret = funcs->atomic_check(connector, new_connector_state);
+		if (ret)
+			return ret;
+
+		connectors_mask += BIT(i);
 	}
 
 	/*
@@ -548,20 +584,6 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 	 * crtc only changed its mode but has the same set of connectors.
 	 */
 	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
-		bool has_connectors =
-			!!new_crtc_state->connector_mask;
-
-		/*
-		 * We must set ->active_changed after walking connectors for
-		 * otherwise an update that only changes active would result in
-		 * a full modeset because update_connector_routing force that.
-		 */
-		if (old_crtc_state->active != new_crtc_state->active) {
-			DRM_DEBUG_ATOMIC("[CRTC:%d:%s] active changed\n",
-					 crtc->base.id, crtc->name);
-			new_crtc_state->active_changed = true;
-		}
-
 		if (!drm_atomic_crtc_needs_modeset(new_crtc_state))
 			continue;
 
@@ -577,13 +599,22 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 		ret = drm_atomic_add_affected_planes(state, crtc);
 		if (ret != 0)
 			return ret;
+	}
 
-		if (new_crtc_state->enable != has_connectors) {
-			DRM_DEBUG_ATOMIC("[CRTC:%d:%s] enabled/connectors mismatch\n",
-					 crtc->base.id, crtc->name);
+	/*
+	 * Iterate over all connectors again, to make sure atomic_check()
+	 * has been called on them when a modeset is forced.
+	 */
+	for_each_oldnew_connector_in_state(state, connector, old_connector_state, new_connector_state, i) {
+		const struct drm_connector_helper_funcs *funcs = connector->helper_private;
 
-			return -EINVAL;
-		}
+		if (connectors_mask & BIT(i))
+			continue;
+
+		if (funcs->atomic_check)
+			ret = funcs->atomic_check(connector, new_connector_state);
+		if (ret)
+			return ret;
 	}
 
 	return mode_fixup(state);
@@ -2349,11 +2380,14 @@ int drm_atomic_helper_set_config(struct drm_mode_set *set,
 	if (!state)
 		return -ENOMEM;
 
-	state->legacy_set_config = true;
 	state->acquire_ctx = ctx;
 	ret = __drm_atomic_helper_set_config(set, state);
 	if (ret != 0)
 		goto fail;
+
+	ret = handle_conflicting_encoders(state, true);
+	if (ret)
+		return ret;
 
 	ret = drm_atomic_commit(state);
 
