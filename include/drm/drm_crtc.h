@@ -348,7 +348,8 @@ struct drm_crtc_funcs {
 	 *
 	 * 0 on success or a negative error code on failure.
 	 */
-	int (*set_config)(struct drm_mode_set *set);
+	int (*set_config)(struct drm_mode_set *set,
+			  struct drm_modeset_acquire_ctx *ctx);
 
 	/**
 	 * @page_flip:
@@ -406,7 +407,8 @@ struct drm_crtc_funcs {
 	int (*page_flip)(struct drm_crtc *crtc,
 			 struct drm_framebuffer *fb,
 			 struct drm_pending_vblank_event *event,
-			 uint32_t flags);
+			 uint32_t flags,
+			 struct drm_modeset_acquire_ctx *ctx);
 
 	/**
 	 * @page_flip_target:
@@ -424,7 +426,8 @@ struct drm_crtc_funcs {
 	int (*page_flip_target)(struct drm_crtc *crtc,
 				struct drm_framebuffer *fb,
 				struct drm_pending_vblank_event *event,
-				uint32_t flags, uint32_t target);
+				uint32_t flags, uint32_t target,
+				struct drm_modeset_acquire_ctx *ctx);
 
 	/**
 	 * @set_property:
