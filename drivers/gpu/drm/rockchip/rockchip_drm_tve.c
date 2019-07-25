@@ -549,8 +549,3 @@ struct platform_driver rockchip_tve_driver = {
 		   .of_match_table = of_match_ptr(rockchip_tve_dt_ids),
 	},
 };
-module_platform_driver(rockchip_tve_driver);
-
-MODULE_AUTHOR("Algea Cao <Algea.cao@rock-chips.com>");
-MODULE_DESCRIPTION("ROCKCHIP TVE Driver");
-MODULE_LICENSE("GPL v2");

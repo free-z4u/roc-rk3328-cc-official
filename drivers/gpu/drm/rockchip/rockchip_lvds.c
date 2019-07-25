@@ -942,7 +942,7 @@ static const struct of_device_id rockchip_lvds_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, rockchip_lvds_dt_ids);
 
-static struct platform_driver rockchip_lvds_driver = {
+struct platform_driver rockchip_lvds_driver = {
 	.probe = rockchip_lvds_probe,
 	.remove = rockchip_lvds_remove,
 	.driver = {
@@ -950,9 +950,3 @@ static struct platform_driver rockchip_lvds_driver = {
 		.of_match_table = of_match_ptr(rockchip_lvds_dt_ids),
 	},
 };
-module_platform_driver(rockchip_lvds_driver);
-
-MODULE_AUTHOR("Mark Yao <mark.yao@rock-chips.com>");
-MODULE_AUTHOR("Heiko Stuebner <heiko@sntech.de>");
-MODULE_DESCRIPTION("ROCKCHIP LVDS Driver");
-MODULE_LICENSE("GPL v2");
