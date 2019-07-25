@@ -48,11 +48,12 @@
  * Reads a block of data from SCDC, starting at a given offset.
  *
  * Returns:
- * The number of bytes read from SCDC or a negative error code on failure.
+ * 0 on success, negative error code on failure.
  */
 ssize_t drm_scdc_read(struct i2c_adapter *adapter, u8 offset, void *buffer,
 		      size_t size)
 {
+	int ret;
 	struct i2c_msg msgs[2] = {
 		{
 			.addr = SCDC_I2C_SLAVE_ADDRESS,
@@ -67,7 +68,13 @@ ssize_t drm_scdc_read(struct i2c_adapter *adapter, u8 offset, void *buffer,
 		}
 	};
 
-	return i2c_transfer(adapter, msgs, ARRAY_SIZE(msgs));
+	ret = i2c_transfer(adapter, msgs, ARRAY_SIZE(msgs));
+	if (ret < 0)
+		return ret;
+	if (ret != ARRAY_SIZE(msgs))
+		return -EPROTO;
+
+	return 0;
 }
 EXPORT_SYMBOL(drm_scdc_read);
 
@@ -81,7 +88,7 @@ EXPORT_SYMBOL(drm_scdc_read);
  * Writes a block of data to SCDC, starting at a given offset.
  *
  * Returns:
- * The number of bytes written to SCDC or a negative error code on failure.
+ * 0 on success, negative error code on failure.
  */
 ssize_t drm_scdc_write(struct i2c_adapter *adapter, u8 offset,
 		       const void *buffer, size_t size)
@@ -95,7 +102,7 @@ ssize_t drm_scdc_write(struct i2c_adapter *adapter, u8 offset,
 	void *data;
 	int err;
 
-	data = kmalloc(1 + size, GFP_KERNEL);
+	data = kmalloc(1 + size, GFP_TEMPORARY);
 	if (!data)
 		return -ENOMEM;
 
@@ -108,7 +115,12 @@ ssize_t drm_scdc_write(struct i2c_adapter *adapter, u8 offset,
 
 	kfree(data);
 
-	return err;
+	if (err < 0)
+		return err;
+	if (err != 1)
+		return -EPROTO;
+
+	return 0;
 }
 EXPORT_SYMBOL(drm_scdc_write);
 
