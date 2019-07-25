@@ -39,6 +39,9 @@
 #include <uapi/linux/media-bus-format.h>
 #include <uapi/linux/videodev2.h>
 
+#include <uapi/linux/media-bus-format.h>
+#include <uapi/linux/videodev2.h>
+
 #include "dw-hdmi.h"
 #include "dw-hdmi-audio.h"
 #include "dw-hdmi-cec.h"
@@ -1097,12 +1100,12 @@ static void hdmi_video_packetize(struct dw_hdmi *hdmi)
 	u8 val, vp_conf;
 
 	if (hdmi_bus_fmt_is_rgb(hdmi->hdmi_data.enc_out_bus_format) ||
-	    hdmi_bus_fmt_is_yuv444(hdmi->hdmi_data.enc_out_bus_format) ||
-	    hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format)) {
+	    hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format) ||
+	    hdmi_bus_fmt_is_yuv444(hdmi->hdmi_data.enc_out_bus_format)) {
 		switch (hdmi_bus_fmt_color_depth(
 					hdmi->hdmi_data.enc_out_bus_format)) {
 		case 8:
-			color_depth = 0;
+			color_depth = 4;
 			output_select = HDMI_VP_CONF_OUTPUT_SELECTOR_BYPASS;
 			break;
 		case 10:
@@ -1224,20 +1227,6 @@ static bool hdmi_phy_wait_i2c_done(struct dw_hdmi *hdmi, int msec)
 	return true;
 }
 
-void dw_hdmi_set_high_tmds_clock_ratio(struct dw_hdmi *hdmi)
-{
-	unsigned long mtmdsclock = hdmi->hdmi_data.video_mode.mtmdsclock;
-
-	/* Control for TMDS Bit Period/TMDS Clock-Period Ratio */
-	if (hdmi->connector.display_info.hdmi.scdc.supported) {
-		if (mtmdsclock > 340000000)
-			drm_scdc_set_high_tmds_clock_ratio(hdmi->ddc, 1);
-		else
-			drm_scdc_set_high_tmds_clock_ratio(hdmi->ddc, 0);
-	}
-}
-EXPORT_SYMBOL_GPL(dw_hdmi_set_high_tmds_clock_ratio);
-
 void dw_hdmi_phy_i2c_write(struct dw_hdmi *hdmi, unsigned short data,
 			   unsigned char addr)
 {
@@ -1269,6 +1258,33 @@ static int hdmi_phy_i2c_read(struct dw_hdmi *hdmi, unsigned char addr)
 	val += hdmi_readb(hdmi, HDMI_PHY_I2CM_DATAI_0_ADDR) & 0xff;
 	return val;
 }
+
+/*
+ * HDMI2.0 Specifies the following procedure for High TMDS Bit Rates:
+ * - The Source shall suspend transmission of the TMDS clock and data
+ * - The Source shall write to the TMDS_Bit_Clock_Ratio bit to change it
+ * from a 0 to a 1 or from a 1 to a 0
+ * - The Source shall allow a minimum of 1 ms and a maximum of 100 ms from
+ * the time the TMDS_Bit_Clock_Ratio bit is written until resuming
+ * transmission of TMDS clock and data
+ *
+ * To respect the 100ms maximum delay, the dw_hdmi_set_high_tmds_clock_ratio()
+ * helper should called right before enabling the TMDS Clock and Data in
+ * the PHY configuration callback.
+ */
+void dw_hdmi_set_high_tmds_clock_ratio(struct dw_hdmi *hdmi)
+{
+	unsigned long mtmdsclock = hdmi->hdmi_data.video_mode.mtmdsclock;
+
+	/* Control for TMDS Bit Period/TMDS Clock-Period Ratio */
+	if (hdmi->connector.display_info.hdmi.scdc.supported) {
+		if (mtmdsclock > 340000000)
+			drm_scdc_set_high_tmds_clock_ratio(hdmi->ddc, 1);
+		else
+			drm_scdc_set_high_tmds_clock_ratio(hdmi->ddc, 0);
+	}
+}
+EXPORT_SYMBOL_GPL(dw_hdmi_set_high_tmds_clock_ratio);
 
 static void dw_hdmi_phy_enable_powerdown(struct dw_hdmi *hdmi, bool enable)
 {
@@ -2144,8 +2160,7 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi, struct drm_display_mode *mode)
 		hdmi->hdmi_data.enc_in_bus_format =
 			hdmi->plat_data->input_bus_format;
 	else
-		hdmi->hdmi_data.enc_in_bus_format =
-			MEDIA_BUS_FMT_RGB888_1X24;
+		hdmi->hdmi_data.enc_in_bus_format = MEDIA_BUS_FMT_RGB888_1X24;
 
 	/* TOFIX: Default to RGB888 output format */
 	if (hdmi->plat_data->get_output_bus_format)
