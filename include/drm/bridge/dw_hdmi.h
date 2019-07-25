@@ -124,6 +124,9 @@ struct dw_hdmi_phy_ops {
 		    struct drm_display_mode *mode);
 	void (*disable)(struct dw_hdmi *hdmi, void *data);
 	enum drm_connector_status (*read_hpd)(struct dw_hdmi *hdmi, void *data);
+	void (*update_hpd)(struct dw_hdmi *hdmi, void *data,
+			   bool force, bool disabled, bool rxsense);
+	void (*setup_hpd)(struct dw_hdmi *hdmi, void *data);
 };
 
 struct dw_hdmi_property_ops {
@@ -185,6 +188,9 @@ void dw_hdmi_suspend(struct device *dev);
 void dw_hdmi_resume(struct device *dev);
 enum drm_connector_status dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi,
 					       void *data);
+
+void dw_hdmi_setup_rx_sense(struct device *dev, bool hpd, bool rx_sense);
+
 void dw_hdmi_set_sample_rate(struct dw_hdmi *hdmi, unsigned int rate);
 void dw_hdmi_audio_enable(struct dw_hdmi *hdmi);
 void dw_hdmi_audio_disable(struct dw_hdmi *hdmi);
