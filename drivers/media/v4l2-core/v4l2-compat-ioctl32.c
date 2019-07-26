@@ -130,6 +130,20 @@ static int put_v4l2_window32(struct v4l2_window __user *kp,
 	return 0;
 }
 
+static inline int get_v4l2_meta_format(struct v4l2_meta_format *kp, struct v4l2_meta_format __user *up)
+{
+	if (copy_from_user(kp, up, sizeof(struct v4l2_meta_format)))
+		return -EFAULT;
+	return 0;
+}
+
+static inline int put_v4l2_meta_format(struct v4l2_meta_format *kp, struct v4l2_meta_format __user *up)
+{
+	if (copy_to_user(up, kp, sizeof(struct v4l2_meta_format)))
+		return -EFAULT;
+	return 0;
+}
+
 struct v4l2_format32 {
 	__u32	type;	/* enum v4l2_buf_type */
 	union {
