@@ -262,6 +262,22 @@ xfs_inode_clear_reclaim_tag(
 	xfs_perag_clear_reclaim_tag(pag);
 }
 
+static void
+xfs_inew_wait(
+	struct xfs_inode	*ip)
+{
+	wait_queue_head_t *wq = bit_waitqueue(&ip->i_flags, __XFS_INEW_BIT);
+	DEFINE_WAIT_BIT(wait, &ip->i_flags, __XFS_INEW_BIT);
+
+	do {
+		prepare_to_wait(wq, &wait.wait, TASK_UNINTERRUPTIBLE);
+		if (!xfs_iflags_test(ip, XFS_INEW))
+			break;
+		schedule();
+	} while (true);
+	finish_wait(wq, &wait.wait);
+}
+
 /*
  * When we recycle a reclaimable inode, we need to re-initialise the VFS inode
  * part of the structure. This is made more complex by the fact we store
