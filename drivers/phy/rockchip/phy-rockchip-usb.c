@@ -87,6 +87,7 @@ struct rockchip_usb_phy {
 	struct phy	*phy;
 	bool		uart_enabled;
 	struct reset_control *reset;
+	struct regulator *vbus;
 };
 
 static int rockchip_usb_phy_power(struct rockchip_usb_phy *phy,
@@ -108,6 +109,9 @@ static void rockchip_usb_phy480m_disable(struct clk_hw *hw)
 	struct rockchip_usb_phy *phy = container_of(hw,
 						    struct rockchip_usb_phy,
 						    clk480m_hw);
+
+	if (phy->vbus)
+		regulator_disable(phy->vbus);
 
 	/* Power down usb phy analog blocks by set siddq 1 */
 	if (phy->base->pdata->siddq_ctl)
@@ -179,6 +183,14 @@ static int rockchip_usb_phy_power_on(struct phy *_phy)
 
 	if (phy->uart_enabled)
 		return -EBUSY;
+
+	if (phy->vbus) {
+		int ret;
+
+		ret = regulator_enable(phy->vbus);
+		if (ret)
+			return ret;
+	}
 
 	ret = clk_prepare_enable(phy->clk480m);
 	if (ret)
@@ -315,6 +327,13 @@ static int rockchip_usb_phy_init(struct rockchip_usb_phy_base *base,
 		return PTR_ERR(rk_phy->phy);
 	}
 	phy_set_drvdata(rk_phy->phy, rk_phy);
+
+	rk_phy->vbus = devm_regulator_get_optional(&rk_phy->phy->dev, "vbus");
+	if (IS_ERR(rk_phy->vbus)) {
+		if (PTR_ERR(rk_phy->vbus) == -EPROBE_DEFER)
+			return PTR_ERR(rk_phy->vbus);
+		rk_phy->vbus = NULL;
+	}
 
 	/*
 	 * Setting the COMMONONN to 1'b0 for EHCI PHY on RK3288 SoC.
