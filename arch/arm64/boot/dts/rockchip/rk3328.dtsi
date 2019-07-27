@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Fuzhou Rockchip Electronics Co., Ltd
+ * Copyright (c) 2017 Fuzhou Rockchip Electronics Co., Ltd
  *
  * This file is dual-licensed: you can use it either under the terms
  * of the GPL or the X11 license, at your option. Note that this dual
@@ -45,9 +45,9 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/pinctrl/rockchip.h>
-#include <dt-bindings/soc/rockchip,boot-mode.h>
 #include <dt-bindings/soc/rockchip-system-status.h>
 #include <dt-bindings/power/rk3328-power.h>
+#include <dt-bindings/soc/rockchip,boot-mode.h>
 #include <dt-bindings/thermal/thermal.h>
 #include "rk3328-dram-default-timing.dtsi"
 
@@ -78,12 +78,13 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x0>;
-			enable-method = "psci";
 			clocks = <&cru ARMCLK>;
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <120>;
+			enable-method = "psci";
 			operating-points-v2 = <&cpu0_opp_table>;
 		};
+
 		cpu1: cpu@1 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
@@ -91,6 +92,7 @@
 			enable-method = "psci";
 			operating-points-v2 = <&cpu0_opp_table>;
 		};
+
 		cpu2: cpu@2 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
@@ -98,6 +100,7 @@
 			enable-method = "psci";
 			operating-points-v2 = <&cpu0_opp_table>;
 		};
+
 		cpu3: cpu@3 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
@@ -387,7 +390,6 @@
 				};
 			};
 		};
-
 	};
 
 	tsadc: tsadc@ff250000 {
@@ -416,12 +418,12 @@
 		interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru SCLK_UART0>, <&cru PCLK_UART0>;
 		clock-names = "baudclk", "apb_pclk";
-		reg-shift = <2>;
-		reg-io-width = <4>;
 		dmas = <&dmac 2>, <&dmac 3>;
 		#dma-cells = <2>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart0_xfer &uart0_cts &uart0_rts>;
+		reg-io-width = <4>;
+		reg-shift = <2>;
 		status = "disabled";
 	};
 
@@ -431,12 +433,12 @@
 		interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru SCLK_UART1>, <&cru PCLK_UART1>;
 		clock-names = "baudclk", "apb_pclk";
-		reg-shift = <2>;
-		reg-io-width = <4>;
 		dmas = <&dmac 4>, <&dmac 5>;
 		#dma-cells = <2>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart1_xfer &uart1_cts &uart1_rts>;
+		reg-io-width = <4>;
+		reg-shift = <2>;
 		status = "disabled";
 	};
 
@@ -446,12 +448,12 @@
 		interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru SCLK_UART2>, <&cru PCLK_UART2>;
 		clock-names = "baudclk", "apb_pclk";
-		reg-shift = <2>;
-		reg-io-width = <4>;
 		dmas = <&dmac 6>, <&dmac 7>;
 		#dma-cells = <2>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart2m1_xfer>;
+		reg-io-width = <4>;
+		reg-shift = <2>;
 		status = "disabled";
 	};
 
@@ -1071,6 +1073,12 @@
 		#clock-cells = <1>;
 		#reset-cells = <1>;
 		assigned-clocks =
+			/*
+			 * CPLL should run at 1200, but that is to high for
+			 * the initial dividers of most of its children.
+			 * We need set cpll child clk div first,
+			 * and then set the cpll frequency.
+			 */
 			<&cru DCLK_LCDC>, <&cru SCLK_PDM>,
 			<&cru SCLK_RTC32K>, <&cru SCLK_UART0>,
 			<&cru SCLK_UART1>, <&cru SCLK_UART2>,
@@ -1239,7 +1247,6 @@
 	gmac2io: ethernet@ff540000 {
 		compatible = "rockchip,rk3328-gmac";
 		reg = <0x0 0xff540000 0x0 0x10000>;
-		rockchip,grf = <&grf>;
 		interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "macirq";
 		clocks = <&cru SCLK_MAC2IO>, <&cru SCLK_MAC2IO_RX>,
@@ -1252,6 +1259,7 @@
 			      "pclk_mac";
 		resets = <&cru SRST_GMAC2IO_A>;
 		reset-names = "stmmaceth";
+		rockchip,grf = <&grf>;
 		status = "disabled";
 	};
 
