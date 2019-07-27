@@ -9,6 +9,7 @@
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/dma-iommu.h>
+#include <linux/dma-mapping.h>
 #include <linux/errno.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -97,6 +98,7 @@ struct rk_iommu {
 	int num_irq;
 	bool reset_disabled; /* isp iommu reset operation would failed */
 	bool skip_read;	     /* rk3126/rk3128 can't read vop iommu registers */
+	struct iommu_device iommu;
 	struct list_head node; /* entry in rk_iommu_domain.iommus */
 	struct iommu_domain *domain; /* domain to which iommu is attached */
 	struct clk *aclk; /* aclock belong to master */
@@ -1123,6 +1125,7 @@ static int rk_iommu_group_set_iommudata(struct iommu_group *group,
 static int rk_iommu_add_device(struct device *dev)
 {
 	struct iommu_group *group;
+	struct rk_iommu *iommu;
 	int ret;
 
 	if (!rk_iommu_is_dev_iommu_master(dev))
@@ -1145,6 +1148,10 @@ static int rk_iommu_add_device(struct device *dev)
 	if (ret)
 		goto err_remove_device;
 
+	iommu = rk_iommu_from_dev(dev);
+	if (iommu)
+		iommu_device_link(&iommu->iommu, dev);
+
 	iommu_group_put(group);
 
 	return 0;
@@ -1158,8 +1165,14 @@ err_put_group:
 
 static void rk_iommu_remove_device(struct device *dev)
 {
+	struct rk_iommu *iommu;
+
 	if (!rk_iommu_is_dev_iommu_master(dev))
 		return;
+
+	iommu = rk_iommu_from_dev(dev);
+	if (iommu)
+		iommu_device_unlink(&iommu->iommu, dev);
 
 	iommu_group_remove_device(dev);
 }
@@ -1208,7 +1221,7 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	struct rk_iommu *iommu;
 	struct resource *res;
 	int num_res = pdev->num_resources;
-	int i;
+	int err, i;
 
 	iommu = devm_kzalloc(dev, sizeof(*iommu), GFP_KERNEL);
 	if (!iommu)
@@ -1282,7 +1295,14 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	pm_runtime_get_sync(iommu->dev);
 	list_add(&iommu->dev_node, &iommu_dev_list);
 
-	return 0;
+	err = iommu_device_sysfs_add(&iommu->iommu, dev, NULL, dev_name(dev));
+	if (err)
+		return err;
+
+	iommu_device_set_ops(&iommu->iommu, &rk_iommu_ops);
+	err = iommu_device_register(&iommu->iommu);
+
+	return err;
 }
 
 static int rk_iommu_remove(struct platform_device *pdev)
@@ -1290,6 +1310,11 @@ static int rk_iommu_remove(struct platform_device *pdev)
 	struct rk_iommu *iommu = platform_get_drvdata(pdev);
 
 	pm_runtime_disable(iommu->dev);
+
+	if (iommu) {
+		iommu_device_sysfs_remove(&iommu->iommu);
+		iommu_device_unregister(&iommu->iommu);
+	}
 
 	return 0;
 }
