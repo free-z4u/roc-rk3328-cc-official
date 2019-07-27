@@ -123,7 +123,6 @@ struct vop_ctrl {
 
 	struct vop_reg cfg_done;
 
-	struct vop_reg lvds_en;
 	struct vop_reg vact_st_end_f1;
 	struct vop_reg vs_st_end_f1;
 	struct vop_reg version;
@@ -146,17 +145,12 @@ struct vop_ctrl {
 	struct vop_reg mipi_dual_channel_en;
 	struct vop_reg dclk_pol;
 	struct vop_reg rgb_dclk_pol;
-	struct vop_reg lvds_dclk_pol;
-	struct vop_reg lvds_pin_pol;
 	struct vop_reg hdmi_dclk_pol;
 	struct vop_reg edp_dclk_pol;
 	struct vop_reg mipi_dclk_pol;
 	struct vop_reg dp_dclk_pol;
 
 	struct vop_reg sw_dac_sel;
-	struct vop_reg tve_sw_mode;
-	struct vop_reg tve_dclk_pol;
-	struct vop_reg tve_dclk_en;
 	struct vop_reg sw_genlock;
 	struct vop_reg sw_uv_offset_en;
 	struct vop_reg dsp_out_yuv;
