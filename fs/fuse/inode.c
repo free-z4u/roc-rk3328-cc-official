@@ -21,6 +21,7 @@
 #include <linux/sched.h>
 #include <linux/exportfs.h>
 #include <linux/posix_acl.h>
+#include <linux/pid_namespace.h>
 
 MODULE_AUTHOR("Miklos Szeredi <miklos@szeredi.hu>");
 MODULE_DESCRIPTION("Filesystem in Userspace");
@@ -390,6 +391,9 @@ static void fuse_put_super(struct super_block *sb)
 {
 	struct fuse_conn *fc = get_fuse_conn_super(sb);
 
+	fuse_send_destroy(fc);
+
+	fuse_abort_conn(fc);
 	mutex_lock(&fuse_mutex);
 	list_del(&fc->entry);
 	fuse_ctl_remove_conn(fc);
@@ -598,7 +602,7 @@ void fuse_conn_init(struct fuse_conn *fc)
 	memset(fc, 0, sizeof(*fc));
 	spin_lock_init(&fc->lock);
 	init_rwsem(&fc->killsb);
-	atomic_set(&fc->count, 1);
+	refcount_set(&fc->count, 1);
 	atomic_set(&fc->dev_count, 1);
 	init_waitqueue_head(&fc->blocked_waitq);
 	init_waitqueue_head(&fc->reserved_req_waitq);
@@ -616,14 +620,16 @@ void fuse_conn_init(struct fuse_conn *fc)
 	fc->connected = 1;
 	fc->attr_version = 1;
 	get_random_bytes(&fc->scramble_key, sizeof(fc->scramble_key));
+	fc->pid_ns = get_pid_ns(task_active_pid_ns(current));
 }
 EXPORT_SYMBOL_GPL(fuse_conn_init);
 
 void fuse_conn_put(struct fuse_conn *fc)
 {
-	if (atomic_dec_and_test(&fc->count)) {
+	if (refcount_dec_and_test(&fc->count)) {
 		if (fc->destroy_req)
 			fuse_request_free(fc->destroy_req);
+		put_pid_ns(fc->pid_ns);
 		fc->release(fc);
 	}
 }
@@ -631,7 +637,7 @@ EXPORT_SYMBOL_GPL(fuse_conn_put);
 
 struct fuse_conn *fuse_conn_get(struct fuse_conn *fc)
 {
-	atomic_inc(&fc->count);
+	refcount_inc(&fc->count);
 	return fc;
 }
 EXPORT_SYMBOL_GPL(fuse_conn_get);
@@ -1163,7 +1169,6 @@ static int fuse_fill_super(struct super_block *sb, void *data, int silent)
 	fuse_dev_free(fud);
  err_put_conn:
 	fuse_conn_put(fc);
-	sb->s_fs_info = NULL;
  err_fput:
 	fput(file);
  err:
@@ -1177,25 +1182,16 @@ static struct dentry *fuse_mount(struct file_system_type *fs_type,
 	return mount_nodev(fs_type, flags, raw_data, fuse_fill_super);
 }
 
-static void fuse_sb_destroy(struct super_block *sb)
+static void fuse_kill_sb_anon(struct super_block *sb)
 {
 	struct fuse_conn *fc = get_fuse_conn_super(sb);
 
 	if (fc) {
-		fuse_send_destroy(fc);
-
-		fuse_abort_conn(fc);
-		fuse_wait_aborted(fc);
-
 		down_write(&fc->killsb);
 		fc->sb = NULL;
 		up_write(&fc->killsb);
 	}
-}
 
-static void fuse_kill_sb_anon(struct super_block *sb)
-{
-	fuse_sb_destroy(sb);
 	kill_anon_super(sb);
 }
 
@@ -1218,7 +1214,14 @@ static struct dentry *fuse_mount_blk(struct file_system_type *fs_type,
 
 static void fuse_kill_sb_blk(struct super_block *sb)
 {
-	fuse_sb_destroy(sb);
+	struct fuse_conn *fc = get_fuse_conn_super(sb);
+
+	if (fc) {
+		down_write(&fc->killsb);
+		fc->sb = NULL;
+		up_write(&fc->killsb);
+	}
+
 	kill_block_super(sb);
 }
 
