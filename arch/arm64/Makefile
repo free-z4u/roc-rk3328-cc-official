@@ -103,13 +103,7 @@ core-$(CONFIG_EFI_STUB) += $(objtree)/drivers/firmware/efi/libstub/lib.a
 
 # Default target when executing plain make
 boot		:= arch/arm64/boot
-
-ifeq ($(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE),y)
-KBUILD_IMAGE	:= $(boot)/$(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_KERNEL_IMAGE_NAME))
-else
 KBUILD_IMAGE	:= $(boot)/Image.gz
-endif
-
 KBUILD_DTBS	:= dtbs
 
 all:	Image.gz $(KBUILD_DTBS)
@@ -134,9 +128,6 @@ dtbs: prepare scripts
 
 dtbs_install:
 	$(Q)$(MAKE) $(dtbinst)=$(boot)/dts
-
-Image-dtb Image.gz-dtb: vmlinux scripts dtbs
-	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
 PHONY += vdso_install
 vdso_install:
@@ -168,18 +159,3 @@ define archhelp
   echo  '                  (distribution) /sbin/installkernel or'
   echo  '                  install to $$(INSTALL_PATH) and run lilo'
 endef
-
-kernel.img: Image
-	$(Q)$(srctree)/scripts/mkkrnlimg $(objtree)/arch/arm64/boot/Image $(objtree)/kernel.img >/dev/null
-	@echo '  Image:  kernel.img is ready'
-ifdef CONFIG_MODULES
-	$(Q)$(MAKE) modules
-endif
-
-LOGO := $(notdir $(wildcard $(srctree)/logo.bmp))
-LOGO_KERNEL := $(notdir $(wildcard $(srctree)/logo_kernel.bmp))
-%.img: rockchip/%.dtb kernel.img $(LOGO) $(LOGO_KERNEL)
-	$(Q) if [ -f $(srctree)/$(LOGO) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO) $(objtree)/; fi
-	$(Q) if [ -f $(srctree)/$(LOGO_KERNEL) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO_KERNEL) $(objtree)/; fi
-	$(Q)$(srctree)/scripts/resource_tool $(objtree)/arch/arm64/boot/dts/rockchip/$*.dtb $(LOGO) $(LOGO_KERNEL)
-	@echo '  Image:  resource.img (with $*.dtb $(LOGO) $(LOGO_KERNEL)) is ready'

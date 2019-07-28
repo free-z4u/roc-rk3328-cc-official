@@ -38,12 +38,4 @@ $(dtbinst-dirs):
 PHONY += $(dtbinst-files) $(dtbinst-dirs)
 __dtbs_install: $(dtbinst-files) $(dtbinst-dirs)
 
-install-dtb-file = $(INSTALL_DTB_SOURCE)
-install-dtb-target = $(INSTALL_DTB_TARGET)
-
-distro-debinstall:
-	$(Q) cp -f $(INSTALL_DTB_SOURCE) $(INSTALL_DTB_TARGET);
-
-PHONY += $(dtbinst-files) $(dtbinst-dirs) distro-debinstall
-
 .PHONY: $(PHONY)
