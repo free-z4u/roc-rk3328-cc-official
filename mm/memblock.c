@@ -1742,12 +1742,11 @@ static void __init_memblock memblock_dump(struct memblock_type *type)
 extern unsigned long __init_memblock
 memblock_reserved_memory_within(phys_addr_t start_addr, phys_addr_t end_addr)
 {
-	struct memblock_type *type = &memblock.reserved;
+	struct memblock_region *rgn;
 	unsigned long size = 0;
 	int idx;
 
-	for (idx = 0; idx < type->cnt; idx++) {
-		struct memblock_region *rgn = &type->regions[idx];
+	for_each_memblock_type((&memblock.reserved), rgn) {
 		phys_addr_t start, end;
 
 		if (rgn->base + rgn->size < start_addr)
