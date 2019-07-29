@@ -410,7 +410,7 @@ static const struct vop_intr rk3288_vop_intr = {
 
 static const struct vop_data rk3288_vop = {
 	.version = VOP_VERSION(3, 0),
-	.feature = VOP_FEATURE_OUTPUT_10BIT,
+	.feature = VOP_FEATURE_OUTPUT_RGB10,
 	.max_input = {4096, 8192},
 	/*
 	 * TODO: rk3288 have two vop, big one support 3840x2160,
@@ -502,6 +502,7 @@ static const struct vop_reg_data rk3399_init_reg_table[] = {
 static const struct vop_data rk3399_vop_big = {
 	.init_table = rk3399_init_reg_table,
 	.table_size = ARRAY_SIZE(rk3399_init_reg_table),
+	.feature = VOP_FEATURE_OUTPUT_RGB10,
 	.intr = &rk3399_vop_intr,
 	.ctrl = &rk3399_ctrl_data,
 	/*
@@ -906,7 +907,7 @@ static const struct vop_win_data rk3328_vop_win_data[] = {
 
 static const struct vop_data rk3328_vop = {
 	.version = VOP_VERSION(3, 8),
-	.feature = VOP_FEATURE_OUTPUT_10BIT,
+	.feature = VOP_FEATURE_OUTPUT_RGB10,
 	.hdr_table = &rk3328_hdr_table,
 	.max_input = {4096, 8192},
 	.max_output = {4096, 2160},

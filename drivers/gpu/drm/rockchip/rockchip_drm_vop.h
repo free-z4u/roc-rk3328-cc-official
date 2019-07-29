@@ -397,9 +397,6 @@ struct vop_win_data {
 	u64 feature;
 };
 
-#define VOP_FEATURE_OUTPUT_10BIT	BIT(0)
-#define VOP_FEATURE_AFBDC		BIT(1)
-
 #define WIN_FEATURE_HDR2SDR		BIT(0)
 #define WIN_FEATURE_SDR2HDR		BIT(1)
 #define WIN_FEATURE_PRE_OVERLAY		BIT(2)
@@ -416,12 +413,15 @@ struct vop_data {
 	const struct vop_ctrl *ctrl;
 	const struct vop_intr *intr;
 	const struct vop_win_data *win;
+	unsigned int win_size;
 	const struct vop_csc_table *csc_table;
 	const struct vop_hdr_table *hdr_table;
-	unsigned int win_size;
 	uint32_t version;
 	struct vop_rect max_input;
 	struct vop_rect max_output;
+
+#define VOP_FEATURE_OUTPUT_RGB10	BIT(0)
+#define VOP_FEATURE_INTERNAL_RGB	BIT(1)
 	u64 feature;
 };
 
