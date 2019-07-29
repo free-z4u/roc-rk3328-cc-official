@@ -627,6 +627,7 @@ static inline netdev_features_t vlan_features_check(struct sk_buff *skb,
 			    NETIF_F_FRAGLIST | NETIF_F_HW_VLAN_CTAG_TX |
 			    NETIF_F_HW_VLAN_STAG_TX;
 	}
+
 	return features;
 }
 
