@@ -254,12 +254,15 @@ const u32 nfs4_fsinfo_bitmap[3] = { FATTR4_WORD0_MAXFILESIZE
 };
 
 const u32 nfs4_fs_locations_bitmap[3] = {
-	FATTR4_WORD0_CHANGE
+	FATTR4_WORD0_TYPE
+	| FATTR4_WORD0_CHANGE
 	| FATTR4_WORD0_SIZE
 	| FATTR4_WORD0_FSID
 	| FATTR4_WORD0_FILEID
 	| FATTR4_WORD0_FS_LOCATIONS,
-	FATTR4_WORD1_OWNER
+	FATTR4_WORD1_MODE
+	| FATTR4_WORD1_NUMLINKS
+	| FATTR4_WORD1_OWNER
 	| FATTR4_WORD1_OWNER_GROUP
 	| FATTR4_WORD1_RAWDEV
 	| FATTR4_WORD1_SPACE_USED
@@ -1854,7 +1857,7 @@ static int nfs4_open_reclaim(struct nfs4_state_owner *sp, struct nfs4_state *sta
 	return ret;
 }
 
-static int nfs4_handle_delegation_recall_error(struct nfs_server *server, struct nfs4_state *state, const nfs4_stateid *stateid, struct file_lock *fl, int err)
+static int nfs4_handle_delegation_recall_error(struct nfs_server *server, struct nfs4_state *state, const nfs4_stateid *stateid, int err)
 {
 	switch (err) {
 		default:
@@ -1901,11 +1904,7 @@ static int nfs4_handle_delegation_recall_error(struct nfs_server *server, struct
 			return -EAGAIN;
 		case -ENOMEM:
 		case -NFS4ERR_DENIED:
-			if (fl) {
-				struct nfs4_lock_state *lsp = fl->fl_u.nfs4_fl.owner;
-				if (lsp)
-					set_bit(NFS_LOCK_LOST, &lsp->ls_flags);
-			}
+			/* kill_proc(fl->fl_pid, SIGLOST, 1); */
 			return 0;
 	}
 	return err;
@@ -1941,7 +1940,7 @@ int nfs4_open_delegation_recall(struct nfs_open_context *ctx,
 		err = nfs4_open_recover_helper(opendata, FMODE_READ);
 	}
 	nfs4_opendata_put(opendata);
-	return nfs4_handle_delegation_recall_error(server, state, stateid, NULL, err);
+	return nfs4_handle_delegation_recall_error(server, state, stateid, err);
 }
 
 static void nfs4_open_confirm_prepare(struct rpc_task *task, void *calldata)
@@ -2590,7 +2589,8 @@ static inline void nfs4_exclusive_attrset(struct nfs4_opendata *opendata,
 
 	/* Except MODE, it seems harmless of setting twice. */
 	if (opendata->o_arg.createmode != NFS4_CREATE_EXCLUSIVE &&
-		attrset[1] & FATTR4_WORD1_MODE)
+		(attrset[1] & FATTR4_WORD1_MODE ||
+		 attrset[2] & FATTR4_WORD2_MODE_UMASK))
 		sattr->ia_valid &= ~ATTR_MODE;
 
 	if (attrset[2] & FATTR4_WORD2_SECURITY_LABEL)
@@ -6504,7 +6504,7 @@ int nfs4_lock_delegation_recall(struct file_lock *fl, struct nfs4_state *state, 
 	if (err != 0)
 		return err;
 	err = _nfs4_do_setlk(state, F_SETLK, fl, NFS_LOCK_NEW);
-	return nfs4_handle_delegation_recall_error(server, state, stateid, fl, err);
+	return nfs4_handle_delegation_recall_error(server, state, stateid, err);
 }
 
 struct nfs_release_lockowner_data {
@@ -6683,7 +6683,9 @@ static int _nfs4_proc_fs_locations(struct rpc_clnt *client, struct inode *dir,
 				   struct page *page)
 {
 	struct nfs_server *server = NFS_SERVER(dir);
-	u32 bitmask[3];
+	u32 bitmask[3] = {
+		[0] = FATTR4_WORD0_FSID | FATTR4_WORD0_FS_LOCATIONS,
+	};
 	struct nfs4_fs_locations_arg args = {
 		.dir_fh = NFS_FH(dir),
 		.name = name,
@@ -6702,15 +6704,12 @@ static int _nfs4_proc_fs_locations(struct rpc_clnt *client, struct inode *dir,
 
 	dprintk("%s: start\n", __func__);
 
-	bitmask[0] = nfs4_fattr_bitmap[0] | FATTR4_WORD0_FS_LOCATIONS;
-	bitmask[1] = nfs4_fattr_bitmap[1];
-
 	/* Ask for the fileid of the absent filesystem if mounted_on_fileid
 	 * is not supported */
 	if (NFS_SERVER(dir)->attr_bitmask[1] & FATTR4_WORD1_MOUNTED_ON_FILEID)
-		bitmask[0] &= ~FATTR4_WORD0_FILEID;
+		bitmask[1] |= FATTR4_WORD1_MOUNTED_ON_FILEID;
 	else
-		bitmask[1] &= ~FATTR4_WORD1_MOUNTED_ON_FILEID;
+		bitmask[0] |= FATTR4_WORD0_FILEID;
 
 	nfs_fattr_init(&fs_locations->fattr);
 	fs_locations->server = server;
@@ -8418,6 +8417,7 @@ static void nfs4_layoutget_release(void *calldata)
 	size_t max_pages = max_response_pages(server);
 
 	dprintk("--> %s\n", __func__);
+	nfs4_sequence_free_slot(&lgp->res.seq_res);
 	nfs4_free_pages(lgp->args.layout.pages, max_pages);
 	pnfs_put_layout_hdr(NFS_I(inode)->layout);
 	put_nfs_open_context(lgp->args.ctx);
@@ -8492,7 +8492,6 @@ nfs4_proc_layoutget(struct nfs4_layoutget *lgp, long *timeout, gfp_t gfp_flags)
 	/* if layoutp->len is 0, nfs4_layoutget_prepare called rpc_exit */
 	if (status == 0 && lgp->res.layoutp->len)
 		lseg = pnfs_layout_process(lgp);
-	nfs4_sequence_free_slot(&lgp->res.seq_res);
 	rpc_put_task(task);
 	dprintk("<-- %s status=%d\n", __func__, status);
 	if (status)

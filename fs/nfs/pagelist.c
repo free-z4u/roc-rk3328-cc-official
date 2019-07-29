@@ -521,7 +521,6 @@ EXPORT_SYMBOL_GPL(nfs_pgio_header_alloc);
  */
 void nfs_pgio_header_free(struct nfs_pgio_header *hdr)
 {
-	nfs_pgio_data_destroy(hdr);
 	hdr->rw_ops->rw_free_header(hdr);
 }
 EXPORT_SYMBOL_GPL(nfs_pgio_header_free);
@@ -655,6 +654,7 @@ EXPORT_SYMBOL_GPL(nfs_initiate_pgio);
 static void nfs_pgio_error(struct nfs_pgio_header *hdr)
 {
 	set_bit(NFS_IOHDR_REDO, &hdr->flags);
+	nfs_pgio_data_destroy(hdr);
 	hdr->completion_ops->completion(hdr);
 }
 
@@ -665,6 +665,7 @@ static void nfs_pgio_error(struct nfs_pgio_header *hdr)
 static void nfs_pgio_release(void *calldata)
 {
 	struct nfs_pgio_header *hdr = calldata;
+	nfs_pgio_data_destroy(hdr);
 	hdr->completion_ops->completion(hdr);
 }
 
