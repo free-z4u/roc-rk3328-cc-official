@@ -2711,7 +2711,7 @@ static int rockchip_irq_set_type(struct irq_data *d, unsigned int type)
 	int ret;
 
 	/* make sure the pin is configured as gpio input */
-	ret = rockchip_verify_mux(bank, d->hwirq, RK_FUNC_GPIO);
+	ret = rockchip_set_mux(bank, d->hwirq, RK_FUNC_GPIO);
 	if (ret < 0)
 		return ret;
 
