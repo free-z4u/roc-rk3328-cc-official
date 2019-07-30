@@ -287,8 +287,7 @@ endef
 define rule_as_o_S
 	$(call cmd_and_fixdep,as_o_S)					  \
 	$(cmd_modversions_S)						  \
-	$(call echo-cmd,objtool) $(cmd_objtool)		\
-	$(cmd_modversions_S)
+	$(call echo-cmd,objtool) $(cmd_objtool)
 endef
 
 # List module undefined symbols (or empty line if not enabled)

@@ -74,7 +74,6 @@
 static DEFINE_MUTEX(core_lock);
 static DEFINE_IDR(i2c_adapter_idr);
 
-static int i2c_check_addr_ex(struct i2c_adapter *adapter, int addr);
 static int i2c_detect(struct i2c_adapter *adapter, struct i2c_driver *driver);
 
 static struct static_key i2c_trace_msg = STATIC_KEY_INIT_FALSE;
@@ -1322,7 +1321,7 @@ static void i2c_adapter_unlock_bus(struct i2c_adapter *adapter,
 }
 
 static void i2c_dev_set_name(struct i2c_adapter *adap,
-			     struct i2c_client *client, int status)
+			     struct i2c_client *client)
 {
 	struct acpi_device *adev = ACPI_COMPANION(&client->dev);
 
@@ -1331,12 +1330,8 @@ static void i2c_dev_set_name(struct i2c_adapter *adap,
 		return;
 	}
 
-	if (status == 0)
-		dev_set_name(&client->dev, "%d-%04x", i2c_adapter_id(adap),
-			i2c_encode_flags_to_addr(client));
-	else
-		dev_set_name(&client->dev, "%d-%04x-%01x", i2c_adapter_id(adap),
-			i2c_encode_flags_to_addr(client), status);
+	dev_set_name(&client->dev, "%d-%04x", i2c_adapter_id(adap),
+		     i2c_encode_flags_to_addr(client));
 }
 
 static int i2c_dev_irq_from_resources(const struct resource *resources,
@@ -1416,17 +1411,17 @@ i2c_new_device(struct i2c_adapter *adap, struct i2c_board_info const *info)
 	}
 
 	/* Check for address business */
-	status = i2c_check_addr_ex(adap, i2c_encode_flags_to_addr(client));
-	if (status != 0)
-		dev_err(&adap->dev, "%d i2c clients have been registered at 0x%02x",
-			status, client->addr);
+	status = i2c_check_addr_busy(adap, i2c_encode_flags_to_addr(client));
+	if (status)
+		goto out_err;
+
 	client->dev.parent = &client->adapter->dev;
 	client->dev.bus = &i2c_bus_type;
 	client->dev.type = &i2c_client_type;
 	client->dev.of_node = info->of_node;
 	client->dev.fwnode = info->fwnode;
 
-	i2c_dev_set_name(adap, client, status);
+	i2c_dev_set_name(adap, client);
 
 	if (info->properties) {
 		status = device_add_properties(&client->dev, info->properties);
@@ -2504,33 +2499,6 @@ void i2c_del_driver(struct i2c_driver *driver)
 EXPORT_SYMBOL(i2c_del_driver);
 
 /* ------------------------------------------------------------------------- */
-
-struct i2c_addr_cnt {
-	int addr;
-	int cnt;
-};
-
-static int __i2c_check_addr_ex(struct device *dev, void *addrp)
-{
-	struct i2c_client *client = i2c_verify_client(dev);
-	struct i2c_addr_cnt *addrinfo = (struct i2c_addr_cnt *)addrp;
-	int addr = addrinfo->addr;
-
-	if (client && client->addr == addr)
-		addrinfo->cnt++;
-
-	return 0;
-}
-
-static int i2c_check_addr_ex(struct i2c_adapter *adapter, int addr)
-{
-	struct i2c_addr_cnt addrinfo;
-
-	addrinfo.addr = addr;
-	addrinfo.cnt = 0;
-	device_for_each_child(&adapter->dev, &addrinfo, __i2c_check_addr_ex);
-	return addrinfo.cnt;
-}
 
 /**
  * i2c_use_client - increments the reference count of the i2c client structure
