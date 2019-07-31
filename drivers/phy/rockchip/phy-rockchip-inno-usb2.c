@@ -928,7 +928,6 @@ static void rockchip_usb2phy_otg_sm_work(struct work_struct *work)
 
 	sch_work = false;
 	delay = OTG_SCHEDULE_DELAY;
-
 	dev_dbg(&rport->phy->dev, "%s otg sm work\n",
 		usb_otg_state_string(rport->state));
 
@@ -962,8 +961,7 @@ static void rockchip_usb2phy_otg_sm_work(struct work_struct *work)
 			case USB_CHG_STATE_DETECTED:
 				switch (rphy->chg_type) {
 				case POWER_SUPPLY_TYPE_USB:
-					dev_dbg(&rport->phy->dev,
-						"sdp cable is connecetd\n");
+					dev_dbg(&rport->phy->dev, "sdp cable is connected\n");
 					wake_lock(&rport->wakelock);
 					cable = EXTCON_CHG_USB_SDP;
 					mutex_unlock(&rport->mutex);
@@ -974,14 +972,12 @@ static void rockchip_usb2phy_otg_sm_work(struct work_struct *work)
 					sch_work = true;
 					break;
 				case POWER_SUPPLY_TYPE_USB_DCP:
-					dev_dbg(&rport->phy->dev,
-						"dcp cable is connecetd\n");
+					dev_dbg(&rport->phy->dev, "dcp cable is connected\n");
 					cable = EXTCON_CHG_USB_DCP;
 					sch_work = true;
 					break;
 				case POWER_SUPPLY_TYPE_USB_CDP:
-					dev_dbg(&rport->phy->dev,
-						"cdp cable is connecetd\n");
+					dev_dbg(&rport->phy->dev, "cdp cable is connected\n");
 					wake_lock(&rport->wakelock);
 					cable = EXTCON_CHG_USB_CDP;
 					mutex_unlock(&rport->mutex);
@@ -992,8 +988,7 @@ static void rockchip_usb2phy_otg_sm_work(struct work_struct *work)
 					sch_work = true;
 					break;
 				case POWER_SUPPLY_TYPE_USB_FLOATING:
-					dev_dbg(&rport->phy->dev,
-						"floating cable is connecetd\n");
+					dev_dbg(&rport->phy->dev, "floating cable is connected\n");
 					cable = EXTCON_CHG_USB_DCP;
 					sch_work = true;
 					break;
@@ -1130,7 +1125,6 @@ static void rockchip_chg_detect_work(struct work_struct *work)
 
 	dev_dbg(&rport->phy->dev, "chg detection work state = %d\n",
 		rphy->chg_state);
-
 	switch (rphy->chg_state) {
 	case USB_CHG_STATE_UNDEFINED:
 		mutex_lock(&rport->mutex);
@@ -2040,7 +2034,7 @@ static const struct rockchip_usb2phy_cfg rk312x_phy_cfgs[] = {
 	{ /* sentinel */ }
 };
 
-static const struct rockchip_usb2phy_cfg rk322x_phy_cfgs[] = {
+static const struct rockchip_usb2phy_cfg rk3228_phy_cfgs[] = {
 	{
 		.reg = 0x760,
 		.num_ports	= 2,
@@ -2304,7 +2298,7 @@ static const struct rockchip_usb2phy_cfg rk3399_phy_cfgs[] = {
 
 static const struct of_device_id rockchip_usb2phy_dt_match[] = {
 	{ .compatible = "rockchip,rk3128-usb2phy", .data = &rk312x_phy_cfgs },
-	{ .compatible = "rockchip,rk322x-usb2phy", .data = &rk322x_phy_cfgs },
+	{ .compatible = "rockchip,rk322x-usb2phy", .data = &rk3228_phy_cfgs },
 	{ .compatible = "rockchip,rk3328-usb2phy", .data = &rk3328_phy_cfgs },
 	{ .compatible = "rockchip,rk3366-usb2phy", .data = &rk3366_phy_cfgs },
 	{ .compatible = "rockchip,rk3368-usb2phy", .data = &rk3368_phy_cfgs },

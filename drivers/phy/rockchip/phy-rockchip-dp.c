@@ -141,7 +141,7 @@ static int rockchip_dp_phy_probe(struct platform_device *pdev)
 
 	ret = regmap_write(dp->grf, drv_data->grf_reg_offset,
 			   drv_data->ref_clk_sel_inter);
-	if (ret) {
+	if (ret != 0) {
 		dev_err(dp->dev, "Could not config GRF edp ref clk: %d\n", ret);
 		return ret;
 	}

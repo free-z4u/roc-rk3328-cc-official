@@ -173,6 +173,7 @@ static int rockchip_usb_phy_power_off(struct phy *_phy)
 	}
 
 	clk_disable_unprepare(phy->clk480m);
+
 	return 0;
 }
 
