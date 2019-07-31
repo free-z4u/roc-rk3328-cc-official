@@ -69,6 +69,7 @@ allowed_warnings = set([
     "secureboot.c:19", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
     "secureboot.c:22", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
     "rx.c:208", # warning: alignment 1 of ‘struct <anonymous>’ is less than 2 [-Wpacked-not-aligned]
+    "kernel.h:771", # warning: comparison of distinct pointer types lacks a cast
  ])
 
 # Capture the name of the object file, can find it.
