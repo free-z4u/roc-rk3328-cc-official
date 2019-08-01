@@ -31,8 +31,7 @@
 #include <linux/fs.h>
 #include <linux/io.h>
 #include <linux/mm.h>
-#include <linux/slab.h>
-#include <linux/stop_machine.h>
+#include <linux/vmalloc.h>
 
 #include <asm/barrier.h>
 #include <asm/cputype.h>
