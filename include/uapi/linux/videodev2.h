@@ -144,7 +144,6 @@ enum v4l2_buf_type {
 	V4L2_BUF_TYPE_SDR_CAPTURE          = 11,
 	V4L2_BUF_TYPE_SDR_OUTPUT           = 12,
 	V4L2_BUF_TYPE_META_CAPTURE         = 13,
-	V4L2_BUF_TYPE_META_OUTPUT	   = 14,
 	/* Deprecated, do not use */
 	V4L2_BUF_TYPE_PRIVATE              = 0x80,
 };
@@ -458,7 +457,6 @@ struct v4l2_capability {
 #define V4L2_CAP_READWRITE              0x01000000  /* read/write systemcalls */
 #define V4L2_CAP_ASYNCIO                0x02000000  /* async I/O */
 #define V4L2_CAP_STREAMING              0x04000000  /* streaming I/O ioctls */
-#define V4L2_CAP_META_OUTPUT		0x08000000  /* Is a metadata output device */
 
 #define V4L2_CAP_TOUCH                  0x10000000  /* Is a touch device */
 
@@ -898,7 +896,6 @@ struct v4l2_plane {
  * @length:	size in bytes of the buffer (NOT its payload) for single-plane
  *		buffers (when type != *_MPLANE); number of elements in the
  *		planes array for multi-plane buffers
- * @config_store: this buffer should use this configuration store
  *
  * Contains data exchanged by application and driver using one of the Streaming
  * I/O methods.
@@ -922,7 +919,7 @@ struct v4l2_buffer {
 		__s32		fd;
 	} m;
 	__u32			length;
-	__u32			config_store;
+	__u32			reserved2;
 	__u32			reserved;
 };
 
@@ -1568,15 +1565,8 @@ struct v4l2_ext_control {
 		__u8 __user *p_u8;
 		__u16 __user *p_u16;
 		__u32 __user *p_u32;
-		struct v4l2_ctrl_h264_sps __user *p_h264_sps;
-		struct v4l2_ctrl_h264_pps __user *p_h264_pps;
-		struct v4l2_ctrl_h264_scaling_matrix __user *p_h264_scal_mtrx;
-		struct v4l2_ctrl_h264_slice_param __user *p_h264_slice_param;
-		struct v4l2_ctrl_h264_decode_param __user *p_h264_decode_param;
-		struct v4l2_ctrl_vp8_frame_hdr __user *p_vp8_frame_hdr;
 		void __user *ptr;
 	};
-	__s32 rect[4];/*rockchip add for focus zone*/
 } __attribute__ ((packed));
 
 struct v4l2_ext_controls {
@@ -1585,7 +1575,6 @@ struct v4l2_ext_controls {
 		__u32 ctrl_class;
 #endif
 		__u32 which;
-		__u32 config_store;
 	};
 	__u32 count;
 	__u32 error_idx;
@@ -1619,14 +1608,6 @@ enum v4l2_ctrl_type {
 	V4L2_CTRL_TYPE_U8	     = 0x0100,
 	V4L2_CTRL_TYPE_U16	     = 0x0101,
 	V4L2_CTRL_TYPE_U32	     = 0x0102,
-	V4L2_CTRL_TYPE_H264_SPS      = 0x0103,
-	V4L2_CTRL_TYPE_H264_PPS      = 0x0104,
-	V4L2_CTRL_TYPE_H264_SCALING_MATRIX = 0x0105,
-	V4L2_CTRL_TYPE_H264_SLICE_PARAM = 0x0106,
-	V4L2_CTRL_TYPE_H264_DECODE_PARAM = 0x0107,
-	V4L2_CTRL_TYPE_VP8_FRAME_HDR	= 0x108,
-
-	V4L2_CTRL_TYPE_PRIVATE       = 0xffff,
 };
 
 /*  Used in the VIDIOC_QUERYCTRL ioctl for querying controls */
@@ -1682,7 +1663,6 @@ struct v4l2_querymenu {
 #define V4L2_CTRL_FLAG_HAS_PAYLOAD	0x0100
 #define V4L2_CTRL_FLAG_EXECUTE_ON_WRITE	0x0200
 #define V4L2_CTRL_FLAG_MODIFY_LAYOUT	0x0400
-#define V4L2_CTRL_FLAG_CAN_STORE	0x0800
 
 /*  Query flags, to be ORed with the control ID */
 #define V4L2_CTRL_FLAG_NEXT_CTRL	0x80000000
