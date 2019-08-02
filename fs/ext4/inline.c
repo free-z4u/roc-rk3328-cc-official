@@ -61,7 +61,7 @@ static int get_max_inline_xattr_value_size(struct inode *inode,
 
 	/* Compute min_offs. */
 	for (; !IS_LAST_ENTRY(entry); entry = EXT4_XATTR_NEXT(entry)) {
-		if (!entry->e_value_block && entry->e_value_size) {
+		if (!entry->e_value_inum && entry->e_value_size) {
 			size_t offs = le16_to_cpu(entry->e_value_offs);
 			if (offs < min_offs)
 				min_offs = offs;
@@ -442,7 +442,6 @@ static int ext4_destroy_inline_data_nolock(handle_t *handle,
 
 	memset((void *)ext4_raw_inode(&is.iloc)->i_block,
 		0, EXT4_MIN_INLINE_DATA_SIZE);
-	memset(ei->i_data, 0, EXT4_MIN_INLINE_DATA_SIZE);
 
 	if (ext4_has_feature_extents(inode->i_sb)) {
 		if (S_ISDIR(inode->i_mode) ||
@@ -692,10 +691,6 @@ int ext4_try_to_write_inline_data(struct address_space *mapping,
 		goto convert;
 	}
 
-	ret = ext4_journal_get_write_access(handle, iloc.bh);
-	if (ret)
-		goto out;
-
 	flags |= AOP_FLAG_NOFS;
 
 	page = grab_cache_page_write_begin(mapping, 0, flags);
@@ -724,7 +719,7 @@ int ext4_try_to_write_inline_data(struct address_space *mapping,
 out_up_read:
 	up_read(&EXT4_I(inode)->xattr_sem);
 out:
-	if (handle && (ret != 1))
+	if (handle)
 		ext4_journal_stop(handle);
 	brelse(iloc.bh);
 	return ret;
@@ -766,7 +761,6 @@ int ext4_write_inline_data_end(struct inode *inode, loff_t pos, unsigned len,
 
 	ext4_write_unlock_xattr(inode, &no_expand);
 	brelse(iloc.bh);
-	mark_inode_dirty(inode);
 out:
 	return copied;
 }
@@ -913,6 +907,7 @@ retry_journal:
 		goto out;
 	}
 
+
 	page = grab_cache_page_write_begin(mapping, 0, flags);
 	if (!page) {
 		ret = -ENOMEM;
@@ -930,9 +925,6 @@ retry_journal:
 		if (ret < 0)
 			goto out_release_page;
 	}
-	ret = ext4_journal_get_write_access(handle, iloc.bh);
-	if (ret)
-		goto out_release_page;
 
 	up_read(&EXT4_I(inode)->xattr_sem);
 	*pagep = page;
@@ -953,6 +945,7 @@ int ext4_da_write_inline_data_end(struct inode *inode, loff_t pos,
 				  unsigned len, unsigned copied,
 				  struct page *page)
 {
+	int i_size_changed = 0;
 	int ret;
 
 	ret = ext4_write_inline_data_end(inode, pos, len, copied, page);
@@ -970,8 +963,10 @@ int ext4_da_write_inline_data_end(struct inode *inode, loff_t pos,
 	 * But it's important to update i_size while still holding page lock:
 	 * page writeout could otherwise come in and zero beyond i_size.
 	 */
-	if (pos+copied > inode->i_size)
+	if (pos+copied > inode->i_size) {
 		i_size_write(inode, pos+copied);
+		i_size_changed = 1;
+	}
 	unlock_page(page);
 	put_page(page);
 
@@ -981,7 +976,8 @@ int ext4_da_write_inline_data_end(struct inode *inode, loff_t pos,
 	 * ordering of page lock and transaction start for journaling
 	 * filesystems.
 	 */
-	mark_inode_dirty(inode);
+	if (i_size_changed)
+		mark_inode_dirty(inode);
 
 	return copied;
 }
