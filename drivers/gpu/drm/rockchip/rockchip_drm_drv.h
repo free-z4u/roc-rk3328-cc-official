@@ -89,8 +89,7 @@ struct rockchip_crtc_state {
  *
  * @crtc: array of enabled CRTCs, used to map from "pipe" to drm_crtc.
  * @num_pipe: number of pipes for this device.
- * @cpu_fence_context: fence context used for CPU acquire/release
- * @cpu_fence_seqno: fence sequence number
+ * @mm_lock: protect drm_mm on multi-threads.
  */
 struct rockchip_drm_private {
 	struct drm_fb_helper fbdev_helper;
@@ -98,7 +97,6 @@ struct rockchip_drm_private {
 	const struct rockchip_crtc_funcs *crtc_funcs[ROCKCHIP_MAX_CRTC];
 	struct drm_atomic_state *state;
 	struct iommu_domain *domain;
-	/* protect drm_mm on multi-threads */
 	struct mutex mm_lock;
 	struct drm_mm mm;
 	struct list_head psr_list;
