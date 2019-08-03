@@ -150,7 +150,7 @@ struct dw_hdmi_property_ops {
 struct dw_hdmi_plat_data {
 	struct regmap *regm;
 	enum drm_mode_status (*mode_valid)(struct drm_connector *connector,
-					   struct drm_display_mode *mode);
+					   const struct drm_display_mode *mode);
 	const struct dw_hdmi_audio_tmds_n *tmds_n_table;
 	unsigned long input_bus_format;
 	unsigned long input_bus_encoding;
