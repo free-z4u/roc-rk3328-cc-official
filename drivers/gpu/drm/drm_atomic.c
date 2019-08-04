@@ -1672,7 +1672,7 @@ int drm_atomic_check_only(struct drm_atomic_state *state)
 		}
 	}
 
-	return ret;
+	return 0;
 }
 EXPORT_SYMBOL(drm_atomic_check_only);
 
@@ -2174,10 +2174,10 @@ int drm_mode_atomic_ioctl(struct drm_device *dev,
 	struct drm_atomic_state *state;
 	struct drm_modeset_acquire_ctx ctx;
 	struct drm_plane *plane;
-	struct drm_out_fence_state *fence_state = NULL;
+	struct drm_out_fence_state *fence_state;
 	unsigned plane_mask;
 	int ret = 0;
-	unsigned int i, j, num_fences = 0;
+	unsigned int i, j, num_fences;
 
 	/* disallow for drivers not supporting atomic: */
 	if (!drm_core_check_feature(dev, DRIVER_ATOMIC))
@@ -2218,6 +2218,8 @@ retry:
 	plane_mask = 0;
 	copied_objs = 0;
 	copied_props = 0;
+	fence_state = NULL;
+	num_fences = 0;
 
 	for (i = 0; i < arg->count_objs; i++) {
 		uint32_t obj_id, count_props;

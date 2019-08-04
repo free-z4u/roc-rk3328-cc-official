@@ -1,7 +1,7 @@
 VERSION = 4
 PATCHLEVEL = 13
 SUBLEVEL = 0
-EXTRAVERSION = -rc4
+EXTRAVERSION =
 NAME = Fearless Coyote
 
 # *DOCUMENTATION*
@@ -1203,6 +1203,7 @@ PHONY += kselftest
 kselftest:
 	$(Q)$(MAKE) -C tools/testing/selftests run_tests
 
+PHONY += kselftest-clean
 kselftest-clean:
 	$(Q)$(MAKE) -C tools/testing/selftests clean
 

@@ -2767,26 +2767,34 @@ static int inet_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr *nlh,
 		err = 0;
 		if (IS_ERR(rt))
 			err = PTR_ERR(rt);
+		else
+			skb_dst_set(skb, &rt->dst);
 	}
 
 	if (err)
 		goto errout_free;
 
-	skb_dst_set(skb, &rt->dst);
 	if (rtm->rtm_flags & RTM_F_NOTIFY)
 		rt->rt_flags |= RTCF_NOTIFY;
 
 	if (rtm->rtm_flags & RTM_F_LOOKUP_TABLE)
 		table_id = rt->rt_table_id;
 
-	if (rtm->rtm_flags & RTM_F_FIB_MATCH)
+	if (rtm->rtm_flags & RTM_F_FIB_MATCH) {
+		if (!res.fi) {
+			err = fib_props[res.type].error;
+			if (!err)
+				err = -EHOSTUNREACH;
+			goto errout_free;
+		}
 		err = fib_dump_info(skb, NETLINK_CB(in_skb).portid,
 				    nlh->nlmsg_seq, RTM_NEWROUTE, table_id,
 				    rt->rt_type, res.prefix, res.prefixlen,
 				    fl4.flowi4_tos, res.fi, 0);
-	else
+	} else {
 		err = rt_fill_info(net, dst, src, table_id, &fl4, skb,
 				   NETLINK_CB(in_skb).portid, nlh->nlmsg_seq);
+	}
 	if (err < 0)
 		goto errout_free;
 

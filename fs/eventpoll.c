@@ -1223,6 +1223,8 @@ out_unlock:
 	if (pwake)
 		ep_poll_safewake(&ep->poll_wait);
 
+	if (!(epi->event.events & EPOLLEXCLUSIVE))
+		ewake = 1;
 
 	if ((unsigned long)key & POLLFREE) {
 		/*
@@ -1240,10 +1242,7 @@ out_unlock:
 		smp_store_release(&ep_pwq_from_wait(wait)->whead, NULL);
 	}
 
-	if (epi->event.events & EPOLLEXCLUSIVE)
-		return ewake;
-
-	return 1;
+	return ewake;
 }
 
 /*
