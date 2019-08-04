@@ -67,12 +67,12 @@ allowed_warnings = set([
     "cfg80211.c:4276", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
     "virtio_net.c:382", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
     "virtio_net.c:796", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
-    "syscalls.h:196", # warning: ‘sys_fadvise64_64’ alias between functions of incompatible types ‘long int(int,  loff_t,  loff_t,  int)’ {aka ‘long int(int,  long long int,  long long int,  int)’} and ‘long int(long int,  long long int,  long long int,  long int)’ [-Wattribute-alias]
+    "syscalls.h:197", # warning: ‘sys_fadvise64_64’ alias between functions of incompatible types ‘long int(int,  loff_t,  loff_t,  int)’ {aka ‘long int(int,  long long int,  long long int,  int)’} and ‘long int(long int,  long long int,  long long int,  long int)’ [-Wattribute-alias]
     "secureboot.c:19", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
     "secureboot.c:22", # warning: duplicate ‘const’ declaration specifier [-Wduplicate-decl-specifier]
     "rx.c:208", # warning: alignment 1 of ‘struct <anonymous>’ is less than 2 [-Wpacked-not-aligned]
     "kernel.h:771", # warning: comparison of distinct pointer types lacks a cast
- ])
+])
 
 # Capture the name of the object file, can find it.
 ofile = None
