@@ -7,22 +7,20 @@
  * (at your option) any later version.
  */
 
-#include <linux/clk.h>
-#include <linux/clk-provider.h>
-#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
-#include <linux/rockchip/cpu.h>
+#include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
-#include <linux/pm_runtime.h>
-#include <linux/phy/phy.h>
-
 #include <drm/drm_of.h>
 #include <drm/drmP.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
 #include <drm/bridge/dw_hdmi.h>
-
+#include <linux/clk.h>
+#include <linux/clk-provider.h>
+#include <linux/rockchip/cpu.h>
+#include <linux/pm_runtime.h>
+#include <linux/phy/phy.h>
 #include <uapi/linux/videodev2.h>
 
 #include "rockchip_drm_drv.h"
@@ -49,7 +47,22 @@
 #define RK3328_IO_5V_DOMAIN		((7 << 9) | (3 << (9 + 16)))
 #define RK3328_HPD_3V			(BIT(8 + 16) | BIT(13 + 16))
 
+#define RK3399_GRF_SOC_CON20		0x6250
+#define RK3399_HDMI_LCDC_SEL		BIT(6)
+
 #define HIWORD_UPDATE(val, mask)	(val | (mask) << 16)
+
+/**
+ * struct rockchip_hdmi_chip_data - splite the grf setting of kind of chips
+ * @lcdsel_grf_reg: grf register offset of lcdc select
+ * @lcdsel_big: reg value of selecting vop big for HDMI
+ * @lcdsel_lit: reg value of selecting vop little for HDMI
+ */
+struct rockchip_hdmi_chip_data {
+	u32	lcdsel_grf_reg;
+	u32	lcdsel_big;
+	u32	lcdsel_lit;
+};
 
 /* HDMI output pixel format */
 enum drm_hdmi_output_type {
@@ -77,6 +90,7 @@ struct rockchip_hdmi {
 	struct regmap *regmap;
 	void __iomem *hdmiphy;
 	struct drm_encoder encoder;
+	const struct rockchip_hdmi_chip_data *chip_data;
 	struct clk *vpll_clk;
 	struct clk *grf_clk;
 	struct clk *hclk_vio;
@@ -1020,10 +1034,21 @@ static const struct dw_hdmi_phy_ops inno_dw_hdmi_phy_ops = {
 	.read_hpd	= inno_dw_hdmi_phy_read_hpd,
 };
 
+static struct rockchip_hdmi_chip_data rk3228_chip_data = {
+	.lcdsel_grf_reg = -1,
+};
+
 static const struct dw_hdmi_plat_data rk3228_hdmi_drv_data = {
 	.mode_valid = dw_hdmi_rockchip_mode_valid,
 	.phy_ops    = &inno_dw_hdmi_phy_ops,
 	.phy_name   = "inno_dw_hdmi_phy",
+	.phy_data = &rk3228_chip_data,
+};
+
+static struct rockchip_hdmi_chip_data rk3288_chip_data = {
+	.lcdsel_grf_reg = RK3288_GRF_SOC_CON6,
+	.lcdsel_big = HIWORD_UPDATE(0, RK3288_HDMI_LCDC_SEL),
+	.lcdsel_lit = HIWORD_UPDATE(RK3288_HDMI_LCDC_SEL, RK3288_HDMI_LCDC_SEL),
 };
 
 static const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
@@ -1032,12 +1057,18 @@ static const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 	.cur_ctr    = rockchip_cur_ctr,
 	.phy_config = rockchip_phy_config,
 	.tmds_n_table = rockchip_werid_tmds_n_table,
+	.phy_data = &rk3288_chip_data,
+};
+
+static struct rockchip_hdmi_chip_data rk3328_chip_data = {
+	.lcdsel_grf_reg = -1,
 };
 
 static const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
 	.mode_valid = dw_hdmi_rockchip_mode_valid,
-	.phy_ops    = &inno_dw_hdmi_phy_ops,
-	.phy_name   = "inno_dw_hdmi_phy2",
+	.phy_data = &rk3328_chip_data,
+	.phy_ops = &inno_dw_hdmi_phy_ops,
+	.phy_name = "inno_dw_hdmi_phy2",
 };
 
 static const struct dw_hdmi_plat_data rk3366_hdmi_drv_data = {
@@ -1055,12 +1086,19 @@ static const struct dw_hdmi_plat_data rk3368_hdmi_drv_data = {
 	.phy_config = rockchip_phy_config,
 };
 
+static struct rockchip_hdmi_chip_data rk3399_chip_data = {
+	.lcdsel_grf_reg = RK3399_GRF_SOC_CON20,
+	.lcdsel_big = HIWORD_UPDATE(0, RK3399_HDMI_LCDC_SEL),
+	.lcdsel_lit = HIWORD_UPDATE(RK3399_HDMI_LCDC_SEL, RK3399_HDMI_LCDC_SEL),
+};
+
 static const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.mode_valid = dw_hdmi_rockchip_mode_valid,
 	.mpll_cfg   = rockchip_mpll_cfg,
 	.mpll_cfg_420 = rockchip_mpll_cfg_420,
 	.cur_ctr    = rockchip_cur_ctr,
 	.phy_config = rockchip_phy_config,
+	.phy_data = &rk3399_chip_data,
 };
 
 static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
@@ -1070,8 +1108,7 @@ static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
 	{ .compatible = "rockchip,rk3288-dw-hdmi",
 	  .data = &rk3288_hdmi_drv_data
 	},
-	{
-	  .compatible = "rockchip,rk3328-dw-hdmi",
+	{ .compatible = "rockchip,rk3328-dw-hdmi",
 	  .data = &rk3328_hdmi_drv_data
 	},
 	{
@@ -1110,6 +1147,7 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	match = of_match_node(dw_hdmi_rockchip_dt_ids, pdev->dev.of_node);
 	plat_data = (struct dw_hdmi_plat_data *)match->data;
 	hdmi->dev = &pdev->dev;
+	hdmi->chip_data = plat_data->phy_data;
 	encoder = &hdmi->encoder;
 
 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);

@@ -518,6 +518,19 @@ static void vc4_crtc_disable(struct drm_crtc *crtc)
 	WARN_ON_ONCE((HVS_READ(SCALER_DISPSTATX(chan)) &
 		      (SCALER_DISPSTATX_FULL | SCALER_DISPSTATX_EMPTY)) !=
 		     SCALER_DISPSTATX_EMPTY);
+
+	/*
+	 * Make sure we issue a vblank event after disabling the CRTC if
+	 * someone was waiting it.
+	 */
+	if (crtc->state->event) {
+		unsigned long flags;
+
+		spin_lock_irqsave(&dev->event_lock, flags);
+		drm_crtc_send_vblank_event(crtc, crtc->state->event);
+		crtc->state->event = NULL;
+		spin_unlock_irqrestore(&dev->event_lock, flags);
+	}
 }
 
 static void vc4_crtc_update_dlist(struct drm_crtc *crtc)
@@ -679,14 +692,6 @@ static void vc4_disable_vblank(struct drm_crtc *crtc)
 	struct vc4_crtc *vc4_crtc = to_vc4_crtc(crtc);
 
 	CRTC_WRITE(PV_INTEN, 0);
-}
-
-/* Must be called with the event lock held */
-bool vc4_event_pending(struct drm_crtc *crtc)
-{
-	struct vc4_crtc *vc4_crtc = to_vc4_crtc(crtc);
-
-	return !!vc4_crtc->event;
 }
 
 static void vc4_crtc_handle_page_flip(struct vc4_crtc *vc4_crtc)
