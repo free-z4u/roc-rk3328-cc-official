@@ -582,7 +582,7 @@ static struct xfrm_state *xfrm_state_construct(struct net *net,
 	if (attrs[XFRMA_OUTPUT_MARK])
 		x->props.output_mark = nla_get_u32(attrs[XFRMA_OUTPUT_MARK]);
 
-	err = __xfrm_init_state(x, false);
+	err = __xfrm_init_state(x, false, attrs[XFRMA_OFFLOAD_DEV]);
 	if (err)
 		goto error;
 
@@ -1852,8 +1852,6 @@ static int xfrm_get_policy(struct sk_buff *skb, struct nlmsghdr *nlh,
 
 out:
 	xfrm_pol_put(xp);
-	if (delete && err == 0)
-		xfrm_garbage_collect(net);
 	return err;
 }
 
@@ -2065,7 +2063,6 @@ static int xfrm_flush_policy(struct sk_buff *skb, struct nlmsghdr *nlh,
 			return 0;
 		return err;
 	}
-	xfrm_garbage_collect(net);
 
 	c.data.type = type;
 	c.event = nlh->nlmsg_type;

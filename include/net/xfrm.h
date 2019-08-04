@@ -43,6 +43,8 @@
 	MODULE_ALIAS("xfrm-mode-" __stringify(family) "-" __stringify(encap))
 #define MODULE_ALIAS_XFRM_TYPE(family, proto) \
 	MODULE_ALIAS("xfrm-type-" __stringify(family) "-" __stringify(proto))
+#define MODULE_ALIAS_XFRM_OFFLOAD_TYPE(family, proto) \
+	MODULE_ALIAS("xfrm-offload-" __stringify(family) "-" __stringify(proto))
 
 #ifdef CONFIG_XFRM_STATISTICS
 #define XFRM_INC_STATS(net, field)	SNMP_INC_STATS((net)->mib.xfrm_statistics, field)
@@ -320,6 +322,7 @@ int xfrm_policy_register_afinfo(const struct xfrm_policy_afinfo *afinfo, int fam
 void xfrm_policy_unregister_afinfo(const struct xfrm_policy_afinfo *afinfo);
 void km_policy_notify(struct xfrm_policy *xp, int dir,
 		      const struct km_event *c);
+void xfrm_policy_cache_flush(void);
 void km_state_notify(struct xfrm_state *x, const struct km_event *c);
 
 struct xfrm_tmpl;
@@ -566,7 +569,6 @@ struct xfrm_policy {
 	refcount_t		refcnt;
 	struct timer_list	timer;
 
-	struct flow_cache_object flo;
 	atomic_t		genid;
 	u32			priority;
 	u32			index;
@@ -981,7 +983,6 @@ struct xfrm_dst {
 		struct rt6_info		rt6;
 	} u;
 	struct dst_entry *route;
-	struct flow_cache_object flo;
 	struct xfrm_policy *pols[XFRM_POLICY_TYPE_MAX];
 	int num_pols, num_xfrms;
 	u32 xfrm_genid;
@@ -1229,9 +1230,6 @@ static inline void xfrm_sk_free_policy(struct sock *sk)
 	}
 }
 
-void xfrm_garbage_collect(struct net *net);
-void xfrm_garbage_collect_deferred(struct net *net);
-
 #else
 
 static inline void xfrm_sk_free_policy(struct sock *sk) {}
@@ -1265,9 +1263,6 @@ static inline int xfrm6_policy_check_reverse(struct sock *sk, int dir,
 					     struct sk_buff *skb)
 {
 	return 1;
-}
-static inline void xfrm_garbage_collect(struct net *net)
-{
 }
 #endif
 
@@ -1568,7 +1563,7 @@ void xfrm_spd_getinfo(struct net *net, struct xfrmk_spdinfo *si);
 u32 xfrm_replay_seqhi(struct xfrm_state *x, __be32 net_seq);
 int xfrm_init_replay(struct xfrm_state *x);
 int xfrm_state_mtu(struct xfrm_state *x, int mtu);
-int __xfrm_init_state(struct xfrm_state *x, bool init_replay);
+int __xfrm_init_state(struct xfrm_state *x, bool init_replay, bool offload);
 int xfrm_init_state(struct xfrm_state *x);
 int xfrm_prepare_input(struct xfrm_state *x, struct sk_buff *skb);
 int xfrm_input(struct sk_buff *skb, int nexthdr, __be32 spi, int encap_type);
@@ -1866,6 +1861,20 @@ int xfrm_dev_state_add(struct net *net, struct xfrm_state *x,
 		       struct xfrm_user_offload *xuo);
 bool xfrm_dev_offload_ok(struct sk_buff *skb, struct xfrm_state *x);
 
+static inline bool xfrm_dst_offload_ok(struct dst_entry *dst)
+{
+	struct xfrm_state *x = dst->xfrm;
+
+	if (!x || !x->type_offload)
+		return false;
+
+	if (x->xso.offload_handle && (x->xso.dev == dst->path->dev) &&
+	    !dst->child->xfrm)
+		return true;
+
+	return false;
+}
+
 static inline void xfrm_dev_state_delete(struct xfrm_state *x)
 {
 	struct xfrm_state_offload *xso = &x->xso;
@@ -1905,6 +1914,11 @@ static inline void xfrm_dev_state_free(struct xfrm_state *x)
 }
 
 static inline bool xfrm_dev_offload_ok(struct sk_buff *skb, struct xfrm_state *x)
+{
+	return false;
+}
+
+static inline bool xfrm_dst_offload_ok(struct dst_entry *dst)
 {
 	return false;
 }
