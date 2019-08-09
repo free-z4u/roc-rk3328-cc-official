@@ -4793,7 +4793,7 @@ EXPORT_SYMBOL(drm_set_preferred_mode);
  *                                              data from a DRM display mode
  * @frame: HDMI AVI infoframe
  * @mode: DRM display mode
- * @is_hdmi2: Sink is HDMI 2.0 compliant
+ * @is_hdmi2_sink: Sink is HDMI 2.0 compliant
  *
  * Return: 0 on success or a negative error code on failure.
  */
