@@ -479,7 +479,8 @@ static void require_hvs_enabled(struct drm_device *dev)
 		     SCALER_DISPCTRL_ENABLE);
 }
 
-static void vc4_crtc_disable(struct drm_crtc *crtc)
+static void vc4_crtc_atomic_disable(struct drm_crtc *crtc,
+				    struct drm_crtc_state *old_state)
 {
 	struct drm_device *dev = crtc->dev;
 	struct vc4_dev *vc4 = to_vc4_dev(dev);
@@ -561,7 +562,8 @@ static void vc4_crtc_update_dlist(struct drm_crtc *crtc)
 	}
 }
 
-static void vc4_crtc_enable(struct drm_crtc *crtc)
+static void vc4_crtc_atomic_enable(struct drm_crtc *crtc,
+				   struct drm_crtc_state *old_state)
 {
 	struct drm_device *dev = crtc->dev;
 	struct vc4_dev *vc4 = to_vc4_dev(dev);
@@ -761,7 +763,7 @@ vc4_async_page_flip_complete(struct vc4_seqno_cb *cb)
 	}
 
 	drm_crtc_vblank_put(crtc);
-	drm_framebuffer_unreference(flip_state->fb);
+	drm_framebuffer_put(flip_state->fb);
 	kfree(flip_state);
 
 	up(&vc4->async_modeset);
@@ -790,7 +792,7 @@ static int vc4_async_page_flip(struct drm_crtc *crtc,
 	if (!flip_state)
 		return -ENOMEM;
 
-	drm_framebuffer_reference(fb);
+	drm_framebuffer_get(fb);
 	flip_state->fb = fb;
 	flip_state->crtc = crtc;
 	flip_state->event = event;
@@ -798,7 +800,7 @@ static int vc4_async_page_flip(struct drm_crtc *crtc,
 	/* Make sure all other async modesetes have landed. */
 	ret = down_interruptible(&vc4->async_modeset);
 	if (ret) {
-		drm_framebuffer_unreference(fb);
+		drm_framebuffer_put(fb);
 		kfree(flip_state);
 		return ret;
 	}
@@ -889,11 +891,11 @@ static const struct drm_crtc_funcs vc4_crtc_funcs = {
 
 static const struct drm_crtc_helper_funcs vc4_crtc_helper_funcs = {
 	.mode_set_nofb = vc4_crtc_mode_set_nofb,
-	.disable = vc4_crtc_disable,
-	.enable = vc4_crtc_enable,
 	.mode_valid = vc4_crtc_mode_valid,
 	.atomic_check = vc4_crtc_atomic_check,
 	.atomic_flush = vc4_crtc_atomic_flush,
+	.atomic_enable = vc4_crtc_atomic_enable,
+	.atomic_disable = vc4_crtc_atomic_disable,
 };
 
 static const struct vc4_crtc_data pv0_data = {

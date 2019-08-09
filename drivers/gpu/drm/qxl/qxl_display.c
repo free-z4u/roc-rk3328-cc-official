@@ -378,10 +378,6 @@ qxl_framebuffer_init(struct drm_device *dev,
 	return 0;
 }
 
-static void qxl_crtc_dpms(struct drm_crtc *crtc, int mode)
-{
-}
-
 static bool qxl_crtc_mode_fixup(struct drm_crtc *crtc,
 				  const struct drm_display_mode *mode,
 				  struct drm_display_mode *adjusted_mode)
@@ -451,7 +447,8 @@ static void qxl_mode_set_nofb(struct drm_crtc *crtc)
 
 }
 
-static void qxl_crtc_commit(struct drm_crtc *crtc)
+static void qxl_crtc_atomic_enable(struct drm_crtc *crtc,
+				   struct drm_crtc_state *old_state)
 {
 	DRM_DEBUG("\n");
 }
@@ -467,12 +464,11 @@ static void qxl_crtc_disable(struct drm_crtc *crtc)
 }
 
 static const struct drm_crtc_helper_funcs qxl_crtc_helper_funcs = {
-	.dpms = qxl_crtc_dpms,
 	.disable = qxl_crtc_disable,
 	.mode_fixup = qxl_crtc_mode_fixup,
 	.mode_set_nofb = qxl_mode_set_nofb,
-	.commit = qxl_crtc_commit,
 	.atomic_flush = qxl_crtc_atomic_flush,
+	.atomic_enable = qxl_crtc_atomic_enable,
 };
 
 static int qxl_primary_atomic_check(struct drm_plane *plane,
