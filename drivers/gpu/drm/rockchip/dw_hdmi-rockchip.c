@@ -549,6 +549,20 @@ static void dw_hdmi_rockchip_encoder_disable(struct drm_encoder *encoder)
 	clk_disable_unprepare(hdmi->dclk);
 }
 
+static bool
+dw_hdmi_rockchip_encoder_mode_fixup(struct drm_encoder *encoder,
+				    const struct drm_display_mode *mode,
+				    struct drm_display_mode *adj_mode)
+{
+	return true;
+}
+
+static void dw_hdmi_rockchip_encoder_mode_set(struct drm_encoder *encoder,
+					      struct drm_display_mode *mode,
+					      struct drm_display_mode *adj_mode)
+{
+}
+
 static void dw_hdmi_rockchip_encoder_enable(struct drm_encoder *encoder)
 {
 	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
@@ -1023,6 +1037,8 @@ static const struct dw_hdmi_property_ops dw_hdmi_rockchip_property_ops = {
 };
 
 static const struct drm_encoder_helper_funcs dw_hdmi_rockchip_encoder_helper_funcs = {
+	.mode_fixup = dw_hdmi_rockchip_encoder_mode_fixup,
+	.mode_set   = dw_hdmi_rockchip_encoder_mode_set,
 	.enable     = dw_hdmi_rockchip_encoder_enable,
 	.disable    = dw_hdmi_rockchip_encoder_disable,
 	.atomic_check = dw_hdmi_rockchip_encoder_atomic_check,
@@ -1043,6 +1059,10 @@ static const struct dw_hdmi_plat_data rk3228_hdmi_drv_data = {
 	.phy_ops    = &inno_dw_hdmi_phy_ops,
 	.phy_name   = "inno_dw_hdmi_phy",
 	.phy_data = &rk3228_chip_data,
+	.get_input_bus_format = dw_hdmi_rockchip_get_input_bus_format,
+	.get_output_bus_format = dw_hdmi_rockchip_get_output_bus_format,
+	.get_enc_in_encoding = dw_hdmi_rockchip_get_enc_in_encoding,
+	.get_enc_out_encoding = dw_hdmi_rockchip_get_enc_out_encoding,
 };
 
 static struct rockchip_hdmi_chip_data rk3288_chip_data = {
@@ -1058,6 +1078,10 @@ static const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 	.phy_config = rockchip_phy_config,
 	.tmds_n_table = rockchip_werid_tmds_n_table,
 	.phy_data = &rk3288_chip_data,
+	.get_input_bus_format = dw_hdmi_rockchip_get_input_bus_format,
+	.get_output_bus_format = dw_hdmi_rockchip_get_output_bus_format,
+	.get_enc_in_encoding = dw_hdmi_rockchip_get_enc_in_encoding,
+	.get_enc_out_encoding = dw_hdmi_rockchip_get_enc_out_encoding,
 };
 
 static struct rockchip_hdmi_chip_data rk3328_chip_data = {
@@ -1069,6 +1093,10 @@ static const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
 	.phy_data = &rk3328_chip_data,
 	.phy_ops = &inno_dw_hdmi_phy_ops,
 	.phy_name = "inno_dw_hdmi_phy2",
+	.get_input_bus_format = dw_hdmi_rockchip_get_input_bus_format,
+	.get_output_bus_format = dw_hdmi_rockchip_get_output_bus_format,
+	.get_enc_in_encoding = dw_hdmi_rockchip_get_enc_in_encoding,
+	.get_enc_out_encoding = dw_hdmi_rockchip_get_enc_out_encoding,
 };
 
 static const struct dw_hdmi_plat_data rk3366_hdmi_drv_data = {
@@ -1076,6 +1104,10 @@ static const struct dw_hdmi_plat_data rk3366_hdmi_drv_data = {
 	.mpll_cfg   = rockchip_mpll_cfg,
 	.cur_ctr    = rockchip_cur_ctr,
 	.phy_config = rockchip_phy_config,
+	.get_input_bus_format = dw_hdmi_rockchip_get_input_bus_format,
+	.get_output_bus_format = dw_hdmi_rockchip_get_output_bus_format,
+	.get_enc_in_encoding = dw_hdmi_rockchip_get_enc_in_encoding,
+	.get_enc_out_encoding = dw_hdmi_rockchip_get_enc_out_encoding,
 };
 
 static const struct dw_hdmi_plat_data rk3368_hdmi_drv_data = {
@@ -1099,6 +1131,10 @@ static const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.cur_ctr    = rockchip_cur_ctr,
 	.phy_config = rockchip_phy_config,
 	.phy_data = &rk3399_chip_data,
+	.get_input_bus_format = dw_hdmi_rockchip_get_input_bus_format,
+	.get_output_bus_format = dw_hdmi_rockchip_get_output_bus_format,
+	.get_enc_in_encoding = dw_hdmi_rockchip_get_enc_in_encoding,
+	.get_enc_out_encoding = dw_hdmi_rockchip_get_enc_out_encoding,
 };
 
 static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
@@ -1148,6 +1184,7 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	plat_data = (struct dw_hdmi_plat_data *)match->data;
 	hdmi->dev = &pdev->dev;
 	hdmi->chip_data = plat_data->phy_data;
+	plat_data->phy_data = hdmi;
 	encoder = &hdmi->encoder;
 
 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
@@ -1162,25 +1199,15 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 
 	ret = rockchip_hdmi_parse_dt(hdmi);
 	if (ret) {
-		dev_err(hdmi->dev, "Unable to parse OF data\n");
+		DRM_DEV_ERROR(hdmi->dev, "Unable to parse OF data\n");
 		return ret;
 	}
-
-	plat_data->phy_data = hdmi;
-	plat_data->get_input_bus_format =
-		dw_hdmi_rockchip_get_input_bus_format;
-	plat_data->get_output_bus_format =
-		dw_hdmi_rockchip_get_output_bus_format;
-	plat_data->get_enc_in_encoding =
-		dw_hdmi_rockchip_get_enc_in_encoding;
-	plat_data->get_enc_out_encoding =
-		dw_hdmi_rockchip_get_enc_out_encoding;
-	plat_data->property_ops = &dw_hdmi_rockchip_property_ops;
 
 	hdmi->phy = devm_phy_get(dev, "hdmi_phy");
 	if (IS_ERR(hdmi->phy)) {
 		ret = PTR_ERR(hdmi->phy);
-		dev_err(dev, "failed to get phy: %d\n", ret);
+		if (ret != -EPROBE_DEFER)
+			DRM_DEV_ERROR(hdmi->dev, "failed to get phy\n");
 		return ret;
 	}
 	ret = inno_dw_hdmi_init(hdmi);
