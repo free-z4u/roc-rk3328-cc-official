@@ -75,6 +75,7 @@ struct vop_reg {
 	uint32_t end_minor:4;
 	uint32_t major:3;
 	uint32_t write_mask:1;
+	bool relaxed;
 };
 
 struct vop_csc {
