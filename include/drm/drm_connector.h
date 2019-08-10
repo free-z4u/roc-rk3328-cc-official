@@ -867,7 +867,6 @@ struct drm_connector {
 #define DRM_CONNECTOR_MAX_ENCODER 3
 	uint32_t encoder_ids[DRM_CONNECTOR_MAX_ENCODER];
 	struct drm_encoder *encoder; /* currently active encoder */
-	bool loader_protect;
 
 #define MAX_ELD_BYTES	128
 	/* EDID bits */
