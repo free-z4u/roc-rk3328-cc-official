@@ -232,7 +232,6 @@ static int intelfb_create(struct drm_fb_helper *helper,
 
 	strcpy(info->fix.id, "inteldrmfb");
 
-	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
 	info->fbops = &intelfb_ops;
 
 	/* setup aperture base/size for vesafb takeover */
@@ -279,27 +278,6 @@ out_unpin:
 out_unlock:
 	mutex_unlock(&dev->struct_mutex);
 	return ret;
-}
-
-/** Sets the color ramps on behalf of RandR */
-static void intel_crtc_fb_gamma_set(struct drm_crtc *crtc, u16 red, u16 green,
-				    u16 blue, int regno)
-{
-	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
-
-	intel_crtc->lut_r[regno] = red >> 8;
-	intel_crtc->lut_g[regno] = green >> 8;
-	intel_crtc->lut_b[regno] = blue >> 8;
-}
-
-static void intel_crtc_fb_gamma_get(struct drm_crtc *crtc, u16 *red, u16 *green,
-				    u16 *blue, int regno)
-{
-	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
-
-	*red = intel_crtc->lut_r[regno] << 8;
-	*green = intel_crtc->lut_g[regno] << 8;
-	*blue = intel_crtc->lut_b[regno] << 8;
 }
 
 static struct drm_fb_helper_crtc *
@@ -376,7 +354,6 @@ retry:
 		struct drm_connector *connector;
 		struct drm_encoder *encoder;
 		struct drm_fb_helper_crtc *new_crtc;
-		struct intel_crtc *intel_crtc;
 
 		fb_conn = fb_helper->connector_info[i];
 		connector = fb_conn->connector;
@@ -417,13 +394,6 @@ retry:
 		}
 
 		num_connectors_enabled++;
-
-		intel_crtc = to_intel_crtc(connector->state->crtc);
-		for (j = 0; j < 256; j++) {
-			intel_crtc->lut_r[j] = j;
-			intel_crtc->lut_g[j] = j;
-			intel_crtc->lut_b[j] = j;
-		}
 
 		new_crtc = intel_fb_helper_crtc(fb_helper,
 						connector->state->crtc);
@@ -527,8 +497,6 @@ bail:
 
 static const struct drm_fb_helper_funcs intel_fb_helper_funcs = {
 	.initial_config = intel_fb_initial_config,
-	.gamma_set = intel_crtc_fb_gamma_set,
-	.gamma_get = intel_crtc_fb_gamma_get,
 	.fb_probe = intelfb_create,
 };
 
@@ -538,8 +506,6 @@ static void intel_fbdev_destroy(struct intel_fbdev *ifbdev)
 	 * the info->screen_base mmaping. Leaking the VMA is simpler than
 	 * trying to rectify all the possible error paths leading here.
 	 */
-
-	drm_fb_helper_unregister_fbi(&ifbdev->helper);
 
 	drm_fb_helper_fini(&ifbdev->helper);
 
@@ -728,8 +694,10 @@ static void intel_fbdev_initial_config(void *data, async_cookie_t cookie)
 
 	/* Due to peculiar init order wrt to hpd handling this is separate. */
 	if (drm_fb_helper_initial_config(&ifbdev->helper,
-					 ifbdev->preferred_bpp))
-		intel_fbdev_fini(ifbdev->helper.dev);
+					 ifbdev->preferred_bpp)) {
+		intel_fbdev_unregister(to_i915(ifbdev->helper.dev));
+		intel_fbdev_fini(to_i915(ifbdev->helper.dev));
+	}
 }
 
 void intel_fbdev_initial_config_async(struct drm_device *dev)
@@ -752,9 +720,8 @@ static void intel_fbdev_sync(struct intel_fbdev *ifbdev)
 	ifbdev->cookie = 0;
 }
 
-void intel_fbdev_fini(struct drm_device *dev)
+void intel_fbdev_unregister(struct drm_i915_private *dev_priv)
 {
-	struct drm_i915_private *dev_priv = to_i915(dev);
 	struct intel_fbdev *ifbdev = dev_priv->fbdev;
 
 	if (!ifbdev)
@@ -764,8 +731,17 @@ void intel_fbdev_fini(struct drm_device *dev)
 	if (!current_is_async())
 		intel_fbdev_sync(ifbdev);
 
+	drm_fb_helper_unregister_fbi(&ifbdev->helper);
+}
+
+void intel_fbdev_fini(struct drm_i915_private *dev_priv)
+{
+	struct intel_fbdev *ifbdev = fetch_and_zero(&dev_priv->fbdev);
+
+	if (!ifbdev)
+		return;
+
 	intel_fbdev_destroy(ifbdev);
-	dev_priv->fbdev = NULL;
 }
 
 void intel_fbdev_set_suspend(struct drm_device *dev, int state, bool synchronous)
@@ -821,7 +797,7 @@ void intel_fbdev_output_poll_changed(struct drm_device *dev)
 {
 	struct intel_fbdev *ifbdev = to_i915(dev)->fbdev;
 
-	if (ifbdev && ifbdev->vma)
+	if (ifbdev)
 		drm_fb_helper_hotplug_event(&ifbdev->helper);
 }
 
