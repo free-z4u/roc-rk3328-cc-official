@@ -115,8 +115,6 @@ struct vop_ctrl {
 	struct vop_reg hpost_st_end;
 	struct vop_reg vpost_st_end;
 
-	struct vop_reg line_flag_num[2];
-
 	struct vop_reg global_regdone_en;
 	struct vop_reg cfg_done;
 
@@ -232,6 +230,7 @@ struct vop_ctrl {
 struct vop_intr {
 	const int *intrs;
 	uint32_t nintrs;
+
 	struct vop_reg line_flag_num[2];
 	struct vop_reg enable;
 	struct vop_reg clear;
