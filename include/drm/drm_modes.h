@@ -80,7 +80,7 @@ struct videomode;
  * @MODE_ONE_SIZE: only one resolution is supported
  * @MODE_NO_REDUCED: monitor doesn't accept reduced blanking
  * @MODE_NO_STEREO: stereo modes not supported
- * MODE_NO_420: ycbcr 420 modes not supported
+ * @MODE_NO_420: ycbcr 420 modes not supported
  * @MODE_STALE: mode has become stale
  * @MODE_BAD: unspecified reason
  * @MODE_ERROR: error condition
@@ -443,7 +443,6 @@ static inline bool drm_mode_is_stereo(const struct drm_display_mode *mode)
 
 struct drm_connector;
 struct drm_cmdline_mode;
-struct drm_display_info;
 
 struct drm_display_mode *drm_mode_create(struct drm_device *dev);
 void drm_mode_destroy(struct drm_device *dev, struct drm_display_mode *mode);

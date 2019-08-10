@@ -753,6 +753,15 @@ struct drm_connector {
 	bool interlace_allowed;
 	bool doublescan_allowed;
 	bool stereo_allowed;
+
+	/**
+	 * @ycbcr_420_allowed : This bool indicates if this connector is
+	 * capable of handling YCBCR 420 output. While parsing the EDID
+	 * blocks, its very helpful to know, if the source is capable of
+	 * handling YCBCR 420 outputs.
+	 */
+	bool ycbcr_420_allowed;
+
 	/**
 	 * @registered: Is this connector exposed (registered) with userspace?
 	 * Protected by @mutex.
@@ -765,14 +774,6 @@ struct drm_connector {
 	 * Protected by &drm_mode_config.mutex.
 	 */
 	struct list_head modes;
-
-	/**
-	 * @ycbcr_420_allowed : This bool indicates if this connector is
-	 * capable of handling YCBCR 420 output. While parsing the EDID
-	 * blocks, its very helpful to know, if the source is capable of
-	 * handling YCBCR 420 outputs.
-	 */
-	bool ycbcr_420_allowed;
 
 	/**
 	 * @status:
