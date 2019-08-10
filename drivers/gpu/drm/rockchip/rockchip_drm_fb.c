@@ -305,7 +305,7 @@ int rockchip_drm_atomic_commit(struct drm_device *dev,
 		DRM_ERROR("vop bandwidth too large %zd\n", bandwidth);
 	}
 
-	drm_atomic_helper_swap_state(state, true);
+	BUG_ON(drm_atomic_helper_swap_state(state, true) < 0);
 
 	commit = kmalloc(sizeof(*commit), GFP_KERNEL);
 	if (!commit)
@@ -330,6 +330,10 @@ int rockchip_drm_atomic_commit(struct drm_device *dev,
 
 	return 0;
 }
+
+static const struct drm_mode_config_helper_funcs rockchip_mode_config_helpers = {
+	.atomic_commit_tail = drm_atomic_helper_commit_tail_rpm,
+};
 
 static const struct drm_mode_config_funcs rockchip_drm_mode_config_funcs = {
 	.fb_create = rockchip_user_fb_create,
@@ -366,4 +370,5 @@ void rockchip_drm_mode_config_init(struct drm_device *dev)
 	dev->mode_config.max_height = 8192;
 
 	dev->mode_config.funcs = &rockchip_drm_mode_config_funcs;
+	dev->mode_config.helper_private = &rockchip_mode_config_helpers;
 }
