@@ -16,12 +16,12 @@
 #define _ROCKCHIP_DRM_VOP_H
 
 /*
- * major: IP major vertion, used for IP structure
+ * major: IP major version, used for IP structure
  * minor: big feature change under same structure
  */
 #define VOP_VERSION(major, minor)	((major) << 8 | (minor))
-#define VOP_MAJOR(version) 	((version) >> 8)
-#define VOP_MINOR(version) 	((version) & 0xff)
+#define VOP_MAJOR(version)		((version) >> 8)
+#define VOP_MINOR(version)		((version) & 0xff)
 
 #define ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL	BIT(0)
 #define ROCKCHIP_OUTPUT_DSI_DUAL_LINK		BIT(1)
@@ -69,13 +69,52 @@ enum vop_data_format {
 
 struct vop_reg {
 	uint32_t mask;
-	uint32_t offset:12;
-	uint32_t shift:5;
+	uint16_t offset;
+	uint8_t shift;
+	bool write_mask;
+	bool relaxed;
 	uint32_t begin_minor:4;
 	uint32_t end_minor:4;
 	uint32_t major:3;
-	uint32_t write_mask:1;
-	bool relaxed;
+};
+
+struct vop_modeset {
+	struct vop_reg htotal_pw;
+	struct vop_reg hact_st_end;
+	struct vop_reg hpost_st_end;
+	struct vop_reg vtotal_pw;
+	struct vop_reg vact_st_end;
+	struct vop_reg vpost_st_end;
+};
+
+struct vop_output {
+	struct vop_reg pin_pol;
+	struct vop_reg dp_pin_pol;
+	struct vop_reg edp_pin_pol;
+	struct vop_reg hdmi_pin_pol;
+	struct vop_reg mipi_pin_pol;
+	struct vop_reg rgb_pin_pol;
+	struct vop_reg dp_en;
+	struct vop_reg edp_en;
+	struct vop_reg hdmi_en;
+	struct vop_reg mipi_en;
+	struct vop_reg rgb_en;
+};
+
+struct vop_common {
+	struct vop_reg cfg_done;
+	struct vop_reg dsp_blank;
+	struct vop_reg data_blank;
+	struct vop_reg dither_down;
+	struct vop_reg dither_up;
+	struct vop_reg gate_en;
+	struct vop_reg mmu_en;
+	struct vop_reg out_mode;
+	struct vop_reg standby;
+};
+
+struct vop_misc {
+	struct vop_reg global_regdone_en;
 };
 
 struct vop_csc {
@@ -86,145 +125,6 @@ struct vop_csc {
 	uint32_t y2r_offset;
 	uint32_t r2r_offset;
 	uint32_t r2y_offset;
-};
-
-struct vop_ctrl {
-	struct vop_reg standby;
-	struct vop_reg data_blank;
-	struct vop_reg gate_en;
-	struct vop_reg mmu_en;
-	struct vop_reg rgb_en;
-	struct vop_reg edp_en;
-	struct vop_reg hdmi_en;
-	struct vop_reg mipi_en;
-	struct vop_reg dp_en;
-	struct vop_reg out_mode;
-	struct vop_reg dither_down;
-	struct vop_reg dither_up;
-	struct vop_reg pin_pol;
-	struct vop_reg rgb_pin_pol;
-	struct vop_reg hdmi_pin_pol;
-	struct vop_reg edp_pin_pol;
-	struct vop_reg mipi_pin_pol;
-	struct vop_reg dp_pin_pol;
-
-	struct vop_reg htotal_pw;
-	struct vop_reg hact_st_end;
-	struct vop_reg vtotal_pw;
-	struct vop_reg vact_st_end;
-	struct vop_reg hpost_st_end;
-	struct vop_reg vpost_st_end;
-
-	struct vop_reg global_regdone_en;
-	struct vop_reg cfg_done;
-
-	struct vop_reg vact_st_end_f1;
-	struct vop_reg vs_st_end_f1;
-	struct vop_reg version;
-	struct vop_reg axi_outstanding_max_num;
-	struct vop_reg axi_max_outstanding_en;
-	struct vop_reg vpost_st_end_f1;
-	struct vop_reg post_scl_factor;
-	struct vop_reg post_scl_ctrl;
-	struct vop_reg dsp_interlace;
-	struct vop_reg auto_gate_en;
-	struct vop_reg post_lb_mode;
-	struct vop_reg dsp_layer_sel;
-	struct vop_reg overlay_mode;
-	struct vop_reg core_dclk_div;
-	struct vop_reg dclk_ddr;
-	struct vop_reg p2i_en;
-	struct vop_reg hdmi_dclk_out_en;
-	struct vop_reg data01_swap;
-	struct vop_reg mipi_dual_channel_en;
-	struct vop_reg dclk_pol;
-	struct vop_reg rgb_dclk_pol;
-	struct vop_reg hdmi_dclk_pol;
-	struct vop_reg edp_dclk_pol;
-	struct vop_reg mipi_dclk_pol;
-	struct vop_reg dp_dclk_pol;
-
-	struct vop_reg sw_dac_sel;
-	struct vop_reg sw_genlock;
-	struct vop_reg sw_uv_offset_en;
-	struct vop_reg dsp_out_yuv;
-	struct vop_reg dsp_data_swap;
-	struct vop_reg dsp_ccir656_avg;
-	struct vop_reg dsp_black;
-	struct vop_reg dsp_blank;
-	struct vop_reg dsp_outzero;
-	struct vop_reg update_gamma_lut;
-	struct vop_reg lut_buffer_index;
-	struct vop_reg dsp_lut_en;
-
-	struct vop_reg xmirror;
-	struct vop_reg ymirror;
-	struct vop_reg dsp_background;
-
-	/* AFBDC */
-	struct vop_reg afbdc_en;
-	struct vop_reg afbdc_sel;
-	struct vop_reg afbdc_format;
-	struct vop_reg afbdc_hreg_block_split;
-	struct vop_reg afbdc_pic_size;
-	struct vop_reg afbdc_hdr_ptr;
-	struct vop_reg afbdc_rstn;
-	struct vop_reg afbdc_pic_vir_width;
-	struct vop_reg afbdc_pic_offset;
-	struct vop_reg afbdc_axi_ctrl;
-
-	/* CABC */
-	struct vop_reg cabc_total_num;
-	struct vop_reg cabc_config_mode;
-	struct vop_reg cabc_stage_up_mode;
-	struct vop_reg cabc_scale_cfg_value;
-	struct vop_reg cabc_scale_cfg_enable;
-	struct vop_reg cabc_global_dn_limit_en;
-	struct vop_reg cabc_lut_en;
-	struct vop_reg cabc_en;
-	struct vop_reg cabc_handle_en;
-	struct vop_reg cabc_stage_up;
-	struct vop_reg cabc_stage_down;
-	struct vop_reg cabc_global_dn;
-	struct vop_reg cabc_calc_pixel_num;
-
-	/* BCSH */
-	struct vop_reg bcsh_brightness;
-	struct vop_reg bcsh_contrast;
-	struct vop_reg bcsh_sat_con;
-	struct vop_reg bcsh_sin_hue;
-	struct vop_reg bcsh_cos_hue;
-	struct vop_reg bcsh_r2y_csc_mode;
-	struct vop_reg bcsh_r2y_en;
-	struct vop_reg bcsh_y2r_csc_mode;
-	struct vop_reg bcsh_y2r_en;
-	struct vop_reg bcsh_color_bar;
-	struct vop_reg bcsh_out_mode;
-	struct vop_reg bcsh_en;
-
-	/* HDR */
-	struct vop_reg level2_overlay_en;
-	struct vop_reg alpha_hard_calc;
-	struct vop_reg hdr2sdr_en;
-	struct vop_reg hdr2sdr_en_win0_csc;
-	struct vop_reg hdr2sdr_src_min;
-	struct vop_reg hdr2sdr_src_max;
-	struct vop_reg hdr2sdr_normfaceetf;
-	struct vop_reg hdr2sdr_dst_min;
-	struct vop_reg hdr2sdr_dst_max;
-	struct vop_reg hdr2sdr_normfacgamma;
-
-	struct vop_reg bt1886eotf_pre_conv_en;
-	struct vop_reg rgb2rgb_pre_conv_en;
-	struct vop_reg rgb2rgb_pre_conv_mode;
-	struct vop_reg st2084oetf_pre_conv_en;
-	struct vop_reg bt1886eotf_post_conv_en;
-	struct vop_reg rgb2rgb_post_conv_en;
-	struct vop_reg rgb2rgb_post_conv_mode;
-	struct vop_reg st2084oetf_post_conv_en;
-	struct vop_reg win_csc_mode_sel;
-
-	struct vop_reg reg_done_frm;
 };
 
 struct vop_intr {
@@ -403,8 +303,11 @@ struct vop_rect {
 };
 
 struct vop_data {
-	const struct vop_ctrl *ctrl;
 	const struct vop_intr *intr;
+	const struct vop_common *common;
+	const struct vop_misc *misc;
+	const struct vop_modeset *modeset;
+	const struct vop_output *output;
 	const struct vop_win_data *win;
 	unsigned int win_size;
 	const struct vop_csc_table *csc_table;
