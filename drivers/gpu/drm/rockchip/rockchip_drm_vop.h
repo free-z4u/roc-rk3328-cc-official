@@ -67,11 +67,6 @@ enum vop_data_format {
 	VOP_FMT_YUV444SP,
 };
 
-struct vop_reg_data {
-	uint32_t offset;
-	uint32_t value;
-};
-
 struct vop_reg {
 	uint32_t mask;
 	uint32_t offset:12;
@@ -121,6 +116,7 @@ struct vop_ctrl {
 
 	struct vop_reg line_flag_num[2];
 
+	struct vop_reg global_regdone_en;
 	struct vop_reg cfg_done;
 
 	struct vop_reg vact_st_end_f1;
@@ -132,7 +128,6 @@ struct vop_ctrl {
 	struct vop_reg post_scl_factor;
 	struct vop_reg post_scl_ctrl;
 	struct vop_reg dsp_interlace;
-	struct vop_reg global_regdone_en;
 	struct vop_reg auto_gate_en;
 	struct vop_reg post_lb_mode;
 	struct vop_reg dsp_layer_sel;
@@ -360,8 +355,8 @@ struct vop_win_phy {
 	const uint32_t *data_formats;
 	uint32_t nformats;
 
-	struct vop_reg gate;
 	struct vop_reg enable;
+	struct vop_reg gate;
 	struct vop_reg format;
 	struct vop_reg fmt_10;
 	struct vop_reg csc_mode;
@@ -376,9 +371,9 @@ struct vop_win_phy {
 	struct vop_reg yrgb_vir;
 	struct vop_reg uv_vir;
 
-	struct vop_reg channel;
 	struct vop_reg dst_alpha_ctl;
 	struct vop_reg src_alpha_ctl;
+	struct vop_reg channel;
 	struct vop_reg alpha_mode;
 	struct vop_reg alpha_en;
 	struct vop_reg alpha_pre_mul;
@@ -408,8 +403,6 @@ struct vop_rect {
 };
 
 struct vop_data {
-	const struct vop_reg_data *init_table;
-	unsigned int table_size;
 	const struct vop_ctrl *ctrl;
 	const struct vop_intr *intr;
 	const struct vop_win_data *win;

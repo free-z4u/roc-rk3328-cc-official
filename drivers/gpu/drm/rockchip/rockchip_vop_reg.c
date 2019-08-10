@@ -138,9 +138,9 @@ static const struct vop_intr rk3036_intr = {
 static const struct vop_ctrl rk3036_ctrl_data = {
 	.standby = VOP_REG(RK3036_SYS_CTRL, 0x1, 30),
 	.out_mode = VOP_REG(RK3036_DSP_CTRL0, 0xf, 0),
+	.pin_pol = VOP_REG(RK3036_DSP_CTRL0, 0x7, 4),
 	.dsp_blank = VOP_REG(RK3036_DSP_CTRL1, 0x1, 24),
 	.dclk_pol = VOP_REG(RK3036_DSP_CTRL0, 0x1, 7),
-	.pin_pol = VOP_REG(RK3036_DSP_CTRL0, 0x7, 4),
 	.dsp_layer_sel = VOP_REG(RK3036_DSP_CTRL0, 0x1, 8),
 	.htotal_pw = VOP_REG(RK3036_DSP_HTOTAL_HS_END, 0x1fff1fff, 0),
 	.hact_st_end = VOP_REG(RK3036_DSP_HACT_ST_END, 0x1fff1fff, 0),
@@ -148,10 +148,6 @@ static const struct vop_ctrl rk3036_ctrl_data = {
 	.vact_st_end = VOP_REG(RK3036_DSP_VACT_ST_END, 0x1fff1fff, 0),
 	.line_flag_num[0] = VOP_REG(RK3036_INT_STATUS, 0xfff, 12),
 	.cfg_done = VOP_REG(RK3036_REG_CFG_DONE, 0x1, 0),
-};
-
-static const struct vop_reg_data rk3036_vop_init_reg_table[] = {
-	{RK3036_DSP_CTRL1, 0x00000000},
 };
 
 static const struct vop_data rk3036_vop = {
@@ -223,8 +219,8 @@ static const struct vop_win_phy rk3288_win01_data = {
 static const struct vop_win_phy rk3288_win23_data = {
 	.data_formats = formats_win_lite,
 	.nformats = ARRAY_SIZE(formats_win_lite),
-	.gate = VOP_REG(RK3288_WIN2_CTRL0, 0x1, 0),
 	.enable = VOP_REG(RK3288_WIN2_CTRL0, 0x1, 4),
+	.gate = VOP_REG(RK3288_WIN2_CTRL0, 0x1, 0),
 	.format = VOP_REG(RK3288_WIN2_CTRL0, 0x7, 1),
 	.rb_swap = VOP_REG(RK3288_WIN2_CTRL0, 0x1, 12),
 	.dsp_info = VOP_REG(RK3288_WIN2_DSP_INFO0, 0x0fff0fff, 0),
@@ -486,22 +482,7 @@ static const struct vop_intr rk3399_vop_intr = {
 	.clear = VOP_REG_MASK(RK3399_INTR_CLEAR0, 0xffff, 0),
 };
 
-static const struct vop_reg_data rk3399_init_reg_table[] = {
-	{RK3399_SYS_CTRL, 0x2000f800},
-	{RK3399_DSP_CTRL0, 0x00000000},
-	{RK3399_WIN0_CTRL0, 0x00000080},
-	{RK3399_WIN1_CTRL0, 0x00000080},
-	/* TODO: Win2/3 support multiple area function, but we haven't found
-	 * a suitable way to use it yet, so let's just use them as other windows
-	 * with only area 0 enabled.
-	 */
-	{RK3399_WIN2_CTRL0, 0x00000010},
-	{RK3399_WIN3_CTRL0, 0x00000010},
-};
-
 static const struct vop_data rk3399_vop_big = {
-	.init_table = rk3399_init_reg_table,
-	.table_size = ARRAY_SIZE(rk3399_init_reg_table),
 	.feature = VOP_FEATURE_OUTPUT_RGB10,
 	.intr = &rk3399_vop_intr,
 	.ctrl = &rk3399_ctrl_data,
@@ -520,8 +501,6 @@ static const struct vop_win_data rk3399_vop_lit_win_data[] = {
 };
 
 static const struct vop_data rk3399_vop_lit = {
-	.init_table = rk3399_init_reg_table,
-	.table_size = ARRAY_SIZE(rk3399_init_reg_table),
 	.intr = &rk3399_vop_intr,
 	.ctrl = &rk3399_ctrl_data,
 	/*
