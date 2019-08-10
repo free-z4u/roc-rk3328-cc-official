@@ -23,41 +23,6 @@
 #define VOP_MAJOR(version)		((version) >> 8)
 #define VOP_MINOR(version)		((version) & 0xff)
 
-#define ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL	BIT(0)
-#define ROCKCHIP_OUTPUT_DSI_DUAL_LINK		BIT(1)
-
-#define AFBDC_FMT_RGB565	0x0
-#define AFBDC_FMT_U8U8U8U8	0x5
-#define AFBDC_FMT_U8U8U8	0x4
-
-enum cabc_stage_mode {
-	LAST_FRAME_PWM_VAL	= 0x0,
-	CUR_FRAME_PWM_VAL	= 0x1,
-	STAGE_BY_STAGE		= 0x2
-};
-
-enum cabc_stage_up_mode {
-	MUL_MODE,
-	ADD_MODE,
-};
-
-#define DSP_BG_SWAP		0x1
-#define DSP_RB_SWAP		0x2
-#define DSP_RG_SWAP		0x4
-#define DSP_DELTA_SWAP		0x8
-
-enum vop_csc_format {
-	CSC_BT601L,
-	CSC_BT709L,
-	CSC_BT601F,
-	CSC_BT2020,
-};
-
-enum vop_csc_mode {
-	CSC_RGB,
-	CSC_YUV,
-};
-
 enum vop_data_format {
 	VOP_FMT_ARGB8888 = 0,
 	VOP_FMT_RGB888,
@@ -303,6 +268,7 @@ struct vop_rect {
 };
 
 struct vop_data {
+	uint32_t version;
 	const struct vop_intr *intr;
 	const struct vop_common *common;
 	const struct vop_misc *misc;
@@ -312,7 +278,6 @@ struct vop_data {
 	unsigned int win_size;
 	const struct vop_csc_table *csc_table;
 	const struct vop_hdr_table *hdr_table;
-	uint32_t version;
 	struct vop_rect max_input;
 	struct vop_rect max_output;
 
