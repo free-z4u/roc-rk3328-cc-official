@@ -38,9 +38,6 @@ struct vop_reg {
 	uint8_t shift;
 	bool write_mask;
 	bool relaxed;
-	uint32_t begin_minor:4;
-	uint32_t end_minor:4;
-	uint32_t major:3;
 };
 
 struct vop_modeset {
@@ -135,59 +132,6 @@ struct vop_scl_regs {
 	struct vop_reg scale_cbcr_y;
 };
 
-struct vop_csc_table {
-	const uint32_t *y2r_bt601;
-	const uint32_t *y2r_bt601_12_235;
-	const uint32_t *y2r_bt601_10bit;
-	const uint32_t *y2r_bt601_10bit_12_235;
-	const uint32_t *r2y_bt601;
-	const uint32_t *r2y_bt601_12_235;
-	const uint32_t *r2y_bt601_10bit;
-	const uint32_t *r2y_bt601_10bit_12_235;
-
-	const uint32_t *y2r_bt709;
-	const uint32_t *y2r_bt709_10bit;
-	const uint32_t *r2y_bt709;
-	const uint32_t *r2y_bt709_10bit;
-
-	const uint32_t *y2r_bt2020;
-	const uint32_t *r2y_bt2020;
-
-	const uint32_t *r2r_bt709_to_bt2020;
-	const uint32_t *r2r_bt2020_to_bt709;
-};
-
-struct vop_hdr_table {
-	const uint32_t hdr2sdr_eetf_oetf_y0_offset;
-	const uint32_t hdr2sdr_eetf_oetf_y1_offset;
-	const uint32_t *hdr2sdr_eetf_yn;
-	const uint32_t *hdr2sdr_bt1886oetf_yn;
-	const uint32_t hdr2sdr_sat_y0_offset;
-	const uint32_t hdr2sdr_sat_y1_offset;
-	const uint32_t *hdr2sdr_sat_yn;
-
-	const uint32_t hdr2sdr_src_range_min;
-	const uint32_t hdr2sdr_src_range_max;
-	const uint32_t hdr2sdr_normfaceetf;
-	const uint32_t hdr2sdr_dst_range_min;
-	const uint32_t hdr2sdr_dst_range_max;
-	const uint32_t hdr2sdr_normfacgamma;
-
-	const uint32_t sdr2hdr_eotf_oetf_y0_offset;
-	const uint32_t sdr2hdr_eotf_oetf_y1_offset;
-	const uint32_t *sdr2hdr_bt1886eotf_yn_for_hlg_hdr;
-	const uint32_t *sdr2hdr_bt1886eotf_yn_for_bt2020;
-	const uint32_t *sdr2hdr_bt1886eotf_yn_for_hdr;
-	const uint32_t *sdr2hdr_st2084oetf_yn_for_hlg_hdr;
-	const uint32_t *sdr2hdr_st2084oetf_yn_for_bt2020;
-	const uint32_t *sdr2hdr_st2084oetf_yn_for_hdr;
-	const uint32_t sdr2hdr_oetf_dx_dxpow1_offset;
-	const uint32_t *sdr2hdr_st2084oetf_dxn_pow2;
-	const uint32_t *sdr2hdr_st2084oetf_dxn;
-	const uint32_t sdr2hdr_oetf_xn1_offset;
-	const uint32_t *sdr2hdr_st2084oetf_xn;
-};
-
 enum {
 	VOP_CSC_Y2R_BT601,
 	VOP_CSC_Y2R_BT709,
@@ -223,10 +167,6 @@ struct vop_win_phy {
 	struct vop_reg enable;
 	struct vop_reg gate;
 	struct vop_reg format;
-	struct vop_reg fmt_10;
-	struct vop_reg csc_mode;
-	struct vop_reg xmirror;
-	struct vop_reg ymirror;
 	struct vop_reg rb_swap;
 	struct vop_reg act_info;
 	struct vop_reg dsp_info;
@@ -239,12 +179,6 @@ struct vop_win_phy {
 	struct vop_reg dst_alpha_ctl;
 	struct vop_reg src_alpha_ctl;
 	struct vop_reg channel;
-	struct vop_reg alpha_mode;
-	struct vop_reg alpha_en;
-	struct vop_reg alpha_pre_mul;
-	struct vop_reg global_alpha_val;
-	struct vop_reg key_color;
-	struct vop_reg key_en;
 };
 
 struct vop_win_data {
@@ -262,11 +196,6 @@ struct vop_win_data {
 #define WIN_FEATURE_PRE_OVERLAY		BIT(2)
 #define WIN_FEATURE_AFBDC		BIT(3)
 
-struct vop_rect {
-	int width;
-	int height;
-};
-
 struct vop_data {
 	uint32_t version;
 	const struct vop_intr *intr;
@@ -277,9 +206,6 @@ struct vop_data {
 	const struct vop_win_data *win;
 	unsigned int win_size;
 	const struct vop_csc_table *csc_table;
-	const struct vop_hdr_table *hdr_table;
-	struct vop_rect max_input;
-	struct vop_rect max_output;
 
 #define VOP_FEATURE_OUTPUT_RGB10	BIT(0)
 #define VOP_FEATURE_INTERNAL_RGB	BIT(1)
