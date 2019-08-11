@@ -47,7 +47,10 @@
 #include "dw-hdmi-cec.h"
 #include "dw-hdmi-hdcp.h"
 
+#include <media/cec-notifier.h>
+
 #define DDC_SEGMENT_ADDR	0x30
+
 #define HDMI_EDID_LEN		512
 
 enum hdmi_datamap {
@@ -209,7 +212,6 @@ struct dw_hdmi {
 	struct clk *iahb_clk;
 	struct clk *cec_clk;
 	struct dw_hdmi_i2c *i2c;
-	struct cec_notifier *cec_notifier;
 
 	struct hdmi_data_info hdmi_data;
 	const struct dw_hdmi_plat_data *plat_data;
@@ -264,6 +266,8 @@ struct dw_hdmi {
 	struct regmap *regm;
 	void (*enable_audio)(struct dw_hdmi *hdmi);
 	void (*disable_audio)(struct dw_hdmi *hdmi);
+
+	struct cec_notifier *cec_notifier;
 };
 
 #define HDMI_IH_PHY_STAT0_RX_SENSE \
@@ -2929,10 +2933,15 @@ static irqreturn_t dw_hdmi_irq(int irq, void *dev_id)
 	 * ask the source to re-read the EDID.
 	 */
 	if (intr_stat &
-	    (HDMI_IH_PHY_STAT0_RX_SENSE | HDMI_IH_PHY_STAT0_HPD))
+	    (HDMI_IH_PHY_STAT0_RX_SENSE | HDMI_IH_PHY_STAT0_HPD)) {
 		__dw_hdmi_setup_rx_sense(hdmi,
 					 phy_stat & HDMI_PHY_HPD,
 					 phy_stat & HDMI_PHY_RX_SENSE);
+
+		if ((phy_stat & (HDMI_PHY_RX_SENSE | HDMI_PHY_HPD)) == 0)
+			cec_notifier_set_phys_addr(hdmi->cec_notifier,
+						   CEC_PHYS_ADDR_INVALID);
+	}
 
 	check_hdmi_irq(hdmi, intr_stat, phy_int_pol);
 
@@ -3575,7 +3584,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	if (ret)
 		goto err_iahb;
 
-	hdmi->cec_notifier = cec_notifier_get(hdmi->dev);
+	hdmi->cec_notifier = cec_notifier_get(dev);
 	if (!hdmi->cec_notifier) {
 		ret = -ENOMEM;
 		goto err_iahb;
