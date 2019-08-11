@@ -3757,6 +3757,9 @@ static void __dw_hdmi_remove(struct dw_hdmi *hdmi)
 #endif
 	dw_hdmi_destroy_properties(hdmi);
 
+	if (hdmi->cec_notifier)
+		cec_notifier_put(hdmi->cec_notifier);
+
 	clk_disable_unprepare(hdmi->iahb_clk);
 	clk_disable_unprepare(hdmi->isfr_clk);
 	if (hdmi->cec_clk)
