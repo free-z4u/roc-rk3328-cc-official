@@ -616,7 +616,23 @@ static int ast_crtc_mode_set(struct drm_crtc *crtc,
 
 static void ast_crtc_disable(struct drm_crtc *crtc)
 {
+	int ret;
 
+	DRM_DEBUG_KMS("\n");
+	ast_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
+	if (crtc->primary->fb) {
+		struct ast_framebuffer *ast_fb = to_ast_framebuffer(crtc->primary->fb);
+		struct drm_gem_object *obj = ast_fb->obj;
+		struct ast_bo *bo = gem_to_ast_bo(obj);
+
+		ret = ast_bo_reserve(bo, false);
+		if (ret)
+			return;
+
+		ast_bo_push_sysram(bo);
+		ast_bo_unreserve(bo);
+	}
+	crtc->primary->fb = NULL;
 }
 
 static void ast_crtc_prepare(struct drm_crtc *crtc)
@@ -934,7 +950,7 @@ static void ast_cursor_fini(struct drm_device *dev)
 {
 	struct ast_private *ast = dev->dev_private;
 	ttm_bo_kunmap(&ast->cache_kmap);
-	drm_gem_object_unreference_unlocked(ast->cursor_cache);
+	drm_gem_object_put_unlocked(ast->cursor_cache);
 }
 
 int ast_mode_init(struct drm_device *dev)
@@ -1199,10 +1215,10 @@ static int ast_cursor_set(struct drm_crtc *crtc,
 
 	ast_show_cursor(crtc);
 
-	drm_gem_object_unreference_unlocked(obj);
+	drm_gem_object_put_unlocked(obj);
 	return 0;
 fail:
-	drm_gem_object_unreference_unlocked(obj);
+	drm_gem_object_put_unlocked(obj);
 	return ret;
 }
 
