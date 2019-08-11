@@ -713,7 +713,7 @@ EXPORT_SYMBOL(drm_atomic_get_plane_state);
  * RETURNS:
  * Zero on success, error code on failure
  */
-int drm_atomic_plane_set_property(struct drm_plane *plane,
+static int drm_atomic_plane_set_property(struct drm_plane *plane,
 		struct drm_plane_state *state, struct drm_property *property,
 		uint64_t val)
 {
@@ -770,7 +770,6 @@ int drm_atomic_plane_set_property(struct drm_plane *plane,
 
 	return 0;
 }
-EXPORT_SYMBOL(drm_atomic_plane_set_property);
 
 /**
  * drm_atomic_plane_get_property - get property value from plane state
@@ -1147,7 +1146,7 @@ EXPORT_SYMBOL(drm_atomic_get_connector_state);
  * RETURNS:
  * Zero on success, error code on failure
  */
-int drm_atomic_connector_set_property(struct drm_connector *connector,
+static int drm_atomic_connector_set_property(struct drm_connector *connector,
 		struct drm_connector_state *state, struct drm_property *property,
 		uint64_t val)
 {
@@ -1214,7 +1213,6 @@ int drm_atomic_connector_set_property(struct drm_connector *connector,
 
 	return 0;
 }
-EXPORT_SYMBOL(drm_atomic_connector_set_property);
 
 static void drm_atomic_connector_print_state(struct drm_printer *p,
 		const struct drm_connector_state *state)
