@@ -3740,7 +3740,6 @@ static void __dw_hdmi_remove(struct dw_hdmi *hdmi)
 
 	if (hdmi->audio && !IS_ERR(hdmi->audio))
 		platform_device_unregister(hdmi->audio);
-
 	if (!IS_ERR(hdmi->cec))
 		platform_device_unregister(hdmi->cec);
 
