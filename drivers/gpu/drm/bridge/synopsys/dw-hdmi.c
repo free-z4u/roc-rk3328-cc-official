@@ -250,7 +250,6 @@ struct dw_hdmi {
 
 	spinlock_t audio_lock;
 	struct mutex audio_mutex;
-	struct dentry *debugfs_dir;
 	unsigned int sample_rate;
 	unsigned int audio_cts;
 	unsigned int audio_n;
@@ -1272,23 +1271,6 @@ void dw_hdmi_phy_i2c_write(struct dw_hdmi *hdmi, unsigned short data,
 	hdmi_phy_wait_i2c_done(hdmi, 1000);
 }
 EXPORT_SYMBOL_GPL(dw_hdmi_phy_i2c_write);
-
-static int hdmi_phy_i2c_read(struct dw_hdmi *hdmi, unsigned char addr)
-{
-	int val;
-
-	hdmi_writeb(hdmi, 0xFF, HDMI_IH_I2CMPHY_STAT0);
-	hdmi_writeb(hdmi, addr, HDMI_PHY_I2CM_ADDRESS_ADDR);
-	hdmi_writeb(hdmi, 0, HDMI_PHY_I2CM_DATAI_1_ADDR);
-	hdmi_writeb(hdmi, 0, HDMI_PHY_I2CM_DATAI_0_ADDR);
-	hdmi_writeb(hdmi, HDMI_PHY_I2CM_OPERATION_ADDR_READ,
-		    HDMI_PHY_I2CM_OPERATION_ADDR);
-	hdmi_phy_wait_i2c_done(hdmi, 1000);
-	val = hdmi_readb(hdmi, HDMI_PHY_I2CM_DATAI_1_ADDR);
-	val = (val & 0xff) << 8;
-	val += hdmi_readb(hdmi, HDMI_PHY_I2CM_DATAI_0_ADDR) & 0xff;
-	return val;
-}
 
 /*
  * HDMI2.0 Specifies the following procedure for High TMDS Bit Rates:
@@ -3009,7 +2991,7 @@ static int dw_hdmi_detect_phy(struct dw_hdmi *hdmi)
 	 * RK3228 and RK3328 phy_type is DW_HDMI_PHY_DWC_HDMI20_TX_PHY,
 	 * but it has a vedor phy.
 	 */
-	//if (phy_type == DW_HDMI_PHY_VENDOR_PHY
+	if (phy_type == DW_HDMI_PHY_VENDOR_PHY || phy_type == DW_HDMI_PHY_DWC_HDMI20_TX_PHY)
 	{
 		/* Vendor PHYs require support from the glue layer. */
 		if (!hdmi->plat_data->phy_ops || !hdmi->plat_data->phy_name) {
@@ -3079,291 +3061,6 @@ static void dw_hdmi_destroy_properties(struct dw_hdmi *hdmi)
 					       hdmi->plat_data->phy_data);
 }
 
-static int dw_hdmi_status_show(struct seq_file *s, void *v)
-{
-	struct dw_hdmi *hdmi = s->private;
-	u32 val;
-
-	seq_puts(s, "PHY: ");
-	if (!hdmi->phy.enabled) {
-		seq_puts(s, "disabled\n");
-		return 0;
-	}
-	seq_puts(s, "enabled\t\t\tMode: ");
-	if (hdmi->sink_is_hdmi)
-		seq_puts(s, "HDMI\n");
-	else
-		seq_puts(s, "DVI\n");
-	if (hdmi->hdmi_data.video_mode.mtmdsclock > 340000000)
-		val = hdmi->hdmi_data.video_mode.mtmdsclock / 4;
-	else
-		val = hdmi->hdmi_data.video_mode.mtmdsclock;
-	seq_printf(s, "Pixel Clk: %uHz\t\tTMDS Clk: %uHz\n",
-		   hdmi->hdmi_data.video_mode.mpixelclock, val);
-	seq_puts(s, "Color Format: ");
-	if (hdmi_bus_fmt_is_rgb(hdmi->hdmi_data.enc_out_bus_format))
-		seq_puts(s, "RGB");
-	else if (hdmi_bus_fmt_is_yuv444(hdmi->hdmi_data.enc_out_bus_format))
-		seq_puts(s, "YUV444");
-	else if (hdmi_bus_fmt_is_yuv422(hdmi->hdmi_data.enc_out_bus_format))
-		seq_puts(s, "YUV422");
-	else if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
-		seq_puts(s, "YUV420");
-	else
-		seq_puts(s, "UNKNOWN");
-	val =  hdmi_bus_fmt_color_depth(hdmi->hdmi_data.enc_out_bus_format);
-	seq_printf(s, "\t\tColor Depth: %d bit\n", val);
-	seq_puts(s, "Colorimetry: ");
-	switch (hdmi->hdmi_data.enc_out_encoding) {
-	case V4L2_YCBCR_ENC_601:
-		seq_puts(s, "ITU.BT601");
-		break;
-	case V4L2_YCBCR_ENC_709:
-		seq_puts(s, "ITU.BT709");
-		break;
-	case V4L2_YCBCR_ENC_BT2020:
-		seq_puts(s, "ITU.BT2020");
-		break;
-	default: /* Carries no data */
-		seq_puts(s, "ITU.BT601");
-		break;
-	}
-
-	seq_puts(s, "\t\tEOTF: ");
-
-	if (hdmi->version < 0x211a) {
-		seq_puts(s, "Unsupported\n");
-		return 0;
-	}
-
-	val = hdmi_readb(hdmi, HDMI_FC_PACKET_TX_EN);
-	if (!(val & HDMI_FC_PACKET_DRM_TX_EN_MASK)) {
-		seq_puts(s, "Off\n");
-		return 0;
-	}
-
-	switch (hdmi_readb(hdmi, HDMI_FC_DRM_PB0)) {
-	case TRADITIONAL_GAMMA_SDR:
-		seq_puts(s, "SDR");
-		break;
-	case TRADITIONAL_GAMMA_HDR:
-		seq_puts(s, "HDR");
-		break;
-	case SMPTE_ST2084:
-		seq_puts(s, "ST2084");
-		break;
-	case HLG:
-		seq_puts(s, "HLG");
-		break;
-	default:
-		seq_puts(s, "Not Defined\n");
-		return 0;
-	}
-
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB3) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB2);
-	seq_printf(s, "\nx0: %d", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB5) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB4);
-	seq_printf(s, "\t\t\t\ty0: %d\n", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB7) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB6);
-	seq_printf(s, "x1: %d", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB9) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB8);
-	seq_printf(s, "\t\t\t\ty1: %d\n", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB11) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB10);
-	seq_printf(s, "x2: %d", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB13) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB12);
-	seq_printf(s, "\t\t\t\ty2: %d\n", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB15) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB14);
-	seq_printf(s, "white x: %d", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB17) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB16);
-	seq_printf(s, "\t\t\twhite y: %d\n", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB19) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB18);
-	seq_printf(s, "max lum: %d", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB21) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB20);
-	seq_printf(s, "\t\t\tmin lum: %d\n", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB23) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB22);
-	seq_printf(s, "max cll: %d", val);
-	val = hdmi_readb(hdmi, HDMI_FC_DRM_PB25) << 8;
-	val |= hdmi_readb(hdmi, HDMI_FC_DRM_PB24);
-	seq_printf(s, "\t\t\tmax fall: %d\n", val);
-	return 0;
-}
-
-static int dw_hdmi_status_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, dw_hdmi_status_show, inode->i_private);
-}
-
-static const struct file_operations dw_hdmi_status_fops = {
-	.owner = THIS_MODULE,
-	.open = dw_hdmi_status_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
-#include <linux/fs.h>
-#include <linux/debugfs.h>
-#include <linux/seq_file.h>
-
-struct dw_hdmi_reg_table {
-	int reg_base;
-	int reg_end;
-};
-
-static const struct dw_hdmi_reg_table hdmi_reg_table[] = {
-	{HDMI_DESIGN_ID, HDMI_CONFIG3_ID},
-	{HDMI_IH_FC_STAT0, HDMI_IH_MUTE},
-	{HDMI_TX_INVID0, HDMI_TX_BCBDATA1},
-	{HDMI_VP_STATUS, HDMI_VP_POL},
-	{HDMI_FC_INVIDCONF, HDMI_FC_DBGTMDS2},
-	{HDMI_PHY_CONF0, HDMI_PHY_POL0},
-	{HDMI_PHY_I2CM_SLAVE_ADDR, HDMI_PHY_I2CM_FS_SCL_LCNT_0_ADDR},
-	{HDMI_AUD_CONF0, 0x3624},
-	{HDMI_MC_SFRDIV, HDMI_MC_HEACPHY_RST},
-	{HDMI_CSC_CFG, HDMI_CSC_COEF_C4_LSB},
-	{HDMI_A_HDCPCFG0, 0x52bb},
-	{0x7800, 0x7818},
-	{0x7900, 0x790e},
-	{HDMI_CEC_CTRL, HDMI_CEC_WKUPCTRL},
-	{HDMI_I2CM_SLAVE, 0x7e31},
-};
-
-static int dw_hdmi_ctrl_show(struct seq_file *s, void *v)
-{
-	struct dw_hdmi *hdmi = s->private;
-	u32 i = 0, j = 0, val = 0;
-
-	seq_puts(s, "\n>>>hdmi_ctl reg ");
-	for (i = 0; i < 16; i++)
-		seq_printf(s, " %2x", i);
-	seq_puts(s, "\n---------------------------------------------------");
-
-	for (i = 0; i < ARRAY_SIZE(hdmi_reg_table); i++) {
-		for (j = hdmi_reg_table[i].reg_base;
-		     j <= hdmi_reg_table[i].reg_end; j++) {
-			val = hdmi_readb(hdmi, j);
-			if ((j - hdmi_reg_table[i].reg_base) % 16 == 0)
-				seq_printf(s, "\n>>>hdmi_ctl %04x:", j);
-			seq_printf(s, " %02x", val);
-		}
-	}
-	seq_puts(s, "\n---------------------------------------------------\n");
-
-	return 0;
-}
-
-static int dw_hdmi_ctrl_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, dw_hdmi_ctrl_show, inode->i_private);
-}
-
-static ssize_t
-dw_hdmi_ctrl_write(struct file *file, const char __user *buf,
-		   size_t count, loff_t *ppos)
-{
-	struct dw_hdmi *hdmi =
-		((struct seq_file *)file->private_data)->private;
-	u32 reg, val;
-	char kbuf[25];
-
-	if (copy_from_user(kbuf, buf, count))
-		return -EFAULT;
-	if (sscanf(kbuf, "%x%x", &reg, &val) == -1)
-		return -EFAULT;
-	if ((reg < 0) || (reg > HDMI_I2CM_FS_SCL_LCNT_0_ADDR)) {
-		dev_err(hdmi->dev, "it is no a hdmi register\n");
-		return count;
-	}
-	dev_info(hdmi->dev, "/**********hdmi register config******/");
-	dev_info(hdmi->dev, "\n reg=%x val=%x\n", reg, val);
-	hdmi_writeb(hdmi, val, reg);
-	return count;
-}
-
-static const struct file_operations dw_hdmi_ctrl_fops = {
-	.owner = THIS_MODULE,
-	.open = dw_hdmi_ctrl_open,
-	.read = seq_read,
-	.write = dw_hdmi_ctrl_write,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
-static int dw_hdmi_phy_show(struct seq_file *s, void *v)
-{
-	struct dw_hdmi *hdmi = s->private;
-	u32 i, val;
-
-	seq_puts(s, "\n>>>hdmi_phy reg\n");
-	for (i = 0; i < 0x28; i++) {
-		val = hdmi_phy_i2c_read(hdmi, i);
-		seq_printf(s, "regs %02x val %04x\n", i, val);
-	}
-	return 0;
-}
-
-static int dw_hdmi_phy_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, dw_hdmi_phy_show, inode->i_private);
-}
-
-static ssize_t
-dw_hdmi_phy_write(struct file *file, const char __user *buf,
-		  size_t count, loff_t *ppos)
-{
-	struct dw_hdmi *hdmi =
-		((struct seq_file *)file->private_data)->private;
-	u32 reg, val;
-	char kbuf[25];
-
-	if (copy_from_user(kbuf, buf, count))
-		return -EFAULT;
-	if (sscanf(kbuf, "%x%x", &reg, &val) == -1)
-		return -EFAULT;
-	if ((reg < 0) || (reg > 0x100)) {
-		dev_err(hdmi->dev, "it is not a hdmi phy register\n");
-		return count;
-	}
-	dev_info(hdmi->dev, "/*******hdmi phy register config******/");
-	dev_info(hdmi->dev, "\n reg=%x val=%x\n", reg, val);
-	dw_hdmi_phy_i2c_write(hdmi, val, reg);
-	return count;
-}
-
-static const struct file_operations dw_hdmi_phy_fops = {
-	.owner = THIS_MODULE,
-	.open = dw_hdmi_phy_open,
-	.read = seq_read,
-	.write = dw_hdmi_phy_write,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
-static void dw_hdmi_register_debugfs(struct device *dev, struct dw_hdmi *hdmi)
-{
-	hdmi->debugfs_dir = debugfs_create_dir("dw-hdmi", NULL);
-	if (IS_ERR(hdmi->debugfs_dir)) {
-		dev_err(dev, "failed to create debugfs dir!\n");
-		return;
-	}
-
-	debugfs_create_file("status", 0400, hdmi->debugfs_dir,
-			    hdmi, &dw_hdmi_status_fops);
-
-	debugfs_create_file("ctrl", 0400, hdmi->debugfs_dir,
-			    hdmi, &dw_hdmi_ctrl_fops);
-}
 
 static void dw_hdmi_register_hdcp(struct device *dev, struct dw_hdmi *hdmi,
 				  u32 val, bool hdcp1x_enable)
@@ -3695,8 +3392,6 @@ __dw_hdmi_probe(struct platform_device *pdev,
 
 	platform_set_drvdata(pdev, hdmi);
 
-	dw_hdmi_register_debugfs(hdmi->dev, hdmi);
-
 	if (of_property_read_bool(np, "scramble-low-rates"))
 		hdmi->scramble_low_rates = true;
 
@@ -3734,8 +3429,6 @@ static void __dw_hdmi_remove(struct dw_hdmi *hdmi)
 	cancel_delayed_work(&hdmi->work);
 	flush_workqueue(hdmi->workqueue);
 	destroy_workqueue(hdmi->workqueue);
-
-	debugfs_remove_recursive(hdmi->debugfs_dir);
 
 	if (hdmi->audio && !IS_ERR(hdmi->audio))
 		platform_device_unregister(hdmi->audio);
