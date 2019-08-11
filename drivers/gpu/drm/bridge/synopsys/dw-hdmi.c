@@ -3439,7 +3439,6 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	hdmi->disabled = true;
 	hdmi->rxsense = true;
 	hdmi->phy_mask = (u8)~(HDMI_PHY_HPD | HDMI_PHY_RX_SENSE);
-	hdmi->irq = irq;
 	hdmi->mc_clkdis = 0x7f;
 
 	mutex_init(&hdmi->mutex);
@@ -3584,6 +3583,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	if (ret)
 		goto err_iahb;
 
+	hdmi->irq = irq;
 	hdmi->cec_notifier = cec_notifier_get(dev);
 	if (!hdmi->cec_notifier) {
 		ret = -ENOMEM;
