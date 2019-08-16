@@ -354,7 +354,7 @@ struct rockchip_pin_bank {
 struct rockchip_mux_recalced_data {
 	u8 num;
 	u8 pin;
-	u8 reg;
+	u32 reg;
 	u8 bit;
 	u8 mask;
 };
@@ -615,6 +615,70 @@ static const struct pinctrl_ops rockchip_pctrl_ops = {
 /*
  * Hardware access
  */
+
+static struct rockchip_mux_recalced_data rv1108_mux_recalced_data[] = {
+	{
+		.num = 1,
+		.pin = 0,
+		.reg = 0x418,
+		.bit = 0,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 1,
+		.reg = 0x418,
+		.bit = 2,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 2,
+		.reg = 0x418,
+		.bit = 4,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 3,
+		.reg = 0x418,
+		.bit = 6,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 4,
+		.reg = 0x418,
+		.bit = 8,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 5,
+		.reg = 0x418,
+		.bit = 10,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 6,
+		.reg = 0x418,
+		.bit = 12,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 7,
+		.reg = 0x418,
+		.bit = 14,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 8,
+		.reg = 0x41c,
+		.bit = 0,
+		.mask = 0x3
+	}, {
+		.num = 1,
+		.pin = 9,
+		.reg = 0x41c,
+		.bit = 2,
+		.mask = 0x3
+	},
+};
 
 static  struct rockchip_mux_recalced_data rk3128_mux_recalced_data[] = {
 	{
@@ -1237,6 +1301,36 @@ static enum rockchip_pin_drv_type rv1108_calc_drv_reg_and_bit(struct rockchip_pi
 	*bit *= RV1108_DRV_BITS_PER_PIN;
 
 	return DRV_TYPE_IO_DEFAULT;
+}
+
+#define RV1108_SCHMITT_PMU_OFFSET		0x30
+#define RV1108_SCHMITT_GRF_OFFSET		0x388
+#define RV1108_SCHMITT_BANK_STRIDE		8
+#define RV1108_SCHMITT_PINS_PER_GRF_REG		16
+#define RV1108_SCHMITT_PINS_PER_PMU_REG		8
+
+static int rv1108_calc_schmitt_reg_and_bit(struct rockchip_pin_bank *bank,
+					   int pin_num,
+					   struct regmap **regmap,
+					   int *reg, u8 *bit)
+{
+	struct rockchip_pinctrl *info = bank->drvdata;
+	int pins_per_reg;
+
+	if (bank->bank_num == 0) {
+		*regmap = info->regmap_pmu;
+		*reg = RV1108_SCHMITT_PMU_OFFSET;
+		pins_per_reg = RV1108_SCHMITT_PINS_PER_PMU_REG;
+	} else {
+		*regmap = info->regmap_base;
+		*reg = RV1108_SCHMITT_GRF_OFFSET;
+		pins_per_reg = RV1108_SCHMITT_PINS_PER_GRF_REG;
+		*reg += (bank->bank_num  - 1) * RV1108_SCHMITT_BANK_STRIDE;
+	}
+	*reg += ((pin_num / pins_per_reg) * 4);
+	*bit = pin_num % pins_per_reg;
+
+	return 0;
 }
 
 #define RK2928_PULL_OFFSET		0x118
@@ -3304,8 +3398,11 @@ static struct rockchip_pin_ctrl rv1108_pin_ctrl = {
 	.type			= RV1108,
 	.grf_mux_offset		= 0x10,
 	.pmu_mux_offset		= 0x0,
+	.iomux_recalced		= rv1108_mux_recalced_data,
+	.niomux_recalced	= ARRAY_SIZE(rv1108_mux_recalced_data),
 	.pull_calc_reg		= rv1108_calc_pull_reg_and_bit,
 	.drv_calc_reg		= rv1108_calc_drv_reg_and_bit,
+	.schmitt_calc_reg	= rv1108_calc_schmitt_reg_and_bit,
 };
 
 static struct rockchip_pin_bank rk2928_pin_banks[] = {
