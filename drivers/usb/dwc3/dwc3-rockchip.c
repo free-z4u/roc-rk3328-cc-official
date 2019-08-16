@@ -313,14 +313,14 @@ static ssize_t dwc3_rockchip_host_testmode_write(struct file *file,
 		return -EINVAL;
 	}
 
-	if (edev && !extcon_get_cable_state_(edev, EXTCON_USB_HOST)) {
-		if (extcon_get_cable_state_(edev, EXTCON_USB) > 0)
-			extcon_set_cable_state_(edev, EXTCON_USB, false);
+	if (edev && !extcon_get_state(edev, EXTCON_USB_HOST)) {
+		if (extcon_get_state(edev, EXTCON_USB) > 0)
+			extcon_set_state_sync(edev, EXTCON_USB, false);
 
 		property.intval = flip;
 		extcon_set_property(edev, EXTCON_USB_HOST,
 				    EXTCON_PROP_USB_TYPEC_POLARITY, property);
-		extcon_set_cable_state_(edev, EXTCON_USB_HOST, true);
+		extcon_set_state_sync(edev, EXTCON_USB_HOST, true);
 
 		/* Add a delay 1s to wait for XHCI HCD init */
 		msleep(1000);
@@ -412,7 +412,7 @@ static void dwc3_rockchip_otg_extcon_evt_work(struct work_struct *work)
 
 	mutex_lock(&rockchip->lock);
 
-	if (rockchip->edev ? extcon_get_cable_state_(edev, EXTCON_USB) :
+	if (rockchip->edev ? extcon_get_state(edev, EXTCON_USB) :
 	    (dwc->dr_mode == USB_DR_MODE_PERIPHERAL)) {
 		if (rockchip->connected)
 			goto out;
@@ -455,7 +455,7 @@ static void dwc3_rockchip_otg_extcon_evt_work(struct work_struct *work)
 		rockchip->connected = true;
 		dev_info(rockchip->dev, "USB peripheral connected\n");
 	} else if (rockchip->edev ?
-		   extcon_get_cable_state_(edev, EXTCON_USB_HOST) :
+		   extcon_get_state(edev, EXTCON_USB_HOST) :
 		   (dwc->dr_mode == USB_DR_MODE_HOST)) {
 		if (rockchip->connected)
 			goto out;
@@ -807,9 +807,9 @@ static int dwc3_rockchip_probe(struct platform_device *pdev)
 		pm_runtime_suspend(&child_pdev->dev);
 		pm_runtime_put_sync(dev);
 
-		if ((extcon_get_cable_state_(rockchip->edev,
+		if ((extcon_get_state(rockchip->edev,
 					     EXTCON_USB) > 0) ||
-		    (extcon_get_cable_state_(rockchip->edev,
+		    (extcon_get_state(rockchip->edev,
 					     EXTCON_USB_HOST) > 0))
 			schedule_work(&rockchip->otg_work);
 	}
@@ -932,7 +932,7 @@ static int dwc3_rockchip_suspend(struct device *dev)
 		 * state, but after resume DWC3 controller is in
 		 * P0 state. So we put USB3 PHY in power on state.
 		 */
-		if (extcon_get_cable_state_(rockchip->edev,
+		if (extcon_get_state(rockchip->edev,
 					    EXTCON_USB_HOST) > 0)
 			phy_power_off(dwc->usb2_generic_phy);
 	}
@@ -955,7 +955,7 @@ static int dwc3_rockchip_resume(struct device *dev)
 		schedule_work(&rockchip->otg_work);
 
 	if (rockchip->edev && dwc->dr_mode != USB_DR_MODE_PERIPHERAL) {
-		if (extcon_get_cable_state_(rockchip->edev,
+		if (extcon_get_state(rockchip->edev,
 					    EXTCON_USB_HOST) > 0)
 			phy_power_on(dwc->usb2_generic_phy);
 	}
