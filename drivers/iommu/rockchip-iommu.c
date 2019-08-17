@@ -96,8 +96,7 @@ struct rk_iommu {
 	int num_mmu;
 	int *irq;
 	int num_irq;
-	bool reset_disabled; /* isp iommu reset operation would failed */
-	bool skip_read;	     /* rk3126/rk3128 can't read vop iommu registers */
+	bool reset_disabled;
 	struct iommu_device iommu;
 	struct list_head node; /* entry in rk_iommu_domain.iommus */
 	struct iommu_domain *domain; /* domain to which iommu is attached */
@@ -374,9 +373,6 @@ static int rk_iommu_enable_stall(struct rk_iommu *iommu)
 {
 	int ret, i;
 
-	if (iommu->skip_read)
-		goto read_wa;
-
 	if (rk_iommu_is_stall_active(iommu))
 		return 0;
 
@@ -384,10 +380,7 @@ static int rk_iommu_enable_stall(struct rk_iommu *iommu)
 	if (!rk_iommu_is_paging_enabled(iommu))
 		return 0;
 
-read_wa:
 	rk_iommu_command(iommu, RK_MMU_CMD_ENABLE_STALL);
-	if (iommu->skip_read)
-		return 0;
 
 	ret = rk_wait_for(rk_iommu_is_stall_active(iommu), 1);
 	if (ret)
@@ -402,16 +395,10 @@ static int rk_iommu_disable_stall(struct rk_iommu *iommu)
 {
 	int ret, i;
 
-	if (iommu->skip_read)
-		goto read_wa;
-
 	if (!rk_iommu_is_stall_active(iommu))
 		return 0;
 
-read_wa:
 	rk_iommu_command(iommu, RK_MMU_CMD_DISABLE_STALL);
-	if (iommu->skip_read)
-		return 0;
 
 	ret = rk_wait_for(!rk_iommu_is_stall_active(iommu), 1);
 	if (ret)
@@ -426,16 +413,10 @@ static int rk_iommu_enable_paging(struct rk_iommu *iommu)
 {
 	int ret, i;
 
-	if (iommu->skip_read)
-		goto read_wa;
-
 	if (rk_iommu_is_paging_enabled(iommu))
 		return 0;
 
-read_wa:
 	rk_iommu_command(iommu, RK_MMU_CMD_ENABLE_PAGING);
-	if (iommu->skip_read)
-		return 0;
 
 	ret = rk_wait_for(rk_iommu_is_paging_enabled(iommu), 1);
 	if (ret)
@@ -450,16 +431,10 @@ static int rk_iommu_disable_paging(struct rk_iommu *iommu)
 {
 	int ret, i;
 
-	if (iommu->skip_read)
-		goto read_wa;
-
 	if (!rk_iommu_is_paging_enabled(iommu))
 		return 0;
 
-read_wa:
 	rk_iommu_command(iommu, RK_MMU_CMD_DISABLE_PAGING);
-	if (iommu->skip_read)
-		return 0;
 
 	ret = rk_wait_for(!rk_iommu_is_paging_enabled(iommu), 1);
 	if (ret)
@@ -475,12 +450,9 @@ static int rk_iommu_force_reset(struct rk_iommu *iommu)
 	int ret, i;
 	u32 dte_addr;
 
-	/* Workaround for isp mmus */
 	if (iommu->reset_disabled)
 		return 0;
 
-	if (iommu->skip_read)
-		goto read_wa;
 	/*
 	 * Check if register DTE_ADDR is working by writing DTE_ADDR_DUMMY
 	 * and verifying that upper 5 nybbles are read back.
@@ -495,10 +467,7 @@ static int rk_iommu_force_reset(struct rk_iommu *iommu)
 		}
 	}
 
-read_wa:
 	rk_iommu_command(iommu, RK_MMU_CMD_FORCE_RESET);
-	if (iommu->skip_read)
-		return 0;
 
 	for (i = 0; i < iommu->num_mmu; i++) {
 		ret = rk_wait_for(rk_iommu_read(iommu->bases[i], RK_MMU_DTE_ADDR) == 0x00000000,
@@ -902,17 +871,13 @@ static int rk_iommu_attach_device(struct iommu_domain *domain,
 
 	iommu->domain = domain;
 
-	if (iommu->skip_read)
-		goto skip_request_irq;
-
 	for (i = 0; i < iommu->num_irq; i++) {
 		ret = devm_request_irq(iommu->dev, iommu->irq[i], rk_iommu_irq,
-			       IRQF_SHARED, dev_name(dev), iommu);
+				       IRQF_SHARED, dev_name(dev), iommu);
 		if (ret)
 			return ret;
 	}
 
-skip_request_irq:
 	for (i = 0; i < iommu->num_mmu; i++) {
 		rk_iommu_write(iommu->bases[i], RK_MMU_DTE_ADDR,
 			       rk_domain->dt_dma);
@@ -961,14 +926,9 @@ static void rk_iommu_detach_device(struct iommu_domain *domain,
 	}
 	rk_iommu_disable_stall(iommu);
 
-	if (iommu->skip_read)
-		goto read_wa;
-
-	for (i = 0; i < iommu->num_irq; i++) {
+	for (i = 0; i < iommu->num_irq; i++)
 		devm_free_irq(iommu->dev, iommu->irq[i], iommu);
-	}
 
-read_wa:
 	iommu->domain = NULL;
 
 	rk_iommu_power_off(iommu);
@@ -1099,21 +1059,21 @@ static int rk_iommu_group_set_iommudata(struct iommu_group *group,
 	ret = of_parse_phandle_with_args(np, "iommus", "#iommu-cells", 0,
 					 &args);
 	if (ret) {
-		dev_err(dev, "of_parse_phandle_with_args(%s) => %d\n",
-			np->full_name, ret);
+		dev_err(dev, "of_parse_phandle_with_args(%pOF) => %d\n",
+			np, ret);
 		return ret;
 	}
 	if (args.args_count != 0) {
-		dev_err(dev, "incorrect number of iommu params found for %s (found %d, expected 0)\n",
-			args.np->full_name, args.args_count);
+		dev_err(dev, "incorrect number of iommu params found for %pOF (found %d, expected 0)\n",
+			args.np, args.args_count);
 		return -EINVAL;
 	}
 
 	pd = of_find_device_by_node(args.np);
 	of_node_put(args.np);
 	if (!pd) {
-		dev_err(dev, "iommu %s not found\n", args.np->full_name);
-		return -ENODEV;
+		dev_err(dev, "iommu %pOF not found\n", args.np);
+		return -EPROBE_DEFER;
 	}
 
 	/* TODO(djkurtz): handle multiple slave iommus for a single master */
@@ -1248,10 +1208,13 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	if (iommu->num_mmu == 0)
 		return PTR_ERR(iommu->bases[0]);
 
-	while (platform_get_irq(pdev, iommu->num_irq) >= 0)
-		iommu->num_irq++;
+	iommu->num_irq = platform_irq_count(pdev);
+	if (iommu->num_irq < 0)
+		return iommu->num_irq;
+	if (iommu->num_irq == 0)
+		return -ENXIO;
 
-	iommu->irq = devm_kzalloc(dev, sizeof(*iommu->irq) * iommu->num_irq,
+	iommu->irq = devm_kcalloc(dev, iommu->num_irq, sizeof(*iommu->irq),
 				  GFP_KERNEL);
 	if (!iommu->irq)
 		return -ENOMEM;
@@ -1265,14 +1228,7 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	}
 
 	iommu->reset_disabled = device_property_read_bool(dev,
-				"rk_iommu,disable_reset_quirk");
-
-	/* Follow upstream */
-	iommu->reset_disabled |= device_property_read_bool(dev,
 					"rockchip,disable-mmu-reset");
-
-	iommu->skip_read = device_property_read_bool(dev,
-				"rockchip,skip-mmu-read");
 
 	iommu->aclk = devm_clk_get(dev, "aclk");
 	if (IS_ERR(iommu->aclk)) {
