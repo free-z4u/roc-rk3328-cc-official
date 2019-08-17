@@ -148,6 +148,8 @@ struct netvsc_device_info {
 	unsigned char mac_adr[ETH_ALEN];
 	int  ring_size;
 	u32  num_chn;
+	u32  send_sections;
+	u32  recv_sections;
 };
 
 enum rndis_device_state {
@@ -211,7 +213,7 @@ void rndis_filter_update(struct netvsc_device *nvdev);
 void rndis_filter_device_remove(struct hv_device *dev,
 				struct netvsc_device *nvdev);
 int rndis_filter_set_rss_param(struct rndis_device *rdev,
-			       const u8 *key, int num_queue);
+			       const u8 *key);
 int rndis_filter_receive(struct net_device *ndev,
 			 struct netvsc_device *net_dev,
 			 struct hv_device *dev,
@@ -634,11 +636,11 @@ struct nvsp_message {
 #define NETVSC_SEND_BUFFER_SIZE			(1024 * 1024 * 15)   /* 15MB */
 #define NETVSC_INVALID_INDEX			-1
 
+#define NETVSC_SEND_SECTION_SIZE		6144
+#define NETVSC_RECV_SECTION_SIZE		1728
 
 #define NETVSC_RECEIVE_BUFFER_ID		0xcafe
 #define NETVSC_SEND_BUFFER_ID			0
-
-#define NETVSC_PACKET_SIZE                      4096
 
 #define VRSS_SEND_TAB_SIZE 16  /* must be power of 2 */
 #define VRSS_CHANNEL_MAX 64
@@ -678,6 +680,17 @@ struct netvsc_ethtool_stats {
 	unsigned long tx_no_space;
 	unsigned long tx_too_big;
 	unsigned long tx_busy;
+	unsigned long tx_send_full;
+	unsigned long rx_comp_busy;
+};
+
+struct netvsc_vf_pcpu_stats {
+	u64     rx_packets;
+	u64     rx_bytes;
+	u64     tx_packets;
+	u64     tx_bytes;
+	struct u64_stats_sync   syncp;
+	u32	tx_dropped;
 };
 
 struct netvsc_reconfig {
@@ -707,19 +720,21 @@ struct net_device_context {
 	u32 tx_send_table[VRSS_SEND_TAB_SIZE];
 
 	/* Ethtool settings */
+	bool udp4_l4_hash;
+	bool udp6_l4_hash;
 	u8 duplex;
 	u32 speed;
 	struct netvsc_ethtool_stats eth_stats;
 
 	/* State to manage the associated VF interface. */
 	struct net_device __rcu *vf_netdev;
+	struct netvsc_vf_pcpu_stats __percpu *vf_stats;
+	struct delayed_work vf_takeover;
 
 	/* 1: allocated, serial number is valid. 0: not allocated */
 	u32 vf_alloc;
 	/* Serial number of the VF to team with */
 	u32 vf_serial;
-
-	bool datapath;	/* 0 - synthetic, 1 - VF nic */
 };
 
 /* Per channel data */
@@ -745,14 +760,13 @@ struct netvsc_device {
 
 	/* Receive buffer allocated by us but manages by NetVSP */
 	void *recv_buf;
-	u32 recv_buf_size;
 	u32 recv_buf_gpadl_handle;
 	u32 recv_section_cnt;
+	u32 recv_section_size;
 	u32 recv_completion_cnt;
 
 	/* Send buffer allocated by us */
 	void *send_buf;
-	u32 send_buf_size;
 	u32 send_buf_gpadl_handle;
 	u32 send_section_cnt;
 	u32 send_section_size;

@@ -1313,10 +1313,24 @@
 		resets = <&cru SRST_GMAC2PHY_A>, <&cru SRST_MACPHY>;
 		reset-names = "stmmaceth", "mac-phy";
 		phy-mode = "rmii";
-		phy-is-integrated;
-		pinctrl-names = "default";
-		pinctrl-0 = <&fephyled_rxm1 &fephyled_linkm1>;
+		phy-handle = <&phy>;
 		status = "disabled";
+
+		mdio {
+			compatible = "snps,dwmac-mdio";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			phy: phy@0 {
+				compatible = "ethernet-phy-id1234.d400", "ethernet-phy-ieee802.3-c22";
+				reg = <0>;
+				clocks = <&cru SCLK_MAC2PHY_OUT>;
+				resets = <&cru SRST_MACPHY>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&fephyled_rxm1 &fephyled_linkm1>;
+				phy-is-integrated;
+			};
+		};
 	};
 
 	usb20_otg: usb@ff580000 {

@@ -1853,7 +1853,7 @@ static inline int deliver_skb(struct sk_buff *skb,
 			      struct packet_type *pt_prev,
 			      struct net_device *orig_dev)
 {
-	if (unlikely(skb_orphan_frags(skb, GFP_ATOMIC)))
+	if (unlikely(skb_orphan_frags_rx(skb, GFP_ATOMIC)))
 		return -ENOMEM;
 	refcount_inc(&skb->users);
 	return pt_prev->func(skb, skb->dev, pt_prev, orig_dev);
@@ -2738,8 +2738,7 @@ EXPORT_SYMBOL(skb_mac_gso_segment);
 static inline bool skb_needs_check(struct sk_buff *skb, bool tx_path)
 {
 	if (tx_path)
-		return skb->ip_summed != CHECKSUM_PARTIAL &&
-		       skb->ip_summed != CHECKSUM_UNNECESSARY;
+		return skb->ip_summed != CHECKSUM_PARTIAL;
 
 	return skb->ip_summed == CHECKSUM_NONE;
 }
@@ -3938,7 +3937,7 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 /* When doing generic XDP we have to bypass the qdisc layer and the
  * network taps in order to match in-driver-XDP behavior.
  */
-static void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
+void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
 {
 	struct net_device *dev = skb->dev;
 	struct netdev_queue *txq;
@@ -3959,13 +3958,12 @@ static void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
 		kfree_skb(skb);
 	}
 }
+EXPORT_SYMBOL_GPL(generic_xdp_tx);
 
 static struct static_key generic_xdp_needed __read_mostly;
 
-static int do_xdp_generic(struct sk_buff *skb)
+int do_xdp_generic(struct bpf_prog *xdp_prog, struct sk_buff *skb)
 {
-	struct bpf_prog *xdp_prog = rcu_dereference(skb->dev->xdp_prog);
-
 	if (xdp_prog) {
 		u32 act = netif_receive_generic_xdp(skb, xdp_prog);
 		int err;
@@ -3973,7 +3971,8 @@ static int do_xdp_generic(struct sk_buff *skb)
 		if (act != XDP_PASS) {
 			switch (act) {
 			case XDP_REDIRECT:
-				err = xdp_do_generic_redirect(skb->dev, skb);
+				err = xdp_do_generic_redirect(skb->dev, skb,
+							      xdp_prog);
 				if (err)
 					goto out_redir;
 			/* fallthru to submit skb */
@@ -3986,10 +3985,10 @@ static int do_xdp_generic(struct sk_buff *skb)
 	}
 	return XDP_PASS;
 out_redir:
-	trace_xdp_exception(skb->dev, xdp_prog, XDP_REDIRECT);
 	kfree_skb(skb);
 	return XDP_DROP;
 }
+EXPORT_SYMBOL_GPL(do_xdp_generic);
 
 static int netif_rx_internal(struct sk_buff *skb)
 {
@@ -4000,7 +3999,8 @@ static int netif_rx_internal(struct sk_buff *skb)
 	trace_netif_rx(skb);
 
 	if (static_key_false(&generic_xdp_needed)) {
-		int ret = do_xdp_generic(skb);
+		int ret = do_xdp_generic(rcu_dereference(skb->dev->xdp_prog),
+					 skb);
 
 		/* Consider XDP consuming the packet a success from
 		 * the netdev point of view we do not want to count
@@ -4430,7 +4430,7 @@ skip_classify:
 	}
 
 	if (pt_prev) {
-		if (unlikely(skb_orphan_frags(skb, GFP_ATOMIC)))
+		if (unlikely(skb_orphan_frags_rx(skb, GFP_ATOMIC)))
 			goto drop;
 		else
 			ret = pt_prev->func(skb, skb->dev, pt_prev, orig_dev);
@@ -4521,7 +4521,8 @@ static int netif_receive_skb_internal(struct sk_buff *skb)
 	rcu_read_lock();
 
 	if (static_key_false(&generic_xdp_needed)) {
-		int ret = do_xdp_generic(skb);
+		int ret = do_xdp_generic(rcu_dereference(skb->dev->xdp_prog),
+					 skb);
 
 		if (ret != XDP_PASS) {
 			rcu_read_unlock();

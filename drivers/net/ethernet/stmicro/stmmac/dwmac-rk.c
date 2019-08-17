@@ -62,7 +62,6 @@ struct rk_priv_data {
 	struct clk *mac_clk_tx;
 	struct clk *clk_mac_ref;
 	struct clk *clk_mac_refout;
-	struct clk *clk_mac_speed;
 	struct clk *aclk_mac;
 	struct clk *pclk_mac;
 	struct clk *clk_phy;
@@ -1044,10 +1043,6 @@ static int rk_gmac_clk_init(struct plat_stmmacenet_data *plat)
 		}
 	}
 
-	bsp_priv->clk_mac_speed = devm_clk_get(dev, "clk_mac_speed");
-	if (IS_ERR(bsp_priv->clk_mac_speed))
-		dev_err(dev, "cannot get clock %s\n", "clk_mac_speed");
-
 	if (bsp_priv->clock_input) {
 		dev_info(dev, "clock input from PHY\n");
 	} else {
@@ -1055,8 +1050,8 @@ static int rk_gmac_clk_init(struct plat_stmmacenet_data *plat)
 			clk_set_rate(bsp_priv->clk_mac, 50000000);
 	}
 
-	if (bsp_priv->integrated_phy) {
-		bsp_priv->clk_phy = devm_clk_get(dev, "clk_macphy");
+	if (plat->phy_node && bsp_priv->integrated_phy) {
+		bsp_priv->clk_phy = of_clk_get(plat->phy_node, 0);
 		if (IS_ERR(bsp_priv->clk_phy)) {
 			ret = PTR_ERR(bsp_priv->clk_phy);
 			dev_err(dev, "Cannot get PHY clock: %d\n", ret);
@@ -1234,12 +1229,15 @@ static struct rk_priv_data *rk_gmac_setup(struct platform_device *pdev,
 	bsp_priv->grf = syscon_regmap_lookup_by_phandle(dev->of_node,
 							"rockchip,grf");
 
-	bsp_priv->integrated_phy = device_property_read_bool(dev, "phy-is-integrated");
-	if (bsp_priv->integrated_phy) {
-		bsp_priv->phy_reset = devm_reset_control_get(dev, "mac-phy");
-		if (IS_ERR(bsp_priv->phy_reset)) {
-			dev_err(&pdev->dev, "No PHY reset control found.\n");
-			bsp_priv->phy_reset = NULL;
+	if (plat->phy_node) {
+		bsp_priv->integrated_phy = of_property_read_bool(plat->phy_node,
+								 "phy-is-integrated");
+		if (bsp_priv->integrated_phy) {
+			bsp_priv->phy_reset = of_reset_control_get(plat->phy_node, NULL);
+			if (IS_ERR(bsp_priv->phy_reset)) {
+				dev_err(&pdev->dev, "No PHY reset control found.\n");
+				bsp_priv->phy_reset = NULL;
+			}
 		}
 	}
 	dev_info(dev, "integrated PHY? (%s).\n",
