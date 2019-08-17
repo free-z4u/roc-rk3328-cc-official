@@ -409,7 +409,8 @@ static inline void dw_mci_set_cto(struct dw_mci *host)
 	cto_div = (mci_readl(host, CLKDIV) & 0xff) * 2;
 	if (cto_div == 0)
 		cto_div = 1;
-	cto_ms = DIV_ROUND_UP_ULL(MSEC_PER_SEC * cto_clks * cto_div,
+
+	cto_ms = DIV_ROUND_UP_ULL((u64)MSEC_PER_SEC * cto_clks * cto_div,
 				  host->bus_hz);
 
 	/* add a bit spare time */
@@ -431,7 +432,7 @@ static inline void dw_mci_set_cto(struct dw_mci *host)
 	spin_lock_irqsave(&host->irq_lock, irqflags);
 	if (!test_bit(EVENT_CMD_COMPLETE, &host->pending_events))
 		mod_timer(&host->cto_timer,
-				jiffies + msecs_to_jiffies(cto_ms) + 1);
+			jiffies + msecs_to_jiffies(cto_ms) + 1);
 	spin_unlock_irqrestore(&host->irq_lock, irqflags);
 }
 
@@ -446,6 +447,10 @@ static void dw_mci_start_command(struct dw_mci *host,
 	mci_writel(host, CMDARG, cmd->arg);
 	wmb(); /* drain writebuffer */
 	dw_mci_wait_while_busy(host, cmd_flags);
+
+	/* response expected command only */
+	if (cmd_flags & SDMMC_CMD_RESP_EXP)
+		dw_mci_set_cto(host);
 
 	mci_writel(host, CMD, cmd_flags | SDMMC_CMD_START);
 
@@ -3151,7 +3156,7 @@ static struct dw_mci_board *dw_mci_parse_dt(struct dw_mci *host)
 		return ERR_PTR(-ENOMEM);
 
 	/* find reset controller when exist */
-	pdata->rstc = devm_reset_control_get_optional(dev, "reset");
+	pdata->rstc = devm_reset_control_get_optional_exclusive(dev, "reset");
 	if (IS_ERR(pdata->rstc)) {
 		if (PTR_ERR(pdata->rstc) == -EPROBE_DEFER)
 			return ERR_PTR(-EPROBE_DEFER);
@@ -3268,6 +3273,12 @@ int dw_mci_probe(struct dw_mci *host)
 		goto err_clk_ciu;
 	}
 
+	if (!IS_ERR(host->pdata->rstc)) {
+		reset_control_assert(host->pdata->rstc);
+		usleep_range(10, 50);
+		reset_control_deassert(host->pdata->rstc);
+	}
+
 	if (drv_data && drv_data->init) {
 		ret = drv_data->init(host);
 		if (ret) {
@@ -3275,12 +3286,6 @@ int dw_mci_probe(struct dw_mci *host)
 				"implementation specific init failed\n");
 			goto err_clk_ciu;
 		}
-	}
-
-	if (!IS_ERR(host->pdata->rstc)) {
-		reset_control_assert(host->pdata->rstc);
-		usleep_range(10, 50);
-		reset_control_deassert(host->pdata->rstc);
 	}
 
 	setup_timer(&host->cmd11_timer,
