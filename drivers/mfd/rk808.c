@@ -136,7 +136,7 @@ static struct resource rtc_resources[] = {
 	}
 };
 
-static struct resource rk805_pwrkey_resources[] = {
+static struct resource rk805_key_resources[] = {
 	{
 		.start  = RK805_IRQ_PWRON_RISE,
 		.end    = RK805_IRQ_PWRON_RISE,
@@ -149,14 +149,38 @@ static struct resource rk805_pwrkey_resources[] = {
 	},
 };
 
+static const struct mfd_cell rk805s[] = {
+	{ .name = "rk808-clkout", },
+	{ .name = "rk818-regulator", },
+	{ .name = "rk8xx-gpio", },
+	{
+		.name = "rk8xx-pwrkey",
+		.num_resources = ARRAY_SIZE(rk805_key_resources),
+		.resources = &rk805_key_resources[0],
+	},
+	{
+		.name = "rk808-rtc",
+		.num_resources = ARRAY_SIZE(rtc_resources),
+		.resources = &rtc_resources[0],
+	},
+};
+
 static const struct mfd_cell rk808s[] = {
 	{ .name = "rk808-clkout", },
 	{ .name = "rk808-regulator", },
 	{
 		.name = "rk808-rtc",
 		.num_resources = ARRAY_SIZE(rtc_resources),
-		.resources = &rtc_resources[0],
+		.resources = rtc_resources,
 	},
+};
+
+static const struct rk808_reg_data rk805_pre_init_reg[] = {
+	{RK805_BUCK4_CONFIG_REG, BUCK_ILMIN_MASK, BUCK_ILMIN_400MA},
+	{RK805_GPIO_IO_POL_REG, SLP_SD_MSK, SLEEP_FUN},
+	{RK808_RTC_CTRL_REG, DEV_OFF, DEV_OFF},
+	{RK805_THERMAL_REG, TEMP_HOTDIE_MSK, TEMP115C},
+	{RK805_DCDC_VRP_REG, MASK_ALL, BUCK4_VRP_3PERCENT},
 };
 
 static const struct rk808_reg_data rk808_pre_init_reg[] = {
@@ -364,9 +388,9 @@ static const struct regmap_irq_chip rk818_irq_chip = {
 	.num_irqs = ARRAY_SIZE(rk818_irqs),
 	.num_regs = 2,
 	.irq_reg_stride = 2,
-	.status_base = RK808_INT_STS_REG1,
-	.mask_base = RK808_INT_STS_MSK_REG1,
-	.ack_base = RK808_INT_STS_REG1,
+	.status_base = RK818_INT_STS_REG1,
+	.mask_base = RK818_INT_STS_MSK_REG1,
+	.ack_base = RK818_INT_STS_REG1,
 	.init_ack_masked = true,
 };
 
@@ -380,30 +404,6 @@ static const struct mfd_cell rk818s[] = {
 		.num_resources = ARRAY_SIZE(rtc_resources),
 		.resources = &rtc_resources[0],
 	},
-};
-
-static const struct mfd_cell rk805s[] = {
-	{ .name = "rk808-clkout", },
-	{ .name = "rk818-regulator", },
-	{ .name = "rk8xx-gpio", },
-	{
-		.name = "rk8xx-pwrkey",
-		.num_resources = ARRAY_SIZE(rk805_pwrkey_resources),
-		.resources = &rk805_pwrkey_resources[0],
-	},
-	{
-		.name = "rk808-rtc",
-		.num_resources = ARRAY_SIZE(rtc_resources),
-		.resources = &rtc_resources[0],
-	},
-};
-
-static const struct rk808_reg_data rk805_pre_init_reg[] = {
-	{RK805_BUCK4_CONFIG_REG, BUCK_ILMIN_MASK, BUCK_ILMIN_400MA},
-	{RK805_GPIO_IO_POL_REG, SLP_SD_MSK, SLEEP_FUN},
-	{RK808_RTC_CTRL_REG, DEV_OFF, DEV_OFF},
-	{RK805_THERMAL_REG, TEMP_HOTDIE_MSK, TEMP115C},
-	{RK805_DCDC_VRP_REG, MASK_ALL, BUCK4_VRP_3PERCENT},
 };
 
 static struct rk808_reg_data rk805_suspend_reg[] = {
@@ -585,8 +585,22 @@ static int rk808_probe(struct i2c_client *client,
 	rk808->variant = ((msb << 8) | lsb) & RK8XX_ID_MSK;
 	dev_info(&client->dev, "chip id: 0x%x\n", (unsigned int)rk808->variant);
 
-	/* set Chip platform init data*/
 	switch (rk808->variant) {
+	case RK805_ID:
+		cell = rk805s;
+		cell_num = ARRAY_SIZE(rk805s);
+		pre_init_reg = rk805_pre_init_reg;
+		reg_num = ARRAY_SIZE(rk805_pre_init_reg);
+		regmap_config = &rk805_regmap_config;
+		irq_chip = &rk805_irq_chip;
+		pm_shutdown_prepare_fn = rk805_shutdown_prepare;
+		on_source = RK805_ON_SOURCE_REG;
+		off_source = RK805_OFF_SOURCE_REG;
+		suspend_reg = rk805_suspend_reg;
+		suspend_reg_num = ARRAY_SIZE(rk805_suspend_reg);
+		resume_reg = rk805_resume_reg;
+		resume_reg_num = ARRAY_SIZE(rk805_resume_reg);
+		break;
 	case RK808_ID:
 		cell = rk808s;
 		cell_num = ARRAY_SIZE(rk808s);
@@ -611,23 +625,8 @@ static int rk808_probe(struct i2c_client *client,
 		resume_reg = rk818_resume_reg;
 		resume_reg_num = ARRAY_SIZE(rk818_resume_reg);
 		break;
-	case RK805_ID:
-		cell = rk805s;
-		cell_num = ARRAY_SIZE(rk805s);
-		pre_init_reg = rk805_pre_init_reg;
-		reg_num = ARRAY_SIZE(rk805_pre_init_reg);
-		regmap_config = &rk805_regmap_config;
-		irq_chip = &rk805_irq_chip;
-		pm_shutdown_prepare_fn = rk805_shutdown_prepare;
-		on_source = RK805_ON_SOURCE_REG;
-		off_source = RK805_OFF_SOURCE_REG;
-		suspend_reg = rk805_suspend_reg;
-		suspend_reg_num = ARRAY_SIZE(rk805_suspend_reg);
-		resume_reg = rk805_resume_reg;
-		resume_reg_num = ARRAY_SIZE(rk805_resume_reg);
-		break;
 	default:
-		dev_err(&client->dev, "unsupported RK8XX ID 0x%lx\n",
+		dev_err(&client->dev, "Unsupported RK8XX ID %lu\n",
 			rk808->variant);
 		return -EINVAL;
 	}
