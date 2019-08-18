@@ -334,8 +334,7 @@ static int rockchip_pwm_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	r = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	pc->base = devm_ioremap(&pdev->dev, r->start,
-				resource_size(r));
+	pc->base = devm_ioremap_resource(&pdev->dev, r);
 	if (IS_ERR(pc->base))
 		return PTR_ERR(pc->base);
 
