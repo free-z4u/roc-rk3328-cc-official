@@ -10546,7 +10546,6 @@ static int nl80211_set_wowlan(struct sk_buff *skb, struct genl_info *info)
 			nla_parse_nested(pat_tb, MAX_NL80211_PKTPAT, pat,
 					 nl80211_packet_pattern_policy,
 					 info->extack);
-
 			err = -EINVAL;
 			if (!pat_tb[NL80211_PKTPAT_MASK] ||
 			    !pat_tb[NL80211_PKTPAT_PATTERN])
@@ -10796,9 +10795,7 @@ static int nl80211_parse_coalesce_rule(struct cfg80211_registered_device *rdev,
 		u8 *mask_pat;
 
 		nla_parse_nested(pat_tb, MAX_NL80211_PKTPAT, pat,
-				 nl80211_packet_pattern_policy,
-                                 NULL);
-
+				 nl80211_packet_pattern_policy, NULL);
 		if (!pat_tb[NL80211_PKTPAT_MASK] ||
 		    !pat_tb[NL80211_PKTPAT_PATTERN])
 			return -EINVAL;
