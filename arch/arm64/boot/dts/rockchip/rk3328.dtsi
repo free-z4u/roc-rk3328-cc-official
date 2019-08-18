@@ -79,9 +79,10 @@
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x0>;
 			clocks = <&cru ARMCLK>;
-			#cooling-cells = <2>; /* min followed by max */
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <120>;
 			enable-method = "psci";
+			next-level-cache = <&l2>;
 			operating-points-v2 = <&cpu0_opp_table>;
 		};
 
@@ -89,7 +90,11 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x1>;
+			clocks = <&cru ARMCLK>;
+			#cooling-cells = <2>;
+			dynamic-power-coefficient = <120>;
 			enable-method = "psci";
+			next-level-cache = <&l2>;
 			operating-points-v2 = <&cpu0_opp_table>;
 		};
 
@@ -97,7 +102,11 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x2>;
+			clocks = <&cru ARMCLK>;
+			#cooling-cells = <2>;
+			dynamic-power-coefficient = <120>;
 			enable-method = "psci";
+			next-level-cache = <&l2>;
 			operating-points-v2 = <&cpu0_opp_table>;
 		};
 
@@ -105,8 +114,16 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x3>;
+			clocks = <&cru ARMCLK>;
+			#cooling-cells = <2>;
+			dynamic-power-coefficient = <120>;
 			enable-method = "psci";
+			next-level-cache = <&l2>;
 			operating-points-v2 = <&cpu0_opp_table>;
+		};
+
+		l2: l2-cache0 {
+			compatible = "cache";
 		};
 	};
 
@@ -1132,43 +1149,6 @@
 			<32768>, <32768>;
 	};
 
-	usb2phy_grf: syscon@ff450000 {
-		compatible = "rockchip,rk3328-usb2phy-grf", "syscon",
-			     "simple-mfd";
-		reg = <0x0 0xff450000 0x0 0x10000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-
-		u2phy: usb2-phy@100 {
-			compatible = "rockchip,rk3328-usb2phy";
-			reg = <0x100 0x10>;
-			clocks = <&xin24m>;
-			clock-names = "phyclk";
-			#clock-cells = <0>;
-			assigned-clocks = <&cru USB480M>;
-			assigned-clock-parents = <&u2phy>;
-			clock-output-names = "usb480m_phy";
-			status = "disabled";
-
-			u2phy_host: host-port {
-				#phy-cells = <0>;
-				interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
-				interrupt-names = "linestate";
-				status = "disabled";
-			};
-
-			u2phy_otg: otg-port {
-				#phy-cells = <0>;
-				interrupts = <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>,
-					     <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>,
-					     <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
-				interrupt-names = "otg-bvalid", "otg-id",
-						  "linestate";
-				status = "disabled";
-			};
-		};
-	};
-
 	usb3phy_grf: syscon@ff460000 {
 		compatible = "rockchip,usb3phy-grf", "syscon";
 		reg = <0x0 0xff460000 0x0 0x1000>;
@@ -1242,6 +1222,43 @@
 		fifo-depth = <0x100>;
 		interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
 		status = "disabled";
+	};
+
+	usb2phy_grf: syscon@ff450000 {
+		compatible = "rockchip,rk3328-usb2phy-grf", "syscon",
+			     "simple-mfd";
+		reg = <0x0 0xff450000 0x0 0x10000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		u2phy: usb2-phy@100 {
+			compatible = "rockchip,rk3328-usb2phy";
+			reg = <0x100 0x10>;
+			clocks = <&xin24m>;
+			clock-names = "phyclk";
+			clock-output-names = "usb480m_phy";
+			#clock-cells = <0>;
+			assigned-clocks = <&cru USB480M>;
+			assigned-clock-parents = <&u2phy>;
+			status = "disabled";
+
+			u2phy_otg: otg-port {
+				#phy-cells = <0>;
+				interrupts = <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "otg-bvalid", "otg-id",
+						  "linestate";
+				status = "disabled";
+			};
+
+			u2phy_host: host-port {
+				#phy-cells = <0>;
+				interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "linestate";
+				status = "disabled";
+			};
+		};
 	};
 
 	sdmmc: dwmmc@ff500000 {
@@ -1716,6 +1733,48 @@
 			};
 		};
 
+		pdm-0 {
+			pdmm0_clk: pdmm0-clk {
+				rockchip,pins =
+					<2 RK_PC2 RK_FUNC_2 &pcfg_pull_none>;
+			};
+
+			pdmm0_fsync: pdmm0-fsync {
+				rockchip,pins =
+					<2 RK_PC7 RK_FUNC_2 &pcfg_pull_none>;
+			};
+
+			pdmm0_sdi0: pdmm0-sdi0 {
+				rockchip,pins =
+					<2 RK_PC3 RK_FUNC_2 &pcfg_pull_none>;
+			};
+
+			pdmm0_sdi1: pdmm0-sdi1 {
+				rockchip,pins =
+					<2 RK_PC4 RK_FUNC_2 &pcfg_pull_none>;
+			};
+
+			pdmm0_sdi2: pdmm0-sdi2 {
+				rockchip,pins =
+					<2 RK_PC5 RK_FUNC_2 &pcfg_pull_none>;
+			};
+
+			pdmm0_sdi3: pdmm0-sdi3 {
+				rockchip,pins =
+					<2 RK_PC6 RK_FUNC_2 &pcfg_pull_none>;
+			};
+
+			pdmm0_sleep: pdmm0-sleep {
+				rockchip,pins =
+					<2 RK_PC2 RK_FUNC_GPIO &pcfg_input_high>,
+					<2 RK_PC3 RK_FUNC_GPIO &pcfg_input_high>,
+					<2 RK_PC4 RK_FUNC_GPIO &pcfg_input_high>,
+					<2 RK_PC5 RK_FUNC_GPIO &pcfg_input_high>,
+					<2 RK_PC6 RK_FUNC_GPIO &pcfg_input_high>,
+					<2 RK_PC7 RK_FUNC_GPIO &pcfg_input_high>;
+			};
+		};
+
 		tsadc {
 			otp_gpio: otp-gpio {
 				rockchip,pins =
@@ -1863,48 +1922,6 @@
 			spi0m2_rx: spi0m2-rx {
 				rockchip,pins =
 					<3 RK_PA2 RK_FUNC_4 &pcfg_pull_up>;
-			};
-		};
-
-		pdm-0 {
-			pdmm0_clk: pdmm0-clk {
-				rockchip,pins =
-					<2 RK_PC2 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pdmm0_fsync: pdmm0-fsync {
-				rockchip,pins =
-					<2 RK_PC7 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pdmm0_sdi0: pdmm0-sdi0 {
-				rockchip,pins =
-					<2 RK_PC3 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pdmm0_sdi1: pdmm0-sdi1 {
-				rockchip,pins =
-					<2 RK_PC4 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pdmm0_sdi2: pdmm0-sdi2 {
-				rockchip,pins =
-					<2 RK_PC5 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pdmm0_sdi3: pdmm0-sdi3 {
-				rockchip,pins =
-					<2 RK_PC6 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pdmm0_sleep: pdmm0-sleep {
-				rockchip,pins =
-					<2 RK_PC2 RK_FUNC_GPIO &pcfg_input_high>,
-					<2 RK_PC3 RK_FUNC_GPIO &pcfg_input_high>,
-					<2 RK_PC4 RK_FUNC_GPIO &pcfg_input_high>,
-					<2 RK_PC5 RK_FUNC_GPIO &pcfg_input_high>,
-					<2 RK_PC6 RK_FUNC_GPIO &pcfg_input_high>,
-					<2 RK_PC7 RK_FUNC_GPIO &pcfg_input_high>;
 			};
 		};
 
