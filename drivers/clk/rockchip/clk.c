@@ -183,11 +183,6 @@ static void rockchip_fractional_approximation(struct clk_hw *hw,
 		p_parent = clk_hw_get_parent(clk_hw_get_parent(hw));
 		p_parent_rate = clk_hw_get_rate(p_parent);
 		*parent_rate = p_parent_rate;
-		if (*parent_rate < rate * 20) {
-			pr_err("%s parent_rate(%ld) is low than rate(%ld)*20, fractional div is not allowed\n",
-			       clk_hw_get_name(hw), *parent_rate, rate);
-			return;
-		}
 	}
 
 	/*
@@ -200,9 +195,8 @@ static void rockchip_fractional_approximation(struct clk_hw *hw,
 		rate <<= scale - fd->nwidth;
 
 	rational_best_approximation(rate, *parent_rate,
-				    GENMASK(fd->mwidth - 1, 0),
-				    GENMASK(fd->nwidth - 1, 0),
-				    m, n);
+			GENMASK(fd->mwidth - 1, 0), GENMASK(fd->nwidth - 1, 0),
+			m, n);
 }
 
 static struct clk *rockchip_clk_register_frac_branch(
@@ -404,13 +398,6 @@ void __init rockchip_clk_of_add_provider(struct device_node *np,
 	if (of_clk_add_provider(np, of_clk_src_onecell_get,
 				&ctx->clk_data))
 		pr_err("%s: could not register clk provider\n", __func__);
-}
-
-struct regmap *rockchip_clk_get_grf(struct rockchip_clk_provider *ctx)
-{
-	if (IS_ERR(ctx->grf))
-		ctx->grf = syscon_regmap_lookup_by_phandle(ctx->cru_node, "rockchip,grf");
-	return ctx->grf;
 }
 
 void rockchip_clk_add_lookup(struct rockchip_clk_provider *ctx,

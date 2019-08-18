@@ -144,8 +144,6 @@ struct clk;
 #define RK3399_PMU_CLKSEL_CON(x)	((x) * 0x4 + 0x80)
 #define RK3399_PMU_CLKGATE_CON(x)	((x) * 0x4 + 0x100)
 #define RK3399_PMU_SOFTRST_CON(x)	((x) * 0x4 + 0x110)
-#define RK3399_PMU_RSTNHOLD_CON(x)	((x) * 0x4 + 0x120)
-#define RK3399_PMU_GATEDIS_CON(x)	((x) * 0x4 + 0x130)
 
 enum rockchip_pll_type {
 	pll_rk3036,
@@ -695,7 +693,6 @@ struct rockchip_clk_provider *rockchip_clk_init(struct device_node *np,
 			void __iomem *base, unsigned long nr_clks);
 void rockchip_clk_of_add_provider(struct device_node *np,
 				struct rockchip_clk_provider *ctx);
-struct regmap *rockchip_clk_get_grf(struct rockchip_clk_provider *ctx);
 void rockchip_clk_add_lookup(struct rockchip_clk_provider *ctx,
 			     struct clk *clk, unsigned int id);
 void rockchip_clk_register_branches(struct rockchip_clk_provider *ctx,
@@ -711,7 +708,6 @@ void rockchip_clk_register_armclk(struct rockchip_clk_provider *ctx,
 			const struct rockchip_cpuclk_rate_table *rates,
 			int nrates);
 void rockchip_clk_protect_critical(const char *const clocks[], int nclocks);
-int rockchip_pll_clk_adaptive_scaling(struct clk *clk, int sel);
 void rockchip_register_restart_notifier(struct rockchip_clk_provider *ctx,
 					unsigned int reg, void (*cb)(void));
 

@@ -81,23 +81,6 @@ struct rockchip_clk_pll {
 
 static struct rockchip_pll_rate_table auto_table;
 
-int rockchip_pll_clk_adaptive_scaling(struct clk *clk, int sel)
-{
-	struct clk *parent = clk_get_parent(clk);
-	struct rockchip_clk_pll *pll;
-
-	if (IS_ERR_OR_NULL(parent))
-		return -EINVAL;
-
-	pll = to_rockchip_clk_pll(__clk_get_hw(parent));
-	if (!pll)
-		return -EINVAL;
-
-	pll->sel = sel;
-
-	return 0;
-}
-
 static struct rockchip_pll_rate_table *rk_pll_rate_table_get(void)
 {
 	return &auto_table;
