@@ -64,7 +64,7 @@ allowed_warnings = set([
     "printk.c:143", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
     "lkdtm_bugs.c:89", # warning: ‘memset’ writing 64 bytes into a region of size 8 overflows the destination [-Wstringop-overflow=]
     "ip_tunnel.c:264", # warning: ‘strncat’ specified bound 2 equals source length [-Wstringop-overflow=]
-    "cfg80211.c:4281", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
+    "cfg80211.c:4282", # warning: ‘strncpy’ output truncated before terminating nul copying 3 bytes from a string of the same length [-Wstringop-truncation]
     "virtio_net.c:382", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
     "virtio_net.c:796", # warning: ignoring return value of ‘skb_to_sgvec’, declared with attribute warn_unused_result [-Wunused-result]
     "syscalls.h:211", # warning: ‘sys_fadvise64_64’ alias between functions of incompatible types ‘long int(int,  loff_t,  loff_t,  int)’ {aka ‘long int(int,  long long int,  long long int,  int)’} and ‘long int(long int,  long long int,  long long int,  long int)’ [-Wattribute-alias]
