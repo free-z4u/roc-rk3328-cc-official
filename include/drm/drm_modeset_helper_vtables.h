@@ -464,7 +464,6 @@ static inline void drm_crtc_helper_add(struct drm_crtc *crtc,
  * helpers and the new atomic modesetting helpers.
  */
 struct drm_encoder_helper_funcs {
-	int (*loader_protect)(struct drm_encoder *encoder, bool on);
 	/**
 	 * @dpms:
 	 *
@@ -781,7 +780,6 @@ static inline void drm_encoder_helper_add(struct drm_encoder *encoder,
  * probe helpers.
  */
 struct drm_connector_helper_funcs {
-	int (*loader_protect)(struct drm_connector *connector, bool on);
 	/**
 	 * @get_modes:
 	 *

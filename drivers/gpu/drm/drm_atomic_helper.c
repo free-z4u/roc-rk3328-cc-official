@@ -845,11 +845,6 @@ disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 		 */
 		drm_bridge_disable(encoder->bridge);
 
-		if (encoder->loader_protect) {
-			if (funcs->loader_protect)
-				funcs->loader_protect(encoder, false);
-			encoder->loader_protect = false;
-		}
 		/* Right function depends upon target state. */
 		if (funcs) {
 			if (new_conn_state->crtc && funcs->prepare)
@@ -1774,6 +1769,7 @@ int drm_atomic_helper_setup_commit(struct drm_atomic_state *state,
 }
 EXPORT_SYMBOL(drm_atomic_helper_setup_commit);
 
+
 static struct drm_crtc_commit *preceeding_commit(struct drm_crtc *crtc)
 {
 	struct drm_crtc_commit *commit;
@@ -1911,8 +1907,8 @@ void drm_atomic_helper_commit_cleanup_done(struct drm_atomic_state *old_state)
 		ret = wait_for_completion_timeout(&commit->flip_done,
 						  10*HZ);
 		if (ret == 0)
-			DRM_ERROR("[CRTC:%d] flip_done timed out\n",
-				  crtc->base.id);
+			DRM_ERROR("[CRTC:%d:%s] flip_done timed out\n",
+				  crtc->base.id, crtc->name);
 
 del_commit:
 		spin_lock(&crtc->commit_lock);
@@ -2469,7 +2465,8 @@ int drm_atomic_helper_update_plane(struct drm_plane *plane,
 	plane_state->src_w = src_w;
 	plane_state->src_h = src_h;
 
-	state->legacy_cursor_update = true;
+	if (plane == crtc->cursor)
+		state->legacy_cursor_update = true;
 
 	ret = drm_atomic_commit(state);
 fail:
@@ -2506,7 +2503,8 @@ int drm_atomic_helper_disable_plane(struct drm_plane *plane,
 		goto fail;
 	}
 
-	plane_state->state->legacy_cursor_update = true;
+	if (plane_state->crtc && (plane == plane->crtc->cursor))
+		plane_state->state->legacy_cursor_update = true;
 
 	ret = __drm_atomic_helper_disable_plane(plane, plane_state);
 	if (ret != 0)

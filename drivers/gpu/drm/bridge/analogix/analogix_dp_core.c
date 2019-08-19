@@ -741,6 +741,7 @@ static int analogix_dp_set_link_train(struct analogix_dp_device *dp,
 
 static int analogix_dp_config_video(struct analogix_dp_device *dp)
 {
+	int retval = 0;
 	int timeout_loop = 0;
 	int done_count = 0;
 
@@ -777,9 +778,6 @@ static int analogix_dp_config_video(struct analogix_dp_device *dp)
 	/* Configure video slave mode */
 	analogix_dp_enable_video_master(dp, 0);
 
-	/* Enable video */
-	analogix_dp_start_video(dp);
-
 	timeout_loop = 0;
 
 	for (;;) {
@@ -799,7 +797,10 @@ static int analogix_dp_config_video(struct analogix_dp_device *dp)
 		usleep_range(1000, 1001);
 	}
 
-	return 0;
+	if (retval != 0)
+		dev_err(dp->dev, "Video stream is not detected!\n");
+
+	return retval;
 }
 
 static void analogix_dp_enable_scramble(struct analogix_dp_device *dp,
@@ -896,6 +897,9 @@ static void analogix_dp_commit(struct analogix_dp_device *dp)
 		if (drm_panel_enable(dp->plat_data->panel))
 			DRM_ERROR("failed to enable the panel\n");
 	}
+
+	/* Enable video */
+	analogix_dp_start_video(dp);
 
 	dp->psr_support = analogix_dp_detect_sink_psr(dp);
 	if (dp->psr_support)
@@ -1000,22 +1004,7 @@ analogix_dp_best_encoder(struct drm_connector *connector)
 	return dp->encoder;
 }
 
-static int analogix_dp_loader_protect(struct drm_connector *connector, bool on)
-{
-	struct analogix_dp_device *dp = to_dp(connector);
-
-	if (dp->plat_data->panel)
-		drm_panel_loader_protect(dp->plat_data->panel, on);
-	if (on)
-		pm_runtime_get_sync(dp->dev);
-	else
-		pm_runtime_put(dp->dev);
-
-	return 0;
-}
-
 static const struct drm_connector_helper_funcs analogix_dp_connector_helper_funcs = {
-	.loader_protect = analogix_dp_loader_protect,
 	.get_modes = analogix_dp_get_modes,
 	.best_encoder = analogix_dp_best_encoder,
 };
@@ -1434,6 +1423,8 @@ int analogix_dp_bind(struct device *dev, struct drm_device *drm_dev,
 
 	pm_runtime_get_sync(dev);
 	phy_power_on(dp->phy);
+
+	analogix_dp_init_dp(dp);
 
 	ret = devm_request_threaded_irq(&pdev->dev, dp->irq,
 					analogix_dp_hardirq,
