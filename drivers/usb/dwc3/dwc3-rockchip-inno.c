@@ -154,7 +154,7 @@ static int dwc3_rockchip_set_test_mode(struct dwc3_rockchip *rockchip,
 		 * Enable Inno U3 PHY to toggle CP test pattern
 		 * before set XHCI controller enter compliance mode.
 		 */
-		ret = phy_cp_test(dwc->usb3_generic_phy);
+		ret = phy_calibrate(dwc->usb3_generic_phy);
 		if (ret) {
 			dev_err(rockchip->dev, "phy cp test fail!\n");
 			return ret;

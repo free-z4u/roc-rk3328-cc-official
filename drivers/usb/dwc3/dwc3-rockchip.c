@@ -35,6 +35,7 @@
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 #include <linux/usb/ch9.h>
+#include <linux/extcon-provider.h>
 
 #include "core.h"
 #include "io.h"

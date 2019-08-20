@@ -17,6 +17,7 @@
 #include <linux/of_gpio.h>
 #include <linux/regmap.h>
 #include <linux/power_supply.h>
+#include <linux/extcon-provider.h>
 
 #include "fusb302.h"
 
