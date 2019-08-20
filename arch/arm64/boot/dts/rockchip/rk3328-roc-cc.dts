@@ -376,7 +376,6 @@
 &emmc {
 	bus-width = <8>;
 	cap-mmc-highspeed;
-	supports-emmc;
 	disable-wp;
 	non-removable;
 	num-slots = <1>;
@@ -683,7 +682,6 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1_bus4 &sdmmc1_cmd &sdmmc1_clk>;
-	supports-sdio;
 	status = "disabled";
 };
 
@@ -691,7 +689,6 @@
 	bus-width = <4>;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
-	//sd-uhs-sdr104;
 	disable-wp;
 	clock-freq-min-max = <400000 80000000>;
 	clocks = <&cru HCLK_SDMMC>, <&cru SCLK_SDMMC>,
@@ -700,10 +697,8 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_dectn &sdmmc0_bus4>;
-	supports-sd;
 	status = "okay";
 	vmmc-supply = <&vcc_sd>;
-	//vqmmc-supply = <&vccio_sd>;
 };
 
 &spdif {
