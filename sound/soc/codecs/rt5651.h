@@ -2062,6 +2062,8 @@ struct rt5651_priv {
 	struct snd_soc_codec *codec;
 	struct rt5651_platform_data pdata;
 	struct regmap *regmap;
+	struct snd_soc_jack *hp_jack;
+	struct delayed_work jack_detect_work;
 
 	int sysclk;
 	int sysclk_src;
@@ -2079,4 +2081,6 @@ struct rt5651_priv {
 	struct clk *mclk;
 };
 
+int rt5651_set_jack_detect(struct snd_soc_codec *codec,
+			   struct snd_soc_jack *hp_jack);
 #endif /* __RT5651_H__ */
