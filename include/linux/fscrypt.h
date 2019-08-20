@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * fscrypt.h: declarations for per-file encryption
  *
@@ -67,9 +68,6 @@ struct fscrypt_name {
 #define fname_name(p)		((p)->disk_name.name)
 #define fname_len(p)		((p)->disk_name.len)
 
-/* Maximum value for the third parameter of fscrypt_operations.set_context(). */
-#define FSCRYPT_SET_CONTEXT_MAX_SIZE	28
-
 /*
  * fscrypt superblock flags
  */
@@ -84,10 +82,12 @@ struct fscrypt_operations {
 	int (*get_context)(struct inode *, void *, size_t);
 	int (*set_context)(struct inode *, const void *, size_t, void *);
 	bool (*dummy_context)(struct inode *);
-	bool (*is_encrypted)(struct inode *);
 	bool (*empty_dir)(struct inode *);
 	unsigned (*max_namelen)(struct inode *);
 };
+
+/* Maximum value for the third parameter of fscrypt_operations.set_context(). */
+#define FSCRYPT_SET_CONTEXT_MAX_SIZE	28
 
 static inline bool fscrypt_dummy_context_enabled(struct inode *inode)
 {
