@@ -49,6 +49,7 @@
 #include <linux/notifier.h>
 #include <trace/events/power.h>
 #include <linux/percpu.h>
+#include <linux/thread_info.h>
 
 #include <asm/alternative.h>
 #include <asm/compat.h>
@@ -172,68 +173,37 @@ void machine_restart(char *cmd)
 	while (1);
 }
 
-/*
- * dump a block of kernel memory from around the given address
- */
-static void show_data(unsigned long addr, int nbytes, const char *name)
+static void print_pstate(struct pt_regs *regs)
 {
-	int	i, j;
-	int	nlines;
-	u32	*p;
+	u64 pstate = regs->pstate;
 
-	/*
-	 * don't attempt to dump non-kernel addresses or
-	 * values that are probably just small negative numbers
-	 */
-	if (addr < VA_START || addr > -256UL)
-		return;
-
-	printk("\n%s: %#lx:\n", name, addr);
-
-	/*
-	 * round address down to a 32 bit boundary
-	 * and always dump a multiple of 32 bytes
-	 */
-	p = (u32 *)(addr & ~(sizeof(u32) - 1));
-	nbytes += (addr & (sizeof(u32) - 1));
-	nlines = (nbytes + 31) / 32;
-
-
-	for (i = 0; i < nlines; i++) {
-		/*
-		 * just display low 16 bits of address to keep
-		 * each line of the dump < 80 characters
-		 */
-		printk("%04lx ", (unsigned long)p & 0xffff);
-		for (j = 0; j < 8; j++) {
-			u32	data;
-			if (probe_kernel_address(p, data)) {
-				printk(" ********");
-			} else {
-				printk(" %08x", data);
-			}
-			++p;
-		}
-		printk("\n");
+	if (compat_user_mode(regs)) {
+		printk("pstate: %08llx (%c%c%c%c %c %s %s %c%c%c)\n",
+			pstate,
+			pstate & COMPAT_PSR_N_BIT ? 'N' : 'n',
+			pstate & COMPAT_PSR_Z_BIT ? 'Z' : 'z',
+			pstate & COMPAT_PSR_C_BIT ? 'C' : 'c',
+			pstate & COMPAT_PSR_V_BIT ? 'V' : 'v',
+			pstate & COMPAT_PSR_Q_BIT ? 'Q' : 'q',
+			pstate & COMPAT_PSR_T_BIT ? "T32" : "A32",
+			pstate & COMPAT_PSR_E_BIT ? "BE" : "LE",
+			pstate & COMPAT_PSR_A_BIT ? 'A' : 'a',
+			pstate & COMPAT_PSR_I_BIT ? 'I' : 'i',
+			pstate & COMPAT_PSR_F_BIT ? 'F' : 'f');
+	} else {
+		printk("pstate: %08llx (%c%c%c%c %c%c%c%c %cPAN %cUAO)\n",
+			pstate,
+			pstate & PSR_N_BIT ? 'N' : 'n',
+			pstate & PSR_Z_BIT ? 'Z' : 'z',
+			pstate & PSR_C_BIT ? 'C' : 'c',
+			pstate & PSR_V_BIT ? 'V' : 'v',
+			pstate & PSR_D_BIT ? 'D' : 'd',
+			pstate & PSR_A_BIT ? 'A' : 'a',
+			pstate & PSR_I_BIT ? 'I' : 'i',
+			pstate & PSR_F_BIT ? 'F' : 'f',
+			pstate & PSR_PAN_BIT ? '+' : '-',
+			pstate & PSR_UAO_BIT ? '+' : '-');
 	}
-}
-
-static void show_extra_register_data(struct pt_regs *regs, int nbytes)
-{
-	mm_segment_t fs;
-	unsigned int i;
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	show_data(regs->pc - nbytes, nbytes * 2, "PC");
-	show_data(regs->regs[30] - nbytes, nbytes * 2, "LR");
-	show_data(regs->sp - nbytes, nbytes * 2, "SP");
-	for (i = 0; i < 30; i++) {
-		char name[4];
-		snprintf(name, sizeof(name), "X%u", i);
-		show_data(regs->regs[i] - nbytes, nbytes * 2, name);
-	}
-	set_fs(fs);
 }
 
 void __show_regs(struct pt_regs *regs)
@@ -252,10 +222,9 @@ void __show_regs(struct pt_regs *regs)
 	}
 
 	show_regs_print_info(KERN_DEFAULT);
-	print_symbol("PC is at %s\n", instruction_pointer(regs));
-	print_symbol("LR is at %s\n", lr);
-	printk("pc : [<%016llx>] lr : [<%016llx>] pstate: %08llx\n",
-	       regs->pc, lr, regs->pstate);
+	print_pstate(regs);
+	print_symbol("pc : %s\n", regs->pc);
+	print_symbol("lr : %s\n", lr);
 	printk("sp : %016llx\n", sp);
 
 	i = top_reg;
@@ -271,8 +240,6 @@ void __show_regs(struct pt_regs *regs)
 
 		pr_cont("\n");
 	}
-	if (!user_mode(regs))
-		show_extra_register_data(regs, 128);
 }
 
 void show_regs(struct pt_regs * regs)
@@ -309,11 +276,27 @@ void release_thread(struct task_struct *dead_task)
 {
 }
 
+void arch_release_task_struct(struct task_struct *tsk)
+{
+	fpsimd_release_task(tsk);
+}
+
+/*
+ * src and dst may temporarily have aliased sve_state after task_struct
+ * is copied.  We cannot fix this properly here, because src may have
+ * live SVE state and dst's thread_info may not exist yet, so tweaking
+ * either src's or dst's TIF_SVE is not safe.
+ *
+ * The unaliasing is done in copy_thread() instead.  This works because
+ * dst is not schedulable or traceable until both of these functions
+ * have been called.
+ */
 int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
 {
 	if (current->mm)
 		fpsimd_preserve_current_state();
 	*dst = *src;
+
 	return 0;
 }
 
@@ -325,6 +308,13 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
 	struct pt_regs *childregs = task_pt_regs(p);
 
 	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
+
+	/*
+	 * Unalias p->thread.sve_state (if any) from the parent task
+	 * and disable discard SVE state for p:
+	 */
+	clear_tsk_thread_flag(p, TIF_SVE);
+	p->thread.sve_state = NULL;
 
 	/*
 	 * In case p was allocated the same task_struct pointer as some
