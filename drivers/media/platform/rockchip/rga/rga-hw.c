@@ -127,32 +127,6 @@ static struct rga_addr_offset *rga_lookup_draw_pos(struct
 	return NULL;
 }
 
-static unsigned int rga_get_quantization(u32 format, u32 colorspace,
-					 u32 quantization)
-{
-	/*
-	 * The default for R'G'B' quantization is full range by default.
-	 * For Y'CbCr the quantization is limited range by default.
-	 */
-	if (format >= RGA_COLOR_FMT_YUV422SP &&
-		quantization == V4L2_QUANTIZATION_DEFAULT) {
-		quantization = V4L2_QUANTIZATION_LIM_RANGE;
-	} else if (format < RGA_COLOR_FMT_YUV422SP &&
-		quantization == V4L2_QUANTIZATION_DEFAULT) {
-		quantization = V4L2_QUANTIZATION_FULL_RANGE;
-	}
-
-	if (colorspace == V4L2_COLORSPACE_REC709)
-		return RGA_CSC_MODE_BT709_R0;
-
-	if (quantization == V4L2_QUANTIZATION_LIM_RANGE)
-		return RGA_CSC_MODE_BT601_R0;
-	else if (quantization == V4L2_QUANTIZATION_FULL_RANGE)
-		return RGA_CSC_MODE_BT601_R1;
-
-	return RGA_CSC_MODE_BYPASS;
-}
-
 static void rga_cmd_set_src_addr(struct rga_ctx *ctx, void *mmu_pages)
 {
 	struct rockchip_rga *rga = ctx->rga;
@@ -234,34 +208,30 @@ static void rga_cmd_set_trans_info(struct rga_ctx *ctx)
 	dst_info.data.format = ctx->out.fmt->hw_format;
 	dst_info.data.swap = ctx->out.fmt->color_swap;
 
-	/* yuv -> rgb */
-	if (ctx->in.fmt->hw_format >= RGA_COLOR_FMT_YUV422SP &&
-		ctx->out.fmt->hw_format < RGA_COLOR_FMT_YUV422SP)
-		src_info.data.csc_mode =
-			rga_get_quantization(ctx->in.fmt->hw_format,
-				ctx->in.colorspace, ctx->in.quantization);
+	if (ctx->in.fmt->hw_format >= RGA_COLOR_FMT_YUV422SP) {
+		if (ctx->out.fmt->hw_format < RGA_COLOR_FMT_YUV422SP) {
+			switch (ctx->in.colorspace) {
+			case V4L2_COLORSPACE_REC709:
+				src_info.data.csc_mode =
+					RGA_SRC_CSC_MODE_BT709_R0;
+				break;
+			default:
+				src_info.data.csc_mode =
+					RGA_SRC_CSC_MODE_BT601_R0;
+				break;
+			}
+		}
+	}
 
-	/* (yuv -> rgb) -> yuv or rgb -> yuv */
-	if (ctx->out.fmt->hw_format >= RGA_COLOR_FMT_YUV422SP)
-		dst_info.data.csc_mode =
-			rga_get_quantization(ctx->in.fmt->hw_format,
-				ctx->out.colorspace, ctx->out.quantization);
-
-	if (ctx->op == V4L2_PORTER_DUFF_CLEAR) {
-		/*
-		 * Configure the target color to foreground color.
-		 */
-		dest[(RGA_SRC_FG_COLOR - RGA_MODE_BASE_REG) >> 2] =
-			ctx->fill_color;
-		dst_vir_info.data.vir_stride = ctx->out.stride >> 2;
-		dst_act_info.data.act_height = dst_h - 1;
-		dst_act_info.data.act_width = dst_w - 1;
-
-		offsets = rga_get_addr_offset(&ctx->out, dst_x, dst_y,
-					      dst_w, dst_h);
-		dst_offset = &offsets.left_top;
-
-		goto write_dst;
+	if (ctx->out.fmt->hw_format >= RGA_COLOR_FMT_YUV422SP) {
+		switch (ctx->out.colorspace) {
+		case V4L2_COLORSPACE_REC709:
+			dst_info.data.csc_mode = RGA_SRC_CSC_MODE_BT709_R0;
+			break;
+		default:
+			dst_info.data.csc_mode = RGA_DST_CSC_MODE_BT601_R0;
+			break;
+		}
 	}
 
 	if (ctx->vflip)
@@ -374,7 +344,6 @@ static void rga_cmd_set_trans_info(struct rga_ctx *ctx)
 
 	dest[(RGA_SRC_INFO - RGA_MODE_BASE_REG) >> 2] = src_info.val;
 
-write_dst:
 	dest[(RGA_DST_Y_RGB_BASE_ADDR - RGA_MODE_BASE_REG) >> 2] =
 		dst_offset->y_off;
 	dest[(RGA_DST_CB_BASE_ADDR - RGA_MODE_BASE_REG) >> 2] =
@@ -400,260 +369,47 @@ static void rga_cmd_set_mode(struct rga_ctx *ctx)
 	alpha_ctrl0.val = 0;
 	alpha_ctrl1.val = 0;
 
-	switch (ctx->op) {
-	case V4L2_PORTER_DUFF_CLEAR:
-		mode.data.gradient_sat = 1;
-		mode.data.render = RGA_MODE_RENDER_RECTANGLE_FILL;
-		mode.data.cf_rop4_pat = RGA_MODE_CF_ROP4_SOLID;
-		mode.data.bitblt = RGA_MODE_BITBLT_MODE_SRC_TO_DST;
-		break;
-	case V4L2_PORTER_DUFF_DST:
-	case V4L2_PORTER_DUFF_DSTATOP:
-	case V4L2_PORTER_DUFF_DSTIN:
-	case V4L2_PORTER_DUFF_DSTOUT:
-	case V4L2_PORTER_DUFF_DSTOVER:
-	case V4L2_PORTER_DUFF_SRCATOP:
-	case V4L2_PORTER_DUFF_SRCIN:
-	case V4L2_PORTER_DUFF_SRCOUT:
-	case V4L2_PORTER_DUFF_SRCOVER:
-		mode.data.gradient_sat = 1;
-		mode.data.render = RGA_MODE_RENDER_BITBLT;
-		mode.data.bitblt = RGA_MODE_BITBLT_MODE_SRC_TO_DST;
+	mode.data.gradient_sat = 1;
+	mode.data.render = RGA_MODE_RENDER_BITBLT;
+	mode.data.bitblt = RGA_MODE_BITBLT_MODE_SRC_TO_DST;
 
-		alpha_ctrl0.data.rop_en = 1;
-		alpha_ctrl0.data.rop_mode = RGA_ALPHA_ROP_MODE_3;
-		alpha_ctrl0.data.rop_select = RGA_ALPHA_SELECT_ALPHA;
-
-		alpha_ctrl1.data.dst_alpha_cal_m0 = RGA_ALPHA_CAL_NORMAL;
-		alpha_ctrl1.data.src_alpha_cal_m0 = RGA_ALPHA_CAL_NORMAL;
-		alpha_ctrl1.data.dst_alpha_cal_m1 = RGA_ALPHA_CAL_NORMAL;
-		alpha_ctrl1.data.src_alpha_cal_m1 = RGA_ALPHA_CAL_NORMAL;
-		break;
-	default:
-		mode.data.gradient_sat = 1;
-		mode.data.render = RGA_MODE_RENDER_BITBLT;
-		mode.data.bitblt = RGA_MODE_BITBLT_MODE_SRC_TO_DST;
-		break;
-	}
-
-	switch (ctx->op) {
-	case V4L2_PORTER_DUFF_DST:
-		/* A=Dst.a */
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_ONE;
-
-		/* C=Dst.c */
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_ONE;
-		break;
-	case V4L2_PORTER_DUFF_DSTATOP:
-		/* A=Src.a */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ONE;
-
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		/* C=Src.a*Dst.c+Src.c*(1.0-Dst.a) */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_OTHER;
-		break;
-	case V4L2_PORTER_DUFF_DSTIN:
-		/* A=Dst.a*Src.a */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_OTHER;
-
-		/* C=Dst.c*Src.a */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_OTHER;
-		break;
-	case V4L2_PORTER_DUFF_DSTOUT:
-		/* A=Dst.a*(1.0-Src.a) */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		/* C=Dst.c*(1.0-Src.a) */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-		break;
-	case V4L2_PORTER_DUFF_DSTOVER:
-		/* A=Src.a+Dst.a*(1.0-Src.a) */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ONE;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		/* C=Dst.c+Src.c*(1.0-Dst.a) */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_ONE;
-		break;
-	case V4L2_PORTER_DUFF_SRCATOP:
-		/* A=Dst.a */
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_ONE;
-
-		/* C=Dst.a*Src.c+Dst.c*(1.0-Src.a) */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_OTHER;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-		break;
-	case V4L2_PORTER_DUFF_SRCIN:
-		/* A=Src.a*Dst.a */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_OTHER;
-
-		/* C=Src.c*Dst.a */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_OTHER;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_ZERO;
-		break;
-	case V4L2_PORTER_DUFF_SRCOUT:
-		/* A=Src.a*(1.0-Dst.a) */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_ZERO;
-
-		/* C=Src.c*(1.0-Dst.a) */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_ZERO;
-		break;
-	case V4L2_PORTER_DUFF_SRCOVER:
-		/* A=Src.a+Dst.a*(1.0-Src.a) */
-		alpha_ctrl1.data.src_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m1 = RGA_ALPHA_FACTOR_ONE;
-
-		alpha_ctrl1.data.dst_alpha_m1 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m1 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m1 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-
-		/* C=Src.c+Dst.c*(1.0-Src.a) */
-		alpha_ctrl1.data.src_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.src_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.src_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.src_factor_m0 = RGA_ALPHA_FACTOR_ONE;
-
-		alpha_ctrl1.data.dst_color_m0 = RGA_ALPHA_COLOR_NORMAL;
-		alpha_ctrl1.data.dst_alpha_m0 = RGA_ALPHA_NORMAL;
-		alpha_ctrl1.data.dst_blend_m0 = RGA_ALPHA_BLEND_NORMAL;
-		alpha_ctrl1.data.dst_factor_m0 = RGA_ALPHA_FACTOR_OTHER_REVERSE;
-		break;
-	default:
-		break;
-	}
-
+	/* disable alpha blending */
 	dest[(RGA_ALPHA_CTRL0 - RGA_MODE_BASE_REG) >> 2] = alpha_ctrl0.val;
 	dest[(RGA_ALPHA_CTRL1 - RGA_MODE_BASE_REG) >> 2] = alpha_ctrl1.val;
 
 	dest[(RGA_MODE_CTRL - RGA_MODE_BASE_REG) >> 2] = mode.val;
 }
 
-void rga_cmd_set(struct rga_ctx *ctx)
+static void rga_cmd_set(struct rga_ctx *ctx)
 {
 	struct rockchip_rga *rga = ctx->rga;
 
 	memset(rga->cmdbuf_virt, 0, RGA_CMDBUF_SIZE * 4);
 
-	if (ctx->op != V4L2_PORTER_DUFF_CLEAR) {
-		rga_cmd_set_src_addr(ctx, rga->src_mmu_pages);
-		/*
-		 * Due to hardware bug,
-		 * src1 mmu also should be configured when using alpha blending.
-		 */
-		rga_cmd_set_src1_addr(ctx, rga->dst_mmu_pages);
-	}
+	rga_cmd_set_src_addr(ctx, rga->src_mmu_pages);
+	/*
+	 * Due to hardware bug,
+	 * src1 mmu also should be configured when using alpha blending.
+	 */
+	rga_cmd_set_src1_addr(ctx, rga->dst_mmu_pages);
+
 	rga_cmd_set_dst_addr(ctx, rga->dst_mmu_pages);
 	rga_cmd_set_mode(ctx);
 
 	rga_cmd_set_trans_info(ctx);
 
 	rga_write(rga, RGA_CMD_BASE, rga->cmdbuf_phy);
-}
 
-void rga_start(struct rockchip_rga *rga)
-{
 	/* sync CMD buf for RGA */
 	dma_sync_single_for_device(rga->dev, rga->cmdbuf_phy,
-				   PAGE_SIZE, DMA_BIDIRECTIONAL);
+		PAGE_SIZE, DMA_BIDIRECTIONAL);
+}
+
+void rga_hw_start(struct rockchip_rga *rga)
+{
+	struct rga_ctx *ctx = rga->curr;
+
+	rga_cmd_set(ctx);
 
 	rga_write(rga, RGA_SYS_CTRL, 0x00);
 

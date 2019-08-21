@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Fuzhou Rockchip Electronics Co.Ltd
+ * Copyright (C) 2017 Fuzhou Rockchip Electronics Co.Ltd
  * Author: Jacob Chen <jacob-chen@iotwrt.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -34,11 +34,11 @@ rga_queue_setup(struct vb2_queue *vq,
 	if (IS_ERR(f))
 		return PTR_ERR(f);
 
+	if (*nplanes)
+		return sizes[0] < f->size ? -EINVAL : 0;
+
 	sizes[0] = f->size;
 	*nplanes = 1;
-
-	if (*nbuffers == 0)
-		*nbuffers = 1;
 
 	return 0;
 }
@@ -68,10 +68,21 @@ static int rga_buf_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct rga_ctx *ctx = vb2_get_drv_priv(q);
 	struct rockchip_rga *rga = ctx->rga;
-	int ret;
+	int ret, i;
 
 	ret = pm_runtime_get_sync(rga->dev);
-	return ret > 0 ? 0 : ret;
+
+	if (!ret)
+		return 0;
+
+	for (i = 0; i < q->num_buffers; ++i) {
+		if (q->bufs[i]->state == VB2_BUF_STATE_ACTIVE) {
+			v4l2_m2m_buf_done(to_vb2_v4l2_buffer(q->bufs[i]),
+					  VB2_BUF_STATE_QUEUED);
+		}
+	}
+
+	return ret;
 }
 
 static void rga_buf_stop_streaming(struct vb2_queue *q)
