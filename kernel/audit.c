@@ -86,7 +86,7 @@ static int	audit_initialized;
 #define AUDIT_ON	1
 #define AUDIT_LOCKED	2
 u32		audit_enabled = AUDIT_OFF;
-u32		audit_ever_enabled = !!AUDIT_OFF;
+bool		audit_ever_enabled = !!AUDIT_OFF;
 
 EXPORT_SYMBOL_GPL(audit_enabled);
 
@@ -1199,25 +1199,28 @@ static int audit_receive_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 			pid_t auditd_pid;
 			struct pid *req_pid = task_tgid(current);
 
-			/* sanity check - PID values must match */
-			if (new_pid != pid_vnr(req_pid))
+			/* Sanity check - PID values must match. Setting
+			 * pid to 0 is how auditd ends auditing. */
+			if (new_pid && (new_pid != pid_vnr(req_pid)))
 				return -EINVAL;
 
 			/* test the auditd connection */
 			audit_replace(req_pid);
 
 			auditd_pid = auditd_pid_vnr();
-			/* only the current auditd can unregister itself */
-			if ((!new_pid) && (new_pid != auditd_pid)) {
-				audit_log_config_change("audit_pid", new_pid,
-							auditd_pid, 0);
-				return -EACCES;
-			}
-			/* replacing a healthy auditd is not allowed */
-			if (auditd_pid && new_pid) {
-				audit_log_config_change("audit_pid", new_pid,
-							auditd_pid, 0);
-				return -EEXIST;
+			if (auditd_pid) {
+				/* replacing a healthy auditd is not allowed */
+				if (new_pid) {
+					audit_log_config_change("audit_pid",
+							new_pid, auditd_pid, 0);
+					return -EEXIST;
+				}
+				/* only current auditd can unregister itself */
+				if (pid_vnr(req_pid) != auditd_pid) {
+					audit_log_config_change("audit_pid",
+							new_pid, auditd_pid, 0);
+					return -EACCES;
+				}
 			}
 
 			if (new_pid) {
@@ -1551,8 +1554,6 @@ static int __init audit_init(void)
 	register_pernet_subsys(&audit_net_ops);
 
 	audit_initialized = AUDIT_INITIALIZED;
-	audit_enabled = audit_default;
-	audit_ever_enabled |= !!audit_default;
 
 	kauditd_task = kthread_run(kauditd_thread, NULL, "kauditd");
 	if (IS_ERR(kauditd_task)) {
@@ -1566,16 +1567,28 @@ static int __init audit_init(void)
 
 	return 0;
 }
-__initcall(audit_init);
+postcore_initcall(audit_init);
 
-/* Process kernel command-line parameter at boot time.  audit=0 or audit=1. */
+/*
+ * Process kernel command-line parameter at boot time.
+ * audit={0|off} or audit={1|on}.
+ */
 static int __init audit_enable(char *str)
 {
-	audit_default = !!simple_strtol(str, NULL, 0);
-	if (!audit_default)
+	if (!strcasecmp(str, "off") || !strcmp(str, "0"))
+		audit_default = AUDIT_OFF;
+	else if (!strcasecmp(str, "on") || !strcmp(str, "1"))
+		audit_default = AUDIT_ON;
+	else {
+		pr_err("audit: invalid 'audit' parameter value (%s)\n", str);
+		audit_default = AUDIT_ON;
+	}
+
+	if (audit_default == AUDIT_OFF)
 		audit_initialized = AUDIT_DISABLED;
-	audit_enabled = audit_default;
-	audit_ever_enabled = !!audit_enabled;
+	if (audit_set_enabled(audit_default))
+		pr_err("audit: error setting audit state (%d)\n",
+		       audit_default);
 
 	pr_info("%s\n", audit_default ?
 		"enabled (after initialization)" : "disabled (until reboot)");
@@ -2340,32 +2353,6 @@ void audit_log(struct audit_context *ctx, gfp_t gfp_mask, int type,
 		audit_log_end(ab);
 	}
 }
-
-#ifdef CONFIG_SECURITY
-/**
- * audit_log_secctx - Converts and logs SELinux context
- * @ab: audit_buffer
- * @secid: security number
- *
- * This is a helper function that calls security_secid_to_secctx to convert
- * secid to secctx and then adds the (converted) SELinux context to the audit
- * log by calling audit_log_format, thus also preventing leak of internal secid
- * to userspace. If secid cannot be converted audit_panic is called.
- */
-void audit_log_secctx(struct audit_buffer *ab, u32 secid)
-{
-	u32 len;
-	char *secctx;
-
-	if (security_secid_to_secctx(secid, &secctx, &len)) {
-		audit_panic("Cannot convert secid to context");
-	} else {
-		audit_log_format(ab, " obj=%s", secctx);
-		security_release_secctx(secctx, len);
-	}
-}
-EXPORT_SYMBOL(audit_log_secctx);
-#endif
 
 EXPORT_SYMBOL(audit_log_start);
 EXPORT_SYMBOL(audit_log_end);
