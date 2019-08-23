@@ -144,7 +144,6 @@ struct __drm_planes_state {
 struct __drm_crtcs_state {
 	struct drm_crtc *ptr;
 	struct drm_crtc_state *state, *old_state, *new_state;
-	struct drm_crtc_commit *commit;
 	s32 __user *out_fence_ptr;
 	unsigned last_vblank_count;
 };
@@ -252,10 +251,14 @@ void __drm_crtc_commit_free(struct kref *kref);
  * @commit: CRTC commit
  *
  * Increases the reference of @commit.
+ *
+ * Returns:
+ * The pointer to @commit, with reference increased.
  */
-static inline void drm_crtc_commit_get(struct drm_crtc_commit *commit)
+static inline struct drm_crtc_commit *drm_crtc_commit_get(struct drm_crtc_commit *commit)
 {
 	kref_get(&commit->ref);
+	return commit;
 }
 
 /**
@@ -643,7 +646,7 @@ void drm_state_dump(struct drm_device *dev, struct drm_printer *p);
 		for_each_if (connector)
 
 /**
- * for_each_crtc_in_state - iterate over all connectors in an atomic update
+ * for_each_crtc_in_state - iterate over all CRTCs in an atomic update
  * @__state: &struct drm_atomic_state pointer
  * @crtc: &struct drm_crtc iteration cursor
  * @crtc_state: &struct drm_crtc_state iteration cursor
