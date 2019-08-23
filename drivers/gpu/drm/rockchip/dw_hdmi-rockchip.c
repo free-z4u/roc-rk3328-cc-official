@@ -162,7 +162,7 @@ static int inno_dw_hdmi_init(struct rockchip_hdmi *hdmi)
 
 	ret = clk_prepare_enable(hdmi->grf_clk);
 	if (ret < 0) {
-		dev_err(hdmi->dev, "failed to enable grfclk %d\n", ret);
+		DRM_DEV_ERROR(hdmi->dev, "failed to enable grfclk %d\n", ret);
 		return -EPROBE_DEFER;
 	}
 	/* Map HPD pin to 3V io */
@@ -360,7 +360,7 @@ static int rockchip_hdmi_update_phy_table(struct rockchip_hdmi *hdmi,
 	int i;
 
 	if (phy_table_size > ARRAY_SIZE(rockchip_phy_config)) {
-		dev_err(hdmi->dev, "phy table array number is out of range\n");
+		DRM_DEV_ERROR(hdmi->dev, "phy table array number is out of range\n");
 		return -E2BIG;
 	}
 
@@ -415,7 +415,7 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 	} else if (PTR_ERR(hdmi->hclk_vio) == -EPROBE_DEFER) {
 		return -EPROBE_DEFER;
 	} else if (IS_ERR(hdmi->hclk_vio)) {
-		dev_err(hdmi->dev, "failed to get hclk_vio clock\n");
+		DRM_DEV_ERROR(hdmi->dev, "failed to get hclk_vio clock\n");
 		return PTR_ERR(hdmi->hclk_vio);
 	}
 
@@ -425,19 +425,20 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 	} else if (PTR_ERR(hdmi->dclk) == -EPROBE_DEFER) {
 		return -EPROBE_DEFER;
 	} else if (IS_ERR(hdmi->dclk)) {
-		dev_err(hdmi->dev, "failed to get dclk\n");
+		DRM_DEV_ERROR(hdmi->dev, "failed to get dclk\n");
 		return PTR_ERR(hdmi->dclk);
 	}
 
 	ret = clk_prepare_enable(hdmi->vpll_clk);
 	if (ret) {
-		dev_err(hdmi->dev, "Failed to enable HDMI vpll: %d\n", ret);
+		DRM_DEV_ERROR(hdmi->dev,
+			      "Failed to enable HDMI vpll: %d\n", ret);
 		return ret;
 	}
 
 	ret = clk_prepare_enable(hdmi->hclk_vio);
 	if (ret) {
-		dev_err(hdmi->dev, "Failed to eanble HDMI hclk_vio: %d\n",
+		DRM_DEV_ERROR(hdmi->dev, "Failed to eanble HDMI hclk_vio: %d\n",
 			ret);
 		return ret;
 	}
@@ -446,7 +447,7 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 		phy_config = kmalloc(val, GFP_KERNEL);
 		if (!phy_config) {
 			/* use default table when kmalloc failed. */
-			dev_err(hdmi->dev, "kmalloc phy table failed\n");
+			DRM_DEV_ERROR(hdmi->dev, "kmalloc phy table failed\n");
 
 			return -ENOMEM;
 		}

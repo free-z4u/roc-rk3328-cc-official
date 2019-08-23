@@ -263,7 +263,6 @@ struct drm_crtc_state {
 	struct drm_crtc_commit *commit;
 
 	struct drm_atomic_state *state;
-	struct drm_crtc_commit *commit;
 };
 
 /**

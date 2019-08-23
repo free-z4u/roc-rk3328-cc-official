@@ -171,7 +171,7 @@ static void vop_reg_set(struct vop *vop, const struct vop_reg *reg,
 	int offset, mask, shift;
 
 	if (!reg || !reg->mask) {
-		dev_dbg(vop->dev, "Warning: not support %s\n", reg_name);
+		DRM_DEV_DEBUG(vop->dev, "Warning: not support %s\n", reg_name);
 		return;
 	}
 
@@ -510,7 +510,7 @@ static int vop_enable(struct drm_crtc *crtc)
 
 	ret = pm_runtime_get_sync(vop->dev);
 	if (ret < 0) {
-		dev_err(vop->dev, "failed to get pm runtime: %d\n", ret);
+		DRM_DEV_ERROR(vop->dev, "failed to get pm runtime: %d\n", ret);
 		return ret;
 	}
 
@@ -534,7 +534,8 @@ static int vop_enable(struct drm_crtc *crtc)
 	 */
 	ret = rockchip_drm_dma_attach_device(vop->drm_dev, vop->dev);
 	if (ret) {
-		dev_err(vop->dev, "failed to attach dma mapping, %d\n", ret);
+		DRM_DEV_ERROR(vop->dev,
+			      "failed to attach dma mapping, %d\n", ret);
 		goto err_disable_aclk;
 	}
 
@@ -1377,42 +1378,42 @@ static int vop_initial(struct vop *vop)
 
 	vop->hclk = devm_clk_get(vop->dev, "hclk_vop");
 	if (IS_ERR(vop->hclk)) {
-		dev_err(vop->dev, "failed to get hclk source\n");
+		DRM_DEV_ERROR(vop->dev, "failed to get hclk source\n");
 		return PTR_ERR(vop->hclk);
 	}
 	vop->aclk = devm_clk_get(vop->dev, "aclk_vop");
 	if (IS_ERR(vop->aclk)) {
-		dev_err(vop->dev, "failed to get aclk source\n");
+		DRM_DEV_ERROR(vop->dev, "failed to get aclk source\n");
 		return PTR_ERR(vop->aclk);
 	}
 	vop->dclk = devm_clk_get(vop->dev, "dclk_vop");
 	if (IS_ERR(vop->dclk)) {
-		dev_err(vop->dev, "failed to get dclk source\n");
+		DRM_DEV_ERROR(vop->dev, "failed to get dclk source\n");
 		return PTR_ERR(vop->dclk);
 	}
 
 	ret = pm_runtime_get_sync(vop->dev);
 	if (ret < 0) {
-		dev_err(vop->dev, "failed to get pm runtime: %d\n", ret);
+		DRM_DEV_ERROR(vop->dev, "failed to get pm runtime: %d\n", ret);
 		return ret;
 	}
 
 	ret = clk_prepare(vop->dclk);
 	if (ret < 0) {
-		dev_err(vop->dev, "failed to prepare dclk\n");
+		DRM_DEV_ERROR(vop->dev, "failed to prepare dclk\n");
 		goto err_put_pm_runtime;
 	}
 
 	/* Enable both the hclk and aclk to setup the vop */
 	ret = clk_prepare_enable(vop->hclk);
 	if (ret < 0) {
-		dev_err(vop->dev, "failed to prepare/enable hclk\n");
+		DRM_DEV_ERROR(vop->dev, "failed to prepare/enable hclk\n");
 		goto err_unprepare_dclk;
 	}
 
 	ret = clk_prepare_enable(vop->aclk);
 	if (ret < 0) {
-		dev_err(vop->dev, "failed to prepare/enable aclk\n");
+		DRM_DEV_ERROR(vop->dev, "failed to prepare/enable aclk\n");
 		goto err_disable_hclk;
 	}
 
@@ -1421,7 +1422,7 @@ static int vop_initial(struct vop *vop)
 	 */
 	ahb_rst = devm_reset_control_get(vop->dev, "ahb");
 	if (IS_ERR(ahb_rst)) {
-		dev_err(vop->dev, "failed to get ahb reset\n");
+		DRM_DEV_ERROR(vop->dev, "failed to get ahb reset\n");
 		ret = PTR_ERR(ahb_rst);
 		goto err_disable_aclk;
 	}
@@ -1450,7 +1451,7 @@ static int vop_initial(struct vop *vop)
 	 */
 	vop->dclk_rst = devm_reset_control_get(vop->dev, "dclk");
 	if (IS_ERR(vop->dclk_rst)) {
-		dev_err(vop->dev, "failed to get dclk reset\n");
+		DRM_DEV_ERROR(vop->dev, "failed to get dclk reset\n");
 		ret = PTR_ERR(vop->dclk_rst);
 		goto err_disable_aclk;
 	}
@@ -1515,7 +1516,6 @@ int rockchip_drm_wait_vact_end(struct drm_crtc *crtc, unsigned int mstimeout)
 		return -ENODEV;
 
 	mutex_lock(&vop->vop_lock);
-
 	if (mstimeout <= 0) {
 		ret = -EINVAL;
 		goto out;
@@ -1534,14 +1534,13 @@ int rockchip_drm_wait_vact_end(struct drm_crtc *crtc, unsigned int mstimeout)
 	vop_line_flag_irq_disable(vop);
 
 	if (jiffies_left == 0) {
-		dev_err(vop->dev, "Timeout waiting for IRQ\n");
+		DRM_DEV_ERROR(vop->dev, "Timeout waiting for IRQ\n");
 		ret = -ETIMEDOUT;
 		goto out;
 	}
 
 out:
 	mutex_unlock(&vop->vop_lock);
-
 	return ret;
 }
 EXPORT_SYMBOL(rockchip_drm_wait_vact_end);
@@ -1624,7 +1623,7 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
-		dev_err(dev, "cannot find irq for vop\n");
+		DRM_DEV_ERROR(dev, "cannot find irq for vop\n");
 		return irq;
 	}
 	vop->irq = (unsigned int)irq;
@@ -1668,7 +1667,8 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 
 	ret = vop_initial(vop);
 	if (ret < 0) {
-		dev_err(&pdev->dev, "cannot initial vop dev - err %d\n", ret);
+		DRM_DEV_ERROR(&pdev->dev,
+			      "cannot initial vop dev - err %d\n", ret);
 		goto err_disable_pm_runtime;
 	}
 
