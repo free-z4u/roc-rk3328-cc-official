@@ -977,10 +977,6 @@ struct drm_connector_helper_funcs {
 	 */
 	int (*atomic_check)(struct drm_connector *connector,
 			    struct drm_connector_state *state);
-	void (*atomic_begin)(struct drm_connector *connector,
-			     struct drm_connector_state *conn_state);
-	void (*atomic_flush)(struct drm_connector *connector,
-			     struct drm_connector_state *conn_state);
 };
 
 /**
