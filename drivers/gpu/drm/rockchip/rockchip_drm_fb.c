@@ -113,8 +113,9 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 	ret = drm_framebuffer_init(dev, &rockchip_fb->fb,
 				   &rockchip_drm_fb_funcs);
 	if (ret) {
-		dev_err(dev->dev, "Failed to initialize framebuffer: %d\n",
-			ret);
+		DRM_DEV_ERROR(dev->dev,
+			      "Failed to initialize framebuffer: %d\n",
+			      ret);
 		goto err_free_fb;
 	}
 
@@ -128,7 +129,7 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 		}
 	} else {
 		ret = -EINVAL;
-		dev_err(dev->dev, "Failed to find available buffer\n");
+		DRM_DEV_ERROR(dev->dev, "Failed to find available buffer\n");
 		goto err_deinit_drm_fb;
 	}
 
@@ -166,7 +167,8 @@ rockchip_user_fb_create(struct drm_device *dev, struct drm_file *file_priv,
 
 		obj = drm_gem_object_lookup(file_priv, mode_cmd->handles[i]);
 		if (!obj) {
-			dev_err(dev->dev, "Failed to lookup GEM object\n");
+			DRM_DEV_ERROR(dev->dev,
+				      "Failed to lookup GEM object\n");
 			ret = -ENXIO;
 			goto err_gem_object_unreference;
 		}
@@ -209,17 +211,17 @@ static int rockchip_drm_bandwidth_atomic_check(struct drm_device *dev,
 					       size_t *bandwidth)
 {
 	struct rockchip_drm_private *priv = dev->dev_private;
-	struct drm_crtc_state *crtc_state;
+	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
 	const struct rockchip_crtc_funcs *funcs;
 	struct drm_crtc *crtc;
 	int i, ret = 0;
 
 	*bandwidth = 0;
-	for_each_crtc_in_state(state, crtc, crtc_state, i) {
+	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
 		funcs = priv->crtc_funcs[drm_crtc_index(crtc)];
 
 		if (funcs && funcs->bandwidth)
-			*bandwidth += funcs->bandwidth(crtc, crtc_state);
+			*bandwidth += funcs->bandwidth(crtc, new_crtc_state);
 	}
 
 	if (priv->devfreq)
