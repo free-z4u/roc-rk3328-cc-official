@@ -65,7 +65,7 @@ i915-y += intel_uc.o \
 	  intel_guc.o \
 	  intel_guc_ct.o \
 	  intel_guc_log.o \
-	  intel_guc_loader.o \
+	  intel_guc_fw.o \
 	  intel_huc.o \
 	  i915_guc_submission.o
 

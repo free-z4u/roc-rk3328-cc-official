@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Advanced Micro Devices, Inc.
+ * Copyright 2017 Red Hat Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,29 +19,27 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+#include "mem.h"
+#include "vmm.h"
 
-/*
- * radeon_kfd.h defines the private interface between the
- * AMD kernel graphics drivers and the AMD KFD.
- */
+#include <core/option.h>
 
-#ifndef RADEON_KFD_H_INCLUDED
-#define RADEON_KFD_H_INCLUDED
+#include <nvif/class.h>
 
-#include <linux/types.h>
-#include "kgd_kfd_interface.h"
+static const struct nvkm_mmu_func
+gp10b_mmu = {
+	.dma_bits = 47,
+	.mmu = {{ -1, -1, NVIF_CLASS_MMU_GF100}},
+	.mem = {{ -1, -1, NVIF_CLASS_MEM_GF100}, .umap = gf100_mem_map },
+	.vmm = {{ -1, -1, NVIF_CLASS_VMM_GP100}, gp10b_vmm_new },
+	.kind = gm200_mmu_kind,
+	.kind_sys = true,
+};
 
-struct radeon_device;
-
-int radeon_kfd_init(void);
-void radeon_kfd_fini(void);
-
-void radeon_kfd_suspend(struct radeon_device *rdev);
-int radeon_kfd_resume(struct radeon_device *rdev);
-void radeon_kfd_interrupt(struct radeon_device *rdev,
-			const void *ih_ring_entry);
-void radeon_kfd_device_probe(struct radeon_device *rdev);
-void radeon_kfd_device_init(struct radeon_device *rdev);
-void radeon_kfd_device_fini(struct radeon_device *rdev);
-
-#endif /* RADEON_KFD_H_INCLUDED */
+int
+gp10b_mmu_new(struct nvkm_device *device, int index, struct nvkm_mmu **pmmu)
+{
+	if (!nvkm_boolopt(device->cfgopt, "GP100MmuLayout", true))
+		return gm20b_mmu_new(device, index, pmmu);
+	return nvkm_mmu_new_(&gp10b_mmu, device, index, pmmu);
+}
