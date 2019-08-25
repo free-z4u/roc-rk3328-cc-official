@@ -1371,6 +1371,31 @@ static void commit_work(struct work_struct *work)
 }
 
 /**
+ * for_each_plane_in_state - iterate over all planes in an atomic update
+ * @__state: &struct drm_atomic_state pointer
+ * @plane: &struct drm_plane iteration cursor
+ * @plane_state: &struct drm_plane_state iteration cursor
+ * @__i: int iteration cursor, for macro-internal use
+ *
+ * This iterates over all planes in an atomic update. Note that before the
+ * software state is committed (by calling drm_atomic_helper_swap_state(), this
+ * points to the new state, while afterwards it points to the old state. Due to
+ * this tricky confusion this macro is deprecated.
+ *
+ * FIXME:
+ *
+ * Replace all usage of this with one of the explicit iterators below and then
+ * remove this macro.
+ */
+#define for_each_plane_in_state(__state, plane, plane_state, __i)		\
+	for ((__i) = 0;							\
+	     (__i) < (__state)->dev->mode_config.num_total_plane &&	\
+	     ((plane) = (__state)->planes[__i].ptr,				\
+	     (plane_state) = (__state)->planes[__i].state, 1);		\
+	     (__i)++)							\
+		for_each_if (plane_state)
+
+/**
  * drm_atomic_helper_async_check - check if state can be commited asynchronously
  * @dev: DRM device
  * @state: the driver state object
