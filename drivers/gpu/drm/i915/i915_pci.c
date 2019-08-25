@@ -200,7 +200,6 @@ static const struct intel_device_info intel_gm45_info __initconst = {
 #define GEN5_FEATURES \
 	.gen = 5, .num_pipes = 2, \
 	.has_hotplug = 1, \
-	.has_gmbus_irq = 1, \
 	.ring_mask = RENDER_RING | BSD_RING, \
 	.has_snoop = true, \
 	GEN_DEFAULT_PIPEOFFSETS, \
@@ -225,7 +224,6 @@ static const struct intel_device_info intel_ironlake_m_info __initconst = {
 	.has_llc = 1, \
 	.has_rc6 = 1, \
 	.has_rc6p = 1, \
-	.has_gmbus_irq = 1, \
 	.has_aliasing_ppgtt = 1, \
 	GEN_DEFAULT_PIPEOFFSETS, \
 	CURSOR_OFFSETS
@@ -268,7 +266,6 @@ static const struct intel_device_info intel_sandybridge_m_gt2_info __initconst =
 	.has_llc = 1, \
 	.has_rc6 = 1, \
 	.has_rc6p = 1, \
-	.has_gmbus_irq = 1, \
 	.has_aliasing_ppgtt = 1, \
 	.has_full_ppgtt = 1, \
 	GEN_DEFAULT_PIPEOFFSETS, \
@@ -321,7 +318,6 @@ static const struct intel_device_info intel_valleyview_info __initconst = {
 	.has_psr = 1,
 	.has_runtime_pm = 1,
 	.has_rc6 = 1,
-	.has_gmbus_irq = 1,
 	.has_gmch_display = 1,
 	.has_hotplug = 1,
 	.has_aliasing_ppgtt = 1,
@@ -412,7 +408,6 @@ static const struct intel_device_info intel_cherryview_info __initconst = {
 	.has_runtime_pm = 1,
 	.has_resource_streamer = 1,
 	.has_rc6 = 1,
-	.has_gmbus_irq = 1,
 	.has_logical_ring_contexts = 1,
 	.has_gmch_display = 1,
 	.has_aliasing_ppgtt = 1,
@@ -474,7 +469,6 @@ static const struct intel_device_info intel_skylake_gt4_info __initconst = {
 	.has_resource_streamer = 1, \
 	.has_rc6 = 1, \
 	.has_dp_mst = 1, \
-	.has_gmbus_irq = 1, \
 	.has_logical_ring_contexts = 1, \
 	.has_guc = 1, \
 	.has_aliasing_ppgtt = 1, \
@@ -526,7 +520,6 @@ static const struct intel_device_info intel_kabylake_gt3_info __initconst = {
 };
 
 #define CFL_PLATFORM \
-	.is_alpha_support = 1, \
 	BDW_FEATURES, \
 	.gen = 9, \
 	.platform = INTEL_COFFEELAKE, \
@@ -638,7 +631,7 @@ static int i915_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		(struct intel_device_info *) ent->driver_data;
 	int err;
 
-	if (IS_ALPHA_SUPPORT(intel_info) && !i915.alpha_support) {
+	if (IS_ALPHA_SUPPORT(intel_info) && !i915_modparams.alpha_support) {
 		DRM_INFO("The driver support for your hardware in this kernel version is alpha quality\n"
 			 "See CONFIG_DRM_I915_ALPHA_SUPPORT or i915.alpha_support module parameter\n"
 			 "to enable support in this kernel version, or check for kernel updates.\n");
@@ -696,10 +689,10 @@ static int __init i915_init(void)
 	 * vga_text_mode_force boot option.
 	 */
 
-	if (i915.modeset == 0)
+	if (i915_modparams.modeset == 0)
 		use_kms = false;
 
-	if (vgacon_text_force() && i915.modeset == -1)
+	if (vgacon_text_force() && i915_modparams.modeset == -1)
 		use_kms = false;
 
 	if (!use_kms) {

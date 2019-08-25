@@ -58,23 +58,22 @@
 
 static void gen9_init_clock_gating(struct drm_i915_private *dev_priv)
 {
+	if (HAS_LLC(dev_priv)) {
+		/*
+		 * WaCompressedResourceDisplayNewHashMode:skl,kbl
+		 * Display WA#0390: skl,kbl
+		 *
+		 * Must match Sampler, Pixel Back End, and Media. See
+		 * WaCompressedResourceSamplerPbeMediaNewHashMode.
+		 */
+		I915_WRITE(CHICKEN_PAR1_1,
+			   I915_READ(CHICKEN_PAR1_1) |
+			   SKL_DE_COMPRESSED_HASH_MODE);
+	}
+
 	/* See Bspec note for PSR2_CTL bit 31, Wa#828:skl,bxt,kbl,cfl */
 	I915_WRITE(CHICKEN_PAR1_1,
 		   I915_READ(CHICKEN_PAR1_1) | SKL_EDP_PSR_FIX_RDWRAP);
-
-	/*
-	 * Display WA#0390: skl,bxt,kbl,glk
-	 *
-	 * Must match Sampler, Pixel Back End, and Media
-	 * (0xE194 bit 8, 0x7014 bit 13, 0x4DDC bits 27 and 31).
-	 *
-	 * Including bits outside the page in the hash would
-	 * require 2 (or 4?) MiB alignment of resources. Just
-	 * assume the defaul hashing mode which only uses bits
-	 * within the page.
-	 */
-	I915_WRITE(CHICKEN_PAR1_1,
-		   I915_READ(CHICKEN_PAR1_1) & ~SKL_RC_HASH_OUTSIDE);
 
 	I915_WRITE(GEN8_CONFIG0,
 		   I915_READ(GEN8_CONFIG0) | GEN9_DEFAULT_FIXES);
@@ -7817,7 +7816,7 @@ void intel_init_gt_powersave(struct drm_i915_private *dev_priv)
 	 * RPM depends on RC6 to save restore the GT HW context, so make RC6 a
 	 * requirement.
 	 */
-	if (!i915.enable_rc6) {
+	if (!i915_modparams.enable_rc6) {
 		DRM_INFO("RC6 disabled, disabling runtime PM support\n");
 		intel_runtime_pm_get(dev_priv);
 	}
@@ -7874,7 +7873,7 @@ void intel_cleanup_gt_powersave(struct drm_i915_private *dev_priv)
 	if (IS_VALLEYVIEW(dev_priv))
 		valleyview_cleanup_gt_powersave(dev_priv);
 
-	if (!i915.enable_rc6)
+	if (!i915_modparams.enable_rc6)
 		intel_runtime_pm_put(dev_priv);
 }
 
@@ -7996,7 +7995,7 @@ static void __intel_autoenable_gt_powersave(struct work_struct *work)
 	if (IS_ERR(req))
 		goto unlock;
 
-	if (!i915.enable_execlists && i915_switch_context(req) == 0)
+	if (!i915_modparams.enable_execlists && i915_switch_context(req) == 0)
 		rcs->init_context(req);
 
 	/* Mark the device busy, calling intel_enable_gt_powersave() */
@@ -8364,7 +8363,8 @@ static void cnp_init_clock_gating(struct drm_i915_private *dev_priv)
 		return;
 
 	/* Wa #1181 */
-	I915_WRITE(SOUTH_DSPCLK_GATE_D, CNP_PWM_CGE_GATING_DISABLE);
+	I915_WRITE(SOUTH_DSPCLK_GATE_D, I915_READ(SOUTH_DSPCLK_GATE_D) |
+		   CNP_PWM_CGE_GATING_DISABLE);
 }
 
 static void cnl_init_clock_gating(struct drm_i915_private *dev_priv)
