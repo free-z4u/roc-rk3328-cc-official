@@ -804,20 +804,28 @@ static void send_vblank_event(struct drm_device *dev,
 		struct drm_pending_vblank_event *e,
 		u64 seq, ktime_t now)
 {
-	struct timespec64 tv = ktime_to_timespec64(now);
+	struct timespec64 tv;
 
-	e->event.sequence = seq;
-	/*
-	 * e->event is a user space structure, with hardcoded unsigned
-	 * 32-bit seconds/microseconds. This is safe as we always use
-	 * monotonic timestamps since linux-4.15
-	 */
-	e->event.tv_sec = tv.tv_sec;
-	e->event.tv_usec = tv.tv_nsec / 1000;
-
-	trace_drm_vblank_event_delivered(e->base.file_priv, e->pipe,
-					 e->event.sequence);
-
+	switch (e->event.base.type) {
+	case DRM_EVENT_VBLANK:
+	case DRM_EVENT_FLIP_COMPLETE:
+		tv = ktime_to_timespec64(now);
+		e->event.vbl.sequence = seq;
+		/*
+		 * e->event is a user space structure, with hardcoded unsigned
+		 * 32-bit seconds/microseconds. This is safe as we always use
+		 * monotonic timestamps since linux-4.15
+		 */
+		e->event.vbl.tv_sec = tv.tv_sec;
+		e->event.vbl.tv_usec = tv.tv_nsec / 1000;
+		break;
+	case DRM_EVENT_CRTC_SEQUENCE:
+		if (seq)
+			e->event.seq.sequence = seq;
+		e->event.seq.time_ns = ktime_to_ns(now);
+		break;
+	}
+	trace_drm_vblank_event_delivered(e->base.file_priv, e->pipe, seq);
 	drm_send_event_locked(dev, &e->base);
 }
 
@@ -869,7 +877,6 @@ void drm_crtc_arm_vblank_event(struct drm_crtc *crtc,
 
 	e->pipe = pipe;
 	e->sequence = drm_crtc_accurate_vblank_count(crtc) + 1;
-	e->event.crtc_id = crtc->base.id;
 	list_add_tail(&e->base.link, &dev->vblank_event_list);
 }
 EXPORT_SYMBOL(drm_crtc_arm_vblank_event);
@@ -893,7 +900,6 @@ void drm_crtc_send_vblank_event(struct drm_crtc *crtc,
 	unsigned int pipe = drm_crtc_index(crtc);
 	ktime_t now;
 
-	e->event.crtc_id = crtc->base.id;
 	if (dev->num_crtcs > 0) {
 		seq = drm_vblank_count_and_time(dev, pipe, &now);
 	} else {
@@ -902,7 +908,6 @@ void drm_crtc_send_vblank_event(struct drm_crtc *crtc,
 		now = ktime_get();
 	}
 	e->pipe = pipe;
-	e->event.crtc_id = crtc->base.id;
 	send_vblank_event(dev, e, seq, now);
 }
 EXPORT_SYMBOL(drm_crtc_send_vblank_event);
@@ -1337,8 +1342,14 @@ static int drm_queue_vblank_event(struct drm_device *dev, unsigned int pipe,
 
 	e->pipe = pipe;
 	e->event.base.type = DRM_EVENT_VBLANK;
-	e->event.base.length = sizeof(e->event);
-	e->event.user_data = vblwait->request.signal;
+	e->event.base.length = sizeof(e->event.vbl);
+	e->event.vbl.user_data = vblwait->request.signal;
+	e->event.vbl.crtc_id = 0;
+	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
+		struct drm_crtc *crtc = drm_crtc_from_index(dev, pipe);
+		if (crtc)
+			e->event.vbl.crtc_id = crtc->base.id;
+	}
 
 	spin_lock_irqsave(&dev->event_lock, flags);
 
@@ -1436,10 +1447,12 @@ static void drm_wait_vblank_reply(struct drm_device *dev, unsigned int pipe,
 int drm_wait_vblank_ioctl(struct drm_device *dev, void *data,
 			  struct drm_file *file_priv)
 {
+	struct drm_crtc *crtc;
 	struct drm_vblank_crtc *vblank;
 	union drm_wait_vblank *vblwait = data;
 	int ret;
 	u64 req_seq, seq;
+	unsigned int pipe_index;
 	unsigned int flags, pipe, high_pipe;
 
 	if (!dev->irq_enabled)
@@ -1461,9 +1474,25 @@ int drm_wait_vblank_ioctl(struct drm_device *dev, void *data,
 	flags = vblwait->request.type & _DRM_VBLANK_FLAGS_MASK;
 	high_pipe = (vblwait->request.type & _DRM_VBLANK_HIGH_CRTC_MASK);
 	if (high_pipe)
-		pipe = high_pipe >> _DRM_VBLANK_HIGH_CRTC_SHIFT;
+		pipe_index = high_pipe >> _DRM_VBLANK_HIGH_CRTC_SHIFT;
 	else
-		pipe = flags & _DRM_VBLANK_SECONDARY ? 1 : 0;
+		pipe_index = flags & _DRM_VBLANK_SECONDARY ? 1 : 0;
+
+	/* Convert lease-relative crtc index into global crtc index */
+	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
+		pipe = 0;
+		drm_for_each_crtc(crtc, dev) {
+			if (drm_lease_held(file_priv, crtc->base.id)) {
+				if (pipe_index == 0)
+					break;
+				pipe_index--;
+			}
+			pipe++;
+		}
+	} else {
+		pipe = pipe_index;
+	}
+
 	if (pipe >= dev->num_crtcs)
 		return -EINVAL;
 
@@ -1644,3 +1673,166 @@ bool drm_crtc_handle_vblank(struct drm_crtc *crtc)
 	return drm_handle_vblank(crtc->dev, drm_crtc_index(crtc));
 }
 EXPORT_SYMBOL(drm_crtc_handle_vblank);
+
+/*
+ * Get crtc VBLANK count.
+ *
+ * \param dev DRM device
+ * \param data user arguement, pointing to a drm_crtc_get_sequence structure.
+ * \param file_priv drm file private for the user's open file descriptor
+ */
+
+int drm_crtc_get_sequence_ioctl(struct drm_device *dev, void *data,
+				struct drm_file *file_priv)
+{
+	struct drm_crtc *crtc;
+	struct drm_vblank_crtc *vblank;
+	int pipe;
+	struct drm_crtc_get_sequence *get_seq = data;
+	ktime_t now;
+	bool vblank_enabled;
+	int ret;
+
+	if (!drm_core_check_feature(dev, DRIVER_MODESET))
+		return -EINVAL;
+
+	if (!dev->irq_enabled)
+		return -EINVAL;
+
+	crtc = drm_crtc_find(dev, file_priv, get_seq->crtc_id);
+	if (!crtc)
+		return -ENOENT;
+
+	pipe = drm_crtc_index(crtc);
+
+	vblank = &dev->vblank[pipe];
+	vblank_enabled = dev->vblank_disable_immediate && READ_ONCE(vblank->enabled);
+
+	if (!vblank_enabled) {
+		ret = drm_crtc_vblank_get(crtc);
+		if (ret) {
+			DRM_DEBUG("crtc %d failed to acquire vblank counter, %d\n", pipe, ret);
+			return ret;
+		}
+	}
+	drm_modeset_lock(&crtc->mutex, NULL);
+	if (crtc->state)
+		get_seq->active = crtc->state->enable;
+	else
+		get_seq->active = crtc->enabled;
+	drm_modeset_unlock(&crtc->mutex);
+	get_seq->sequence = drm_vblank_count_and_time(dev, pipe, &now);
+	get_seq->sequence_ns = ktime_to_ns(now);
+	if (!vblank_enabled)
+		drm_crtc_vblank_put(crtc);
+	return 0;
+}
+
+/*
+ * Queue a event for VBLANK sequence
+ *
+ * \param dev DRM device
+ * \param data user arguement, pointing to a drm_crtc_queue_sequence structure.
+ * \param file_priv drm file private for the user's open file descriptor
+ */
+
+int drm_crtc_queue_sequence_ioctl(struct drm_device *dev, void *data,
+				  struct drm_file *file_priv)
+{
+	struct drm_crtc *crtc;
+	struct drm_vblank_crtc *vblank;
+	int pipe;
+	struct drm_crtc_queue_sequence *queue_seq = data;
+	ktime_t now;
+	struct drm_pending_vblank_event *e;
+	u32 flags;
+	u64 seq;
+	u64 req_seq;
+	int ret;
+	unsigned long spin_flags;
+
+	if (!drm_core_check_feature(dev, DRIVER_MODESET))
+		return -EINVAL;
+
+	if (!dev->irq_enabled)
+		return -EINVAL;
+
+	crtc = drm_crtc_find(dev, file_priv, queue_seq->crtc_id);
+	if (!crtc)
+		return -ENOENT;
+
+	flags = queue_seq->flags;
+	/* Check valid flag bits */
+	if (flags & ~(DRM_CRTC_SEQUENCE_RELATIVE|
+		      DRM_CRTC_SEQUENCE_NEXT_ON_MISS))
+		return -EINVAL;
+
+	pipe = drm_crtc_index(crtc);
+
+	vblank = &dev->vblank[pipe];
+
+	e = kzalloc(sizeof(*e), GFP_KERNEL);
+	if (e == NULL)
+		return -ENOMEM;
+
+	ret = drm_crtc_vblank_get(crtc);
+	if (ret) {
+		DRM_DEBUG("crtc %d failed to acquire vblank counter, %d\n", pipe, ret);
+		goto err_free;
+	}
+
+	seq = drm_vblank_count_and_time(dev, pipe, &now);
+	req_seq = queue_seq->sequence;
+
+	if (flags & DRM_CRTC_SEQUENCE_RELATIVE)
+		req_seq += seq;
+
+	if ((flags & DRM_CRTC_SEQUENCE_NEXT_ON_MISS) && vblank_passed(seq, req_seq))
+		req_seq = seq + 1;
+
+	e->pipe = pipe;
+	e->event.base.type = DRM_EVENT_CRTC_SEQUENCE;
+	e->event.base.length = sizeof(e->event.seq);
+	e->event.seq.user_data = queue_seq->user_data;
+
+	spin_lock_irqsave(&dev->event_lock, spin_flags);
+
+	/*
+	 * drm_crtc_vblank_off() might have been called after we called
+	 * drm_crtc_vblank_get(). drm_crtc_vblank_off() holds event_lock around the
+	 * vblank disable, so no need for further locking.  The reference from
+	 * drm_crtc_vblank_get() protects against vblank disable from another source.
+	 */
+	if (!READ_ONCE(vblank->enabled)) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+
+	ret = drm_event_reserve_init_locked(dev, file_priv, &e->base,
+					    &e->event.base);
+
+	if (ret)
+		goto err_unlock;
+
+	e->sequence = req_seq;
+
+	if (vblank_passed(seq, req_seq)) {
+		drm_crtc_vblank_put(crtc);
+		send_vblank_event(dev, e, seq, now);
+		queue_seq->sequence = seq;
+	} else {
+		/* drm_handle_vblank_events will call drm_vblank_put */
+		list_add_tail(&e->base.link, &dev->vblank_event_list);
+		queue_seq->sequence = req_seq;
+	}
+
+	spin_unlock_irqrestore(&dev->event_lock, spin_flags);
+	return 0;
+
+err_unlock:
+	spin_unlock_irqrestore(&dev->event_lock, spin_flags);
+	drm_crtc_vblank_put(crtc);
+err_free:
+	kfree(e);
+	return ret;
+}
