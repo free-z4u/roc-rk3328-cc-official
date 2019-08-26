@@ -656,10 +656,6 @@ void analogix_dp_set_training_pattern(struct analogix_dp_device *dp,
 		reg = SCRAMBLING_DISABLE | SW_TRAINING_PATTERN_SET_PTN2;
 		writel(reg, dp->reg_base + ANALOGIX_DP_TRAINING_PTN_SET);
 		break;
-	case TRAINING_PTN3:
-		reg = SCRAMBLING_DISABLE | SW_TRAINING_PATTERN_SET_PTN3;
-		writel(reg, dp->reg_base + ANALOGIX_DP_TRAINING_PTN_SET);
-		break;
 	case DP_NONE:
 		reg = SCRAMBLING_ENABLE |
 			LINK_QUAL_PATTERN_SET_DISABLE |

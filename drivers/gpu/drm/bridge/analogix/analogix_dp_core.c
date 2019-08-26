@@ -462,8 +462,6 @@ static int analogix_dp_process_clock_recovery(struct analogix_dp_device *dp)
 	int lane, lane_count, retval;
 	u8 voltage_swing, pre_emphasis, training_lane;
 	u8 link_status[2], adjust_request[2];
-	u8 dpcd;
-	bool tps3_supported;
 
 	usleep_range(100, 101);
 
@@ -479,24 +477,12 @@ static int analogix_dp_process_clock_recovery(struct analogix_dp_device *dp)
 		return retval;
 
 	if (analogix_dp_clock_recovery_ok(link_status, lane_count) == 0) {
-		retval = drm_dp_dpcd_readb(&dp->aux, DP_MAX_LANE_COUNT,
-					   &dpcd);
-		if (retval)
-			return retval;
-
-		tps3_supported = !!(dpcd & DP_TPS3_SUPPORTED);
-
-		dev_dbg(dp->dev, "Training pattern sequence 3 is%s supported\n",
-			tps3_supported ? "" : " not");
-
-		/* set training pattern for EQ */
-		analogix_dp_set_training_pattern(dp, tps3_supported ?
-						 TRAINING_PTN3 : TRAINING_PTN2);
+		/* set training pattern 2 for EQ */
+		analogix_dp_set_training_pattern(dp, TRAINING_PTN2);
 
 		retval = drm_dp_dpcd_writeb(&dp->aux, DP_TRAINING_PATTERN_SET,
 					    DP_LINK_SCRAMBLING_DISABLE |
-					    (tps3_supported ? DP_TRAINING_PATTERN_3 :
-					     DP_TRAINING_PATTERN_2));
+						DP_TRAINING_PATTERN_2);
 		if (retval < 0)
 			return retval;
 
@@ -843,11 +829,6 @@ static irqreturn_t analogix_dp_irq_thread(int irq, void *arg)
 	struct analogix_dp_device *dp = arg;
 	enum dp_irq_type irq_type;
 
-	if (dp->dpms_mode != DRM_MODE_DPMS_ON)
-		return IRQ_HANDLED;
-
-	pm_runtime_get_sync(dp->dev);
-
 	irq_type = analogix_dp_get_irq_type(dp);
 	if (irq_type & DP_IRQ_TYPE_HP_CABLE_IN ||
 	    irq_type & DP_IRQ_TYPE_HP_CABLE_OUT) {
@@ -860,8 +841,6 @@ static irqreturn_t analogix_dp_irq_thread(int irq, void *arg)
 		analogix_dp_clear_hotplug_interrupts(dp);
 		analogix_dp_unmute_hpd_interrupt(dp);
 	}
-
-	pm_runtime_put(dp->dev);
 
 	return IRQ_HANDLED;
 }
@@ -958,15 +937,12 @@ static int analogix_dp_get_modes(struct drm_connector *connector)
 	struct edid *edid;
 	int ret, num_modes = 0;
 
-	pm_runtime_get_sync(dp->dev);
-
 	if (dp->plat_data->panel) {
 		num_modes += drm_panel_get_modes(dp->plat_data->panel);
 	} else {
 		ret = analogix_dp_prepare_panel(dp, true, false);
 		if (ret) {
 			DRM_ERROR("Failed to prepare panel (%d)\n", ret);
-			pm_runtime_put(dp->dev);
 			return 0;
 		}
 
@@ -983,15 +959,8 @@ static int analogix_dp_get_modes(struct drm_connector *connector)
 			DRM_ERROR("Failed to unprepare panel (%d)\n", ret);
 	}
 
-	if (!num_modes && !drm_get_edid(connector, &dp->aux.ddc)) {
-		drm_mode_connector_update_edid_property(&dp->connector, edid);
-		num_modes += drm_add_edid_modes(&dp->connector, edid);
-	}
-
 	if (dp->plat_data->get_modes)
 		num_modes += dp->plat_data->get_modes(dp->plat_data, connector);
-
-	pm_runtime_put(dp->dev);
 
 	return num_modes;
 }
@@ -1019,12 +988,9 @@ analogix_dp_detect(struct drm_connector *connector, bool force)
 	if (dp->plat_data->panel)
 		return connector_status_connected;
 
-	pm_runtime_get_sync(dp->dev);
-
 	ret = analogix_dp_prepare_panel(dp, true, false);
 	if (ret) {
 		DRM_ERROR("Failed to prepare panel (%d)\n", ret);
-		pm_runtime_put(dp->dev);
 		return connector_status_disconnected;
 	}
 
@@ -1034,8 +1000,6 @@ analogix_dp_detect(struct drm_connector *connector, bool force)
 	ret = analogix_dp_prepare_panel(dp, false, false);
 	if (ret)
 		DRM_ERROR("Failed to unprepare panel (%d)\n", ret);
-
-	pm_runtime_put(dp->dev);
 
 	return status;
 }
@@ -1062,7 +1026,6 @@ static int analogix_dp_bridge_attach(struct drm_bridge *bridge)
 	}
 
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
-	connector->port = dp->dev->of_node;
 
 	ret = drm_connector_init(dp->drm_dev, connector,
 				 &analogix_dp_connector_funcs,
@@ -1146,7 +1109,7 @@ static void analogix_dp_bridge_disable(struct drm_bridge *bridge)
 		}
 	}
 
-	disable_irq_nosync(dp->irq);
+	disable_irq(dp->irq);
 	phy_power_off(dp->phy);
 
 	if (dp->plat_data->power_off)
@@ -1292,7 +1255,7 @@ static int analogix_dp_dt_parse_pdata(struct analogix_dp_device *dp)
 		 * Like Rk3288 DisplayPort TRM indicate that "Main link
 		 * containing 4 physical lanes of 2.7/1.62 Gbps/lane".
 		 */
-		video_info->max_link_rate = DP_LINK_BW_5_4;
+		video_info->max_link_rate = 0x0A;
 		video_info->max_lane_count = 0x04;
 		break;
 	case EXYNOS_DP:

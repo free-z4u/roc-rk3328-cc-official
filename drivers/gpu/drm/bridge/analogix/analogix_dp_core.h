@@ -66,7 +66,6 @@ enum pattern_set {
 	D10_2,
 	TRAINING_PTN1,
 	TRAINING_PTN2,
-	TRAINING_PTN3,
 	DP_NONE
 };
 
