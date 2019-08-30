@@ -298,11 +298,11 @@ static void rk_pwm_remotectl_do_something(unsigned long  data)
 	}
 }
 
-static void rk_pwm_remotectl_timer(unsigned long _data)
+static void rk_pwm_remotectl_timer(struct timer_list *t)
 {
 	struct rkxx_remotectl_drvdata *ddata;
 
-	ddata =  (struct rkxx_remotectl_drvdata *)_data;
+	ddata = from_timer(ddata, t, timer);
 	if (ddata->press != ddata->pre_press) {
 		ddata->pre_press = 0;
 		ddata->press = 0;
@@ -559,8 +559,7 @@ static int rk_pwm_probe(struct platform_device *pdev)
 	input_set_capability(input, EV_KEY, KEY_WAKEUP);
 	device_init_wakeup(&pdev->dev, 1);
 	enable_irq_wake(irq);
-	setup_timer(&ddata->timer, rk_pwm_remotectl_timer,
-		    (unsigned long)ddata);
+	timer_setup(&ddata->timer, rk_pwm_remotectl_timer, 0);
 	fb_register_client(&remotectl_fb_notifier);
 	wake_lock_init(&ddata->remotectl_wake_lock,
 		       WAKE_LOCK_SUSPEND, "rockchip_pwm_remote");
