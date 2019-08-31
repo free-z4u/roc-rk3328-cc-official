@@ -199,7 +199,7 @@ struct irq_data {
  * IRQD_LEVEL			- Interrupt is level triggered
  * IRQD_WAKEUP_STATE		- Interrupt is configured for wakeup
  *				  from suspend
- * IRDQ_MOVE_PCNTXT		- Interrupt can be moved in process
+ * IRQD_MOVE_PCNTXT		- Interrupt can be moved in process
  *				  context
  * IRQD_IRQ_DISABLED		- Disabled state of the interrupt
  * IRQD_IRQ_MASKED		- Masked state of the interrupt
@@ -264,18 +264,25 @@ static inline void irqd_mark_affinity_was_set(struct irq_data *d)
 	__irqd_to_state(d) |= IRQD_AFFINITY_SET;
 }
 
+static inline bool irqd_trigger_type_was_set(struct irq_data *d)
+{
+	return __irqd_to_state(d) & IRQD_DEFAULT_TRIGGER_SET;
+}
+
 static inline u32 irqd_get_trigger_type(struct irq_data *d)
 {
 	return __irqd_to_state(d) & IRQD_TRIGGER_MASK;
 }
 
 /*
- * Must only be called inside irq_chip.irq_set_type() functions.
+ * Must only be called inside irq_chip.irq_set_type() functions or
+ * from the DT/ACPI setup code.
  */
 static inline void irqd_set_trigger_type(struct irq_data *d, u32 type)
 {
 	__irqd_to_state(d) &= ~IRQD_TRIGGER_MASK;
 	__irqd_to_state(d) |= type & IRQD_TRIGGER_MASK;
+	__irqd_to_state(d) |= IRQD_DEFAULT_TRIGGER_SET;
 }
 
 static inline bool irqd_is_level_type(struct irq_data *d)
