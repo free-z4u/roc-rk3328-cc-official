@@ -674,7 +674,7 @@ void common_timer_get(struct k_itimer *timr, struct itimerspec64 *cur_setting)
 	struct timespec64 ts64;
 	bool sig_none;
 
-	sig_none = (timr->it_sigev_notify & ~SIGEV_THREAD_ID) == SIGEV_NONE;
+	sig_none = timr->it_sigev_notify == SIGEV_NONE;
 	iv = timr->it_interval;
 
 	/* interval timer ? */
@@ -861,7 +861,7 @@ int common_timer_set(struct k_itimer *timr, int flags,
 
 	timr->it_interval = timespec64_to_ktime(new_setting->it_interval);
 	expires = timespec64_to_ktime(new_setting->it_value);
-	sigev_none = (timr->it_sigev_notify & ~SIGEV_THREAD_ID) == SIGEV_NONE;
+	sigev_none = timr->it_sigev_notify == SIGEV_NONE;
 
 	kc->timer_arm(timr, expires, flags & TIMER_ABSTIME, sigev_none);
 	timr->it_active = !sigev_none;
