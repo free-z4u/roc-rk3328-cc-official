@@ -3878,7 +3878,6 @@ static int packet_getsockopt(struct socket *sock, int level, int optname,
 	void *data = &val;
 	union tpacket_stats_u st;
 	struct tpacket_rollover_stats rstats;
-	struct packet_rollover *rollover;
 
 	if (level != SOL_PACKET)
 		return -ENOPROTOOPT;
@@ -3957,18 +3956,13 @@ static int packet_getsockopt(struct socket *sock, int level, int optname,
 		       0);
 		break;
 	case PACKET_ROLLOVER_STATS:
-		rcu_read_lock();
-		rollover = rcu_dereference(po->rollover);
-		if (rollover) {
-			rstats.tp_all = atomic_long_read(&rollover->num);
-			rstats.tp_huge = atomic_long_read(&rollover->num_huge);
-			rstats.tp_failed = atomic_long_read(&rollover->num_failed);
-			data = &rstats;
-			lv = sizeof(rstats);
-		}
-		rcu_read_unlock();
-		if (!rollover)
+		if (!po->rollover)
 			return -EINVAL;
+		rstats.tp_all = atomic_long_read(&po->rollover->num);
+		rstats.tp_huge = atomic_long_read(&po->rollover->num_huge);
+		rstats.tp_failed = atomic_long_read(&po->rollover->num_failed);
+		data = &rstats;
+		lv = sizeof(rstats);
 		break;
 	case PACKET_TX_HAS_OFF:
 		val = po->tp_tx_has_off;
