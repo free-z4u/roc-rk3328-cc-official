@@ -264,7 +264,7 @@ out:
 	return status;
 }
 
-static struct cache_detail rsi_cache_template = {
+static const struct cache_detail rsi_cache_template = {
 	.owner		= THIS_MODULE,
 	.hash_size	= RSI_HASHMAX,
 	.name           = "auth.rpcsec.init",
@@ -525,7 +525,7 @@ out:
 	return status;
 }
 
-static struct cache_detail rsc_cache_template = {
+static const struct cache_detail rsc_cache_template = {
 	.owner		= THIS_MODULE,
 	.hash_size	= RSC_HASHMAX,
 	.name		= "auth.rpcsec.context",
