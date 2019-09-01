@@ -47,6 +47,10 @@ struct bpf_map {
 	 * are also accessed in fast-path (e.g. ops, max_entries).
 	 */
 	const struct bpf_map_ops *ops ____cacheline_aligned;
+	struct bpf_map *inner_map_meta;
+#ifdef CONFIG_SECURITY
+	void *security;
+#endif
 	enum bpf_map_type map_type;
 	u32 key_size;
 	u32 value_size;
@@ -54,6 +58,7 @@ struct bpf_map {
 	u32 map_flags;
 	u32 pages;
 	u32 id;
+	int numa_node;
 	bool unpriv_array;
 	/* 7 bytes hole */
 
@@ -64,11 +69,7 @@ struct bpf_map {
 	atomic_t refcnt;
 	atomic_t usercnt;
 	struct work_struct work;
-	struct bpf_map *inner_map_meta;
 	char name[BPF_OBJ_NAME_LEN];
-#ifdef CONFIG_SECURITY
-	void *security;
-#endif
 };
 
 /* function argument constraints */
