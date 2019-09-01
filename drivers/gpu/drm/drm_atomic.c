@@ -144,7 +144,7 @@ void drm_atomic_state_default_clear(struct drm_atomic_state *state)
 	for (i = 0; i < state->num_connector; i++) {
 		struct drm_connector *connector = state->connectors[i].ptr;
 
-		if (!connector || !connector->funcs)
+		if (!connector)
 			continue;
 
 		connector->funcs->atomic_destroy_state(connector,
@@ -912,8 +912,6 @@ static int drm_atomic_plane_check(struct drm_plane *plane,
 				 state->src_h >> 16, ((state->src_h & 0xffff) * 15625) >> 10,
 				 state->src_x >> 16, ((state->src_x & 0xffff) * 15625) >> 10,
 				 state->src_y >> 16, ((state->src_y & 0xffff) * 15625) >> 10);
-		DRM_DEBUG_ATOMIC("framebuffer size[%dx%d]\n",
-				 fb_width >> 16, fb_height >> 16);
 		return -ENOSPC;
 	}
 
@@ -1343,9 +1341,7 @@ drm_atomic_set_crtc_for_plane(struct drm_plane_state *plane_state,
 {
 	struct drm_plane *plane = plane_state->plane;
 	struct drm_crtc_state *crtc_state;
-	/* Nothing to do for same crtc*/
-	if (plane_state->crtc == crtc)
-		return 0;
+
 	if (plane_state->crtc) {
 		crtc_state = drm_atomic_get_crtc_state(plane_state->state,
 						       plane_state->crtc);
