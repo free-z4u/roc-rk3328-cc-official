@@ -197,8 +197,6 @@ struct gendisk {
 	struct request_queue *queue;
 	void *private_data;
 
-	/* Flag of rockchip specific disk: eMMC/eSD, NVMe, etc. */
-	bool is_rk_disk;
 	int flags;
 	struct kobject *slave_dir;
 
