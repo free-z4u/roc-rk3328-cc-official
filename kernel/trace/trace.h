@@ -1139,8 +1139,7 @@ extern int trace_get_user(struct trace_parser *parser, const char __user *ubuf,
 		FUNCTION_FLAGS					\
 		FGRAPH_FLAGS					\
 		STACK_FLAGS					\
-		BRANCH_FLAGS					\
-		C(TGID,			"print-tgid"),
+		BRANCH_FLAGS
 
 /*
  * By defining C, we can make TRACE_FLAGS a list of bit names
