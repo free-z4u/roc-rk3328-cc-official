@@ -24,7 +24,6 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
-#include <linux/rockchip/rockchip_sip.h>
 
 #define RK3288_A_SHIFT		6
 #define RK3288_A_MASK		0x3ff
@@ -59,7 +58,6 @@ struct rockchip_efuse_chip {
 	struct device *dev;
 	void __iomem *base;
 	struct clk *clk;
-	phys_addr_t phys;
 };
 
 static int rockchip_rk3288_efuse_read(void *context, unsigned int offset,
@@ -134,7 +132,7 @@ static int rockchip_rk3328_efuse_read(void *context, unsigned int offset,
 		writel(RK3328_AUTO_RD | RK3328_AUTO_ENB |
 		       ((addr_start++ & RK3399_A_MASK) << RK3399_A_SHIFT),
 		       efuse->base + RK3328_AUTO_CTRL);
-		udelay(2);
+		udelay(4);
 		status = readl(efuse->base + RK3328_INT_STATUS);
 		if (!(status & RK3328_INT_FINISH)) {
 			ret = -EIO;
@@ -276,7 +274,6 @@ static int rockchip_efuse_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	efuse->phys = res->start;
 	efuse->base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(efuse->base))
 		return PTR_ERR(efuse->base);
@@ -286,12 +283,9 @@ static int rockchip_efuse_probe(struct platform_device *pdev)
 		return PTR_ERR(efuse->clk);
 
 	efuse->dev = &pdev->dev;
-	if (of_property_read_u32_index(dev->of_node,
-				       "rockchip,efuse-size",
-				       0,
-				       &econfig.size))
+	if (of_property_read_u32(dev->of_node, "rockchip,efuse-size",
+				 &econfig.size))
 		econfig.size = resource_size(res);
-
 	econfig.reg_read = match->data;
 	econfig.priv = efuse;
 	econfig.dev = efuse->dev;
