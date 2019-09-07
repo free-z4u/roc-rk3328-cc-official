@@ -3658,6 +3658,10 @@ normal:
 		skb_shinfo(nskb)->tx_flags |= skb_shinfo(head_skb)->tx_flags &
 					      SKBTX_SHARED_FRAG;
 
+		if (skb_orphan_frags(frag_skb, GFP_ATOMIC) ||
+		    skb_zerocopy_clone(nskb, frag_skb, GFP_ATOMIC))
+			goto err;
+
 		while (pos < offset + len) {
 			if (i >= nfrags) {
 				BUG_ON(skb_headlen(list_skb));
@@ -3669,6 +3673,11 @@ normal:
 
 				BUG_ON(!nfrags);
 
+				if (skb_orphan_frags(frag_skb, GFP_ATOMIC) ||
+				    skb_zerocopy_clone(nskb, frag_skb,
+						       GFP_ATOMIC))
+					goto err;
+
 				list_skb = list_skb->next;
 			}
 
@@ -3679,11 +3688,6 @@ normal:
 					pos, mss);
 				goto err;
 			}
-
-			if (unlikely(skb_orphan_frags(frag_skb, GFP_ATOMIC)))
-				goto err;
-			if (skb_zerocopy_clone(nskb, frag_skb, GFP_ATOMIC))
-				goto err;
 
 			*nskb_frag = *frag;
 			__skb_frag_ref(nskb_frag);
