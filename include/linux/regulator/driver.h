@@ -447,6 +447,7 @@ struct regulator_dev {
 
 	/* time when this regulator was disabled last time */
 	unsigned long last_off_jiffy;
+	struct regulator *debug_consumer;
 };
 
 struct regulator_dev *

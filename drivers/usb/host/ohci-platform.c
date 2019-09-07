@@ -119,7 +119,7 @@ static int ohci_platform_probe(struct platform_device *dev)
 	struct ohci_hcd *ohci;
 	int err, irq, phy_num, clk = 0;
 
-	if (usb_disabled())
+	if (usb_disabled() || of_machine_is_compatible("rockchip,rk3288"))
 		return -ENODEV;
 
 	/*
@@ -257,6 +257,8 @@ static int ohci_platform_probe(struct platform_device *dev)
 	}
 	hcd->rsrc_start = res_mem->start;
 	hcd->rsrc_len = resource_size(res_mem);
+	if (priv->num_phys == 1)
+		hcd->phy = priv->phys[0];
 
 	err = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (err)

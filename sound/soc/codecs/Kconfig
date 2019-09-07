@@ -115,6 +115,7 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_PCM5102A
 	select SND_SOC_PCM512x_I2C if I2C
 	select SND_SOC_PCM512x_SPI if SPI_MASTER
+	select SND_SOC_RK3328
 	select SND_SOC_RT274 if I2C
 	select SND_SOC_RT286 if I2C
 	select SND_SOC_RT298 if I2C
@@ -545,12 +546,16 @@ config SND_SOC_DMIC
 
 config SND_SOC_HDMI_CODEC
 	tristate
+	select HDMI_NOTIFIERS
 	select SND_PCM_ELD
 	select SND_PCM_IEC958
 	select HDMI
 
 config SND_SOC_ES7134
        tristate "Everest Semi ES7134 CODEC"
+
+config SND_SOC_ES7241
+       tristate "Everest Semi ES7241 CODEC"
 
 config SND_SOC_ES8316
 	tristate "Everest Semi ES8316 CODEC"
@@ -696,6 +701,10 @@ config SND_SOC_PCM512x_SPI
 	depends on SPI_MASTER
 	select SND_SOC_PCM512x
 	select REGMAP_SPI
+
+config SND_SOC_RK3328
+	select REGMAP_MMIO
+	tristate "Rockchip RK3328 CODEC"
 
 config SND_SOC_RL6231
 	tristate

@@ -644,11 +644,16 @@ again:
 		spin_unlock(&parent->d_lock);
 		goto again;
 	}
-	rcu_read_unlock();
-	if (parent != dentry)
+	if (parent != dentry) {
 		spin_lock_nested(&dentry->d_lock, DENTRY_D_LOCK_NESTED);
-	else
+		if (unlikely(dentry->d_lockref.count < 0)) {
+			spin_unlock(&parent->d_lock);
+			parent = NULL;
+		}
+	} else {
 		parent = NULL;
+	}
+	rcu_read_unlock();
 	return parent;
 }
 
@@ -1856,6 +1861,103 @@ void d_instantiate(struct dentry *entry, struct inode * inode)
 EXPORT_SYMBOL(d_instantiate);
 
 /**
+ * d_instantiate_unique - instantiate a non-aliased dentry
+ * @entry: dentry to instantiate
+ * @inode: inode to attach to this dentry
+ *
+ * Fill in inode information in the entry. On success, it returns NULL.
+ * If an unhashed alias of "entry" already exists, then we return the
+ * aliased dentry instead and drop one reference to inode.
+ *
+ * Note that in order to avoid conflicts with rename() etc, the caller
+ * had better be holding the parent directory semaphore.
+ *
+ * This also assumes that the inode count has been incremented
+ * (or otherwise set) by the caller to indicate that it is now
+ * in use by the dcache.
+ */
+static struct dentry *__d_instantiate_unique(struct dentry *entry,
+					     struct inode *inode)
+{
+	struct dentry *alias;
+	int len = entry->d_name.len;
+	const char *name = entry->d_name.name;
+	unsigned int hash = entry->d_name.hash;
+
+	if (!inode) {
+		__d_instantiate(entry, NULL);
+		return NULL;
+	}
+
+	hlist_for_each_entry(alias, &inode->i_dentry, d_u.d_alias) {
+		/*
+		 * Don't need alias->d_lock here, because aliases with
+		 * d_parent == entry->d_parent are not subject to name or
+		 * parent changes, because the parent inode i_mutex is held.
+		 */
+		if (alias->d_name.hash != hash)
+			continue;
+		if (alias->d_parent != entry->d_parent)
+			continue;
+		if (alias->d_name.len != len)
+			continue;
+		if (dentry_cmp(alias, name, len))
+			continue;
+		__dget(alias);
+		return alias;
+	}
+
+	__d_instantiate(entry, inode);
+	return NULL;
+}
+
+struct dentry *d_instantiate_unique(struct dentry *entry, struct inode *inode)
+{
+	struct dentry *result;
+
+	BUG_ON(!hlist_unhashed(&entry->d_u.d_alias));
+
+	if (inode)
+		spin_lock(&inode->i_lock);
+	result = __d_instantiate_unique(entry, inode);
+	if (inode)
+		spin_unlock(&inode->i_lock);
+
+	if (!result) {
+		security_d_instantiate(entry, inode);
+		return NULL;
+	}
+
+	BUG_ON(!d_unhashed(result));
+	iput(inode);
+	return result;
+}
+
+EXPORT_SYMBOL(d_instantiate_unique);
+
+/*
+ * This should be equivalent to d_instantiate() + unlock_new_inode(),
+ * with lockdep-related part of unlock_new_inode() done before
+ * anything else.  Use that instead of open-coding d_instantiate()/
+ * unlock_new_inode() combinations.
+ */
+void d_instantiate_new(struct dentry *entry, struct inode *inode)
+{
+	BUG_ON(!hlist_unhashed(&entry->d_u.d_alias));
+	BUG_ON(!inode);
+	lockdep_annotate_inode_mutex_key(inode);
+	security_d_instantiate(entry, inode);
+	spin_lock(&inode->i_lock);
+	__d_instantiate(entry, inode);
+	WARN_ON(!(inode->i_state & I_NEW));
+	inode->i_state &= ~I_NEW;
+	smp_mb();
+	wake_up_bit(&inode->i_state, __I_NEW);
+	spin_unlock(&inode->i_lock);
+}
+EXPORT_SYMBOL(d_instantiate_new);
+
+/**
  * d_instantiate_no_diralias - instantiate a non-aliased dentry
  * @entry: dentry to complete
  * @inode: inode to attach to this dentry
@@ -1888,10 +1990,12 @@ struct dentry *d_make_root(struct inode *root_inode)
 
 	if (root_inode) {
 		res = __d_alloc(root_inode->i_sb, NULL);
-		if (res)
+		if (res) {
+			res->d_flags |= DCACHE_RCUACCESS;
 			d_instantiate(res, root_inode);
-		else
+		} else {
 			iput(root_inode);
+		}
 	}
 	return res;
 }
@@ -3221,6 +3325,7 @@ char *d_absolute_path(const struct path *path,
 		return ERR_PTR(error);
 	return res;
 }
+EXPORT_SYMBOL(d_absolute_path);
 
 /*
  * same as __d_path but appends "(deleted)" for unlinked files.

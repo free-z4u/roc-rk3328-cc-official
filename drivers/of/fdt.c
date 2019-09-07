@@ -1081,8 +1081,8 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 				     int depth, void *data)
 {
-	int l;
-	const char *p;
+	int l = 0;
+	const char *p = NULL;
 
 	pr_debug("search \"chosen\", depth: %d, uname: %s\n", depth, uname);
 

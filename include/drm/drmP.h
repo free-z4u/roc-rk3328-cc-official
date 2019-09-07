@@ -335,6 +335,15 @@ static __inline__ int drm_core_check_feature(struct drm_device *dev,
  * DMA quiscent + idle. DMA quiescent usually requires the hardware lock.
  */
 
+#ifdef CONFIG_DRM
+struct drm_device *drm_device_get_by_name(const char *name);
+#else
+static inline struct drm_device *drm_device_get_by_name(const char *name)
+{
+	return NULL;
+}
+#endif
+
 /*@}*/
 
 /* returns true if currently okay to sleep */

@@ -349,6 +349,8 @@
 #define MODE_DFP_USB			BIT(1)
 #define MODE_DFP_DP			BIT(2)
 
+#define POWER_ON_TRIES			5
+
 struct usb3phy_reg {
 	u32 offset;
 	u32 enable_bit;
@@ -358,8 +360,11 @@ struct usb3phy_reg {
 struct rockchip_usb3phy_port_cfg {
 	struct usb3phy_reg typec_conn_dir;
 	struct usb3phy_reg usb3tousb2_en;
+	struct usb3phy_reg usb3host_disable;
+	struct usb3phy_reg usb3host_port;
 	struct usb3phy_reg external_psm;
 	struct usb3phy_reg pipe_status;
+	struct usb3phy_reg uphy_dp_sel;
 };
 
 struct rockchip_typec_phy {
@@ -782,6 +787,13 @@ static int tcphy_get_mode(struct rockchip_typec_phy *tcphy)
 	u8 mode;
 	int ret;
 
+	if (!edev) {
+		mode = MODE_DFP_USB;
+		id = EXTCON_USB_HOST;
+		tcphy->flip = 0;
+		return mode;
+	}
+
 	ufp = extcon_get_state(edev, EXTCON_USB);
 	dp = extcon_get_state(edev, EXTCON_DISP_DP);
 
@@ -818,9 +830,20 @@ static int tcphy_get_mode(struct rockchip_typec_phy *tcphy)
 	return mode;
 }
 
-static int rockchip_usb3_phy_power_on(struct phy *phy)
+static int tcphy_cfg_usb3_to_usb2_only(struct rockchip_typec_phy *tcphy,
+				       bool value)
 {
-	struct rockchip_typec_phy *tcphy = phy_get_drvdata(phy);
+	struct rockchip_usb3phy_port_cfg *cfg = &tcphy->port_cfgs;
+
+	property_enable(tcphy, &cfg->usb3tousb2_en, value);
+	property_enable(tcphy, &cfg->usb3host_disable, value);
+	property_enable(tcphy, &cfg->usb3host_port, !value);
+
+	return 0;
+}
+
+static int _rockchip_usb3_phy_power_on(struct rockchip_typec_phy *tcphy)
+{
 	struct rockchip_usb3phy_port_cfg *cfg = &tcphy->port_cfgs;
 	const struct usb3phy_reg *reg = &cfg->pipe_status;
 	int timeout, new_mode, ret = 0;
@@ -835,8 +858,10 @@ static int rockchip_usb3_phy_power_on(struct phy *phy)
 	}
 
 	/* DP-only mode; fall back to USB2 */
-	if (!(new_mode & (MODE_DFP_USB | MODE_UFP_USB)))
+	if (!(new_mode & (MODE_DFP_USB | MODE_UFP_USB))) {
+		tcphy_cfg_usb3_to_usb2_only(tcphy, true);
 		goto unlock_ret;
+	}
 
 	if (tcphy->mode == new_mode)
 		goto unlock_ret;
@@ -852,6 +877,9 @@ static int rockchip_usb3_phy_power_on(struct phy *phy)
 		regmap_read(tcphy->grf_regs, reg->offset, &val);
 		if (!(val & BIT(reg->enable_bit))) {
 			tcphy->mode |= new_mode & (MODE_DFP_USB | MODE_UFP_USB);
+
+			/* enable usb3 host */
+			tcphy_cfg_usb3_to_usb2_only(tcphy, false);
 			goto unlock_ret;
 		}
 		usleep_range(10, 20);
@@ -867,11 +895,32 @@ unlock_ret:
 	return ret;
 }
 
+static int rockchip_usb3_phy_power_on(struct phy *phy)
+{
+	struct rockchip_typec_phy *tcphy = phy_get_drvdata(phy);
+	int ret;
+	int tries;
+
+	for (tries = 0; tries < POWER_ON_TRIES; tries++) {
+		ret = _rockchip_usb3_phy_power_on(tcphy);
+		if (!ret)
+			break;
+	}
+
+	if (tries && !ret)
+		dev_info(tcphy->dev, "Needed %d loops to turn on\n", tries);
+
+	return ret;
+}
+
 static int rockchip_usb3_phy_power_off(struct phy *phy)
 {
 	struct rockchip_typec_phy *tcphy = phy_get_drvdata(phy);
 
 	mutex_lock(&tcphy->lock);
+
+	if (!(tcphy->mode & (MODE_UFP_USB | MODE_DFP_USB)))
+		tcphy_cfg_usb3_to_usb2_only(tcphy, false);
 
 	if (tcphy->mode == MODE_DISCONNECT)
 		goto unlock;
@@ -894,6 +943,7 @@ static const struct phy_ops rockchip_usb3_phy_ops = {
 static int rockchip_dp_phy_power_on(struct phy *phy)
 {
 	struct rockchip_typec_phy *tcphy = phy_get_drvdata(phy);
+	struct rockchip_usb3phy_port_cfg *cfg = &tcphy->port_cfgs;
 	int new_mode, ret = 0;
 	u32 val;
 
@@ -925,6 +975,8 @@ static int rockchip_dp_phy_power_on(struct phy *phy)
 	}
 	if (ret)
 		goto unlock_ret;
+
+	property_enable(tcphy, &cfg->uphy_dp_sel, 1);
 
 	ret = readx_poll_timeout(readl, tcphy->base + DP_MODE_CTL,
 				 val, val & DP_MODE_A2, 1000,
@@ -1019,6 +1071,16 @@ static int tcphy_parse_dt(struct rockchip_typec_phy *tcphy,
 	if (ret)
 		return ret;
 
+	ret = tcphy_get_param(dev, &cfg->usb3host_disable,
+			      "rockchip,usb3-host-disable");
+	if (ret)
+		return ret;
+
+	ret = tcphy_get_param(dev, &cfg->usb3host_port,
+			      "rockchip,usb3-host-port");
+	if (ret)
+		return ret;
+
 	ret = tcphy_get_param(dev, &cfg->external_psm,
 			      "rockchip,external-psm");
 	if (ret)
@@ -1026,6 +1088,11 @@ static int tcphy_parse_dt(struct rockchip_typec_phy *tcphy,
 
 	ret = tcphy_get_param(dev, &cfg->pipe_status,
 			      "rockchip,pipe-status");
+	if (ret)
+		return ret;
+
+	ret = tcphy_get_param(dev, &cfg->uphy_dp_sel,
+			      "rockchip,uphy-dp-sel");
 	if (ret)
 		return ret;
 
@@ -1113,11 +1180,13 @@ static int rockchip_typec_phy_probe(struct platform_device *pdev)
 
 	typec_phy_pre_init(tcphy);
 
-	tcphy->extcon = extcon_get_edev_by_phandle(dev, 0);
-	if (IS_ERR(tcphy->extcon)) {
-		if (PTR_ERR(tcphy->extcon) != -EPROBE_DEFER)
-			dev_err(dev, "Invalid or missing extcon\n");
-		return PTR_ERR(tcphy->extcon);
+	if (device_property_read_bool(dev, "extcon")) {
+		tcphy->extcon = extcon_get_edev_by_phandle(dev, 0);
+		if (IS_ERR(tcphy->extcon)) {
+			if (PTR_ERR(tcphy->extcon) != -EPROBE_DEFER)
+				dev_err(dev, "Invalid or missing extcon\n");
+			return PTR_ERR(tcphy->extcon);
+		}
 	}
 
 	pm_runtime_enable(dev);

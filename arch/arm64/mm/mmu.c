@@ -525,6 +525,37 @@ static int __init parse_rodata(char *arg)
 }
 early_param("rodata", parse_rodata);
 
+#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+static int __init map_entry_trampoline(void)
+{
+	extern char __entry_tramp_text_start[];
+
+	pgprot_t prot = PAGE_KERNEL_EXEC;
+	phys_addr_t pa_start = __pa_symbol(__entry_tramp_text_start);
+
+	/* The trampoline is always mapped and can therefore be global */
+	pgprot_val(prot) &= ~PTE_NG;
+
+	/* Map only the text into the trampoline page table */
+	memset(tramp_pg_dir, 0, PGD_SIZE);
+	__create_pgd_mapping(tramp_pg_dir, pa_start, TRAMP_VALIAS, PAGE_SIZE,
+			     prot, pgd_pgtable_alloc, 0);
+
+	/* Map both the text and data into the kernel page table */
+	__set_fixmap(FIX_ENTRY_TRAMP_TEXT, pa_start, prot);
+	if (IS_ENABLED(CONFIG_RANDOMIZE_BASE)) {
+		extern char __entry_tramp_data_start[];
+
+		__set_fixmap(FIX_ENTRY_TRAMP_DATA,
+			     __pa_symbol(__entry_tramp_data_start),
+			     PAGE_KERNEL_RO);
+	}
+
+	return 0;
+}
+core_initcall(map_entry_trampoline);
+#endif
+
 /*
  * Create fine-grained mappings for the kernel.
  */
@@ -606,6 +637,9 @@ void __init paging_init(void)
 
 	pgd_clear_fixmap();
 	memblock_free(pgd_phys, PAGE_SIZE);
+
+	/* Ensure the zero page is visible to the page table walker */
+	dsb(ishst);
 
 	/*
 	 * We only reuse the PGD from the swapper_pg_dir, not the pud + pmd
@@ -906,3 +940,15 @@ int pmd_clear_huge(pmd_t *pmd)
 	pmd_clear(pmd);
 	return 1;
 }
+
+#ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
+int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+{
+	return pud_none(*pud);
+}
+
+int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+{
+	return pmd_none(*pmd);
+}
+#endif

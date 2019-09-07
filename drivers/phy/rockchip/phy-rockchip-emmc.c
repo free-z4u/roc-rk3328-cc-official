@@ -75,6 +75,16 @@
 #define PHYCTRL_OTAPDLYENA_SHIFT	0xb
 #define PHYCTRL_OTAPDLYSEL_MASK		0xf
 #define PHYCTRL_OTAPDLYSEL_SHIFT	0x7
+#define PHYCTRL_REN_STRB_ENABLE		0x1
+#define PHYCTRL_REN_STRB_MASK		0x1
+#define PHYCTRL_REN_STRB_SHIFT		0x9
+
+#define PHYCTRL_IS_CALDONE(x) \
+	((((x) >> PHYCTRL_CALDONE_SHIFT) & \
+	  PHYCTRL_CALDONE_MASK) == PHYCTRL_CALDONE_DONE)
+#define PHYCTRL_IS_DLLRDY(x) \
+	((((x) >> PHYCTRL_DLLRDY_SHIFT) & \
+	  PHYCTRL_DLLRDY_MASK) == PHYCTRL_DLLRDY_DONE)
 
 struct rockchip_emmc_phy {
 	unsigned int	reg_offset;
@@ -89,7 +99,6 @@ static int rockchip_emmc_phy_power(struct phy *phy, bool on_off)
 	unsigned int dllrdy;
 	unsigned int freqsel = PHYCTRL_FREQSEL_200M;
 	unsigned long rate;
-	unsigned long timeout;
 
 	/*
 	 * Keep phyctrl_pdb and phyctrl_endll low to allow
@@ -160,15 +169,16 @@ static int rockchip_emmc_phy_power(struct phy *phy, bool on_off)
 				   PHYCTRL_PDB_SHIFT));
 
 	/*
-	 * According to the user manual, it asks driver to
-	 * wait 5us for calpad busy trimming
+	 * According to the user manual, it asks driver to wait 5us for
+	 * calpad busy trimming. However it is documented that this value is
+	 * PVT(A.K.A process,voltage and temperature) relevant, so some
+	 * failure cases are found which indicates we should be more tolerant
+	 * to calpad busy trimming.
 	 */
-	udelay(5);
-	regmap_read(rk_phy->reg_base,
-		    rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
-		    &caldone);
-	caldone = (caldone >> PHYCTRL_CALDONE_SHIFT) & PHYCTRL_CALDONE_MASK;
-	if (caldone != PHYCTRL_CALDONE_DONE) {
+	if (regmap_read_poll_timeout(rk_phy->reg_base,
+				     rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
+				     caldone, PHYCTRL_IS_CALDONE(caldone),
+				     5, 50)) {
 		pr_err("rockchip_emmc_phy_power: caldone timeout.\n");
 		return -ETIMEDOUT;
 	}
@@ -217,19 +227,10 @@ static int rockchip_emmc_phy_power(struct phy *phy, bool on_off)
 	 *   only at boot / resume.  In both cases, eMMC is probably on the
 	 *   critical path so busy waiting a little extra time should be OK.
 	 */
-	timeout = jiffies + msecs_to_jiffies(50);
-	do {
-		udelay(1);
-
-		regmap_read(rk_phy->reg_base,
-			rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
-			&dllrdy);
-		dllrdy = (dllrdy >> PHYCTRL_DLLRDY_SHIFT) & PHYCTRL_DLLRDY_MASK;
-		if (dllrdy == PHYCTRL_DLLRDY_DONE)
-			break;
-	} while (!time_after(jiffies, timeout));
-
-	if (dllrdy != PHYCTRL_DLLRDY_DONE) {
+	if (regmap_read_poll_timeout(rk_phy->reg_base,
+				     rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
+				     dllrdy, PHYCTRL_IS_DLLRDY(dllrdy),
+				     1, 50 * USEC_PER_MSEC)) {
 		pr_err("rockchip_emmc_phy_power: dllrdy timeout.\n");
 		return -ETIMEDOUT;
 	}
@@ -305,6 +306,13 @@ static int rockchip_emmc_phy_power_on(struct phy *phy)
 		     HIWORD_UPDATE(4,
 				   PHYCTRL_OTAPDLYSEL_MASK,
 				   PHYCTRL_OTAPDLYSEL_SHIFT));
+
+	/* Internal pull-down for strobe line: enable */
+	regmap_write(rk_phy->reg_base,
+		     rk_phy->reg_offset + GRF_EMMCPHY_CON2,
+		     HIWORD_UPDATE(PHYCTRL_REN_STRB_ENABLE,
+				   PHYCTRL_REN_STRB_MASK,
+				   PHYCTRL_REN_STRB_SHIFT));
 
 	/* Power up emmc phy analog blocks */
 	return rockchip_emmc_phy_power(phy, PHYCTRL_PDB_PWR_ON);

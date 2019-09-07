@@ -29,6 +29,10 @@ obj-$(CONFIG_XGENE_SLIMPRO_MBOX) += mailbox-xgene-slimpro.o
 
 obj-$(CONFIG_HI6220_MBOX)	+= hi6220-mailbox.o
 
+obj-$(CONFIG_RK3368_MBOX)	+= rk3368-mailbox.o
+
+obj-$(CONFIG_RK3368_SCPI_PROTOCOL)	+= scpi_protocol.o
+
 obj-$(CONFIG_BCM_PDC_MBOX)	+= bcm-pdc-mailbox.o
 
 obj-$(CONFIG_BCM_FLEXRM_MBOX)	+= bcm-flexrm-mailbox.o

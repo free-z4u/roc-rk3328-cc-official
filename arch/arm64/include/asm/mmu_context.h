@@ -57,6 +57,13 @@ static inline void cpu_set_reserved_ttbr0(void)
 	isb();
 }
 
+static inline void cpu_switch_mm(pgd_t *pgd, struct mm_struct *mm)
+{
+	BUG_ON(pgd == swapper_pg_dir);
+	cpu_set_reserved_ttbr0();
+	cpu_do_switch_mm(virt_to_phys(pgd),mm);
+}
+
 /*
  * TCR.T0SZ value to use when the ID map is active. Usually equals
  * TCR_T0SZ(VA_BITS), unless system RAM is positioned very high in
@@ -170,7 +177,7 @@ static inline void update_saved_ttbr0(struct task_struct *tsk,
 	else
 		ttbr = virt_to_phys(mm->pgd) | ASID(mm) << 48;
 
-	task_thread_info(tsk)->ttbr0 = ttbr;
+	WRITE_ONCE(task_thread_info(tsk)->ttbr0, ttbr);
 }
 #else
 static inline void update_saved_ttbr0(struct task_struct *tsk,
@@ -225,6 +232,7 @@ switch_mm(struct mm_struct *prev, struct mm_struct *next,
 #define activate_mm(prev,next)	switch_mm(prev, next, current)
 
 void verify_cpu_asid_bits(void);
+void post_ttbr_update_workaround(void);
 
 #endif /* !__ASSEMBLY__ */
 

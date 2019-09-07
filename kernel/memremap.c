@@ -300,6 +300,7 @@ static void devm_memremap_pages_release(struct device *dev, void *data)
 	}
 
 	/* pages are dead and unused, undo the arch mapping */
+	mem_hotplug_begin();
 	align_start = res->start & ~(SECTION_SIZE - 1);
 	align_size = ALIGN(resource_size(res), SECTION_SIZE);
 
@@ -311,6 +312,7 @@ static void devm_memremap_pages_release(struct device *dev, void *data)
 	pgmap_radix_release(res);
 	dev_WARN_ONCE(dev, pgmap->altmap && pgmap->altmap->alloc,
 			"%s: failed to free all reserved pages\n", __func__);
+	mem_hotplug_done();
 }
 
 /* assumes rcu_read_lock() held at entry */

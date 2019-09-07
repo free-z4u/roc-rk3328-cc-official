@@ -4,6 +4,7 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/clk.h>
 #include <linux/compiler.h>
 #include <linux/delay.h>
 #include <linux/device.h>
@@ -20,6 +21,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 
@@ -75,6 +77,8 @@
 
 #define IOMMU_REG_POLL_COUNT_FAST 1000
 
+static LIST_HEAD(iommu_dev_list);
+
 struct rk_iommu_domain {
 	struct list_head iommus;
 	struct platform_device *pdev;
@@ -96,6 +100,9 @@ struct rk_iommu {
 	struct iommu_device iommu;
 	struct list_head node; /* entry in rk_iommu_domain.iommus */
 	struct iommu_domain *domain; /* domain to which iommu is attached */
+	struct clk *aclk; /* aclock belong to master */
+	struct clk *hclk; /* hclock belong to master */
+	struct list_head dev_node;
 };
 
 static inline void rk_table_flush(struct rk_iommu_domain *dom, dma_addr_t dma,
@@ -259,6 +266,26 @@ static u32 rk_mk_pte_invalid(u32 pte)
 #define RK_IOVA_PAGE_MASK   0x00000fff
 #define RK_IOVA_PAGE_SHIFT  0
 
+static void rk_iommu_power_on(struct rk_iommu *iommu)
+{
+	if (iommu->aclk && iommu->hclk) {
+		clk_enable(iommu->aclk);
+		clk_enable(iommu->hclk);
+	}
+
+	pm_runtime_get_sync(iommu->dev);
+}
+
+static void rk_iommu_power_off(struct rk_iommu *iommu)
+{
+	pm_runtime_put_sync(iommu->dev);
+
+	if (iommu->aclk && iommu->hclk) {
+		clk_disable(iommu->aclk);
+		clk_disable(iommu->hclk);
+	}
+}
+
 static u32 rk_iova_dte_index(dma_addr_t iova)
 {
 	return (u32)(iova & RK_IOVA_DTE_MASK) >> RK_IOVA_DTE_SHIFT;
@@ -296,19 +323,26 @@ static void rk_iommu_base_command(void __iomem *base, u32 command)
 {
 	writel(command, base + RK_MMU_COMMAND);
 }
-static void rk_iommu_zap_lines(struct rk_iommu *iommu, dma_addr_t iova,
+static void rk_iommu_zap_lines(struct rk_iommu *iommu, dma_addr_t iova_start,
 			       size_t size)
 {
 	int i;
-
-	dma_addr_t iova_end = iova + size;
+	dma_addr_t iova_end = iova_start + size;
 	/*
 	 * TODO(djkurtz): Figure out when it is more efficient to shootdown the
 	 * entire iotlb rather than iterate over individual iovas.
 	 */
-	for (i = 0; i < iommu->num_mmu; i++)
-		for (; iova < iova_end; iova += SPAGE_SIZE)
+
+	rk_iommu_power_on(iommu);
+
+	for (i = 0; i < iommu->num_mmu; i++) {
+		dma_addr_t iova;
+
+		for (iova = iova_start; iova < iova_end; iova += SPAGE_SIZE)
 			rk_iommu_write(iommu->bases[i], RK_MMU_ZAP_ONE_LINE, iova);
+	}
+
+	rk_iommu_power_off(iommu);
 }
 
 static bool rk_iommu_is_stall_active(struct rk_iommu *iommu)
@@ -531,7 +565,7 @@ static irqreturn_t rk_iommu_irq(int irq, void *dev_id)
 			 */
 			if (iommu->domain)
 				report_iommu_fault(iommu->domain, iommu->dev, iova,
-						   flags);
+						   status);
 			else
 				dev_err(iommu->dev, "Page fault while iommu not attached to domain?\n");
 
@@ -798,6 +832,11 @@ static struct rk_iommu *rk_iommu_from_dev(struct device *dev)
 	if (!group)
 		return NULL;
 	iommu_dev = iommu_group_get_iommudata(group);
+	if (!iommu_dev) {
+		dev_info(dev, "Possibly a virtual device\n");
+		return NULL;
+	}
+
 	rk_iommu = dev_get_drvdata(iommu_dev);
 	iommu_group_put(group);
 
@@ -819,6 +858,8 @@ static int rk_iommu_attach_device(struct iommu_domain *domain,
 	iommu = rk_iommu_from_dev(dev);
 	if (!iommu)
 		return 0;
+
+	rk_iommu_power_on(iommu);
 
 	ret = rk_iommu_enable_stall(iommu);
 	if (ret)
@@ -889,6 +930,8 @@ static void rk_iommu_detach_device(struct iommu_domain *domain,
 		devm_free_irq(iommu->dev, iommu->irq[i], iommu);
 
 	iommu->domain = NULL;
+
+	rk_iommu_power_off(iommu);
 
 	dev_dbg(dev, "Detached from iommu domain\n");
 }
@@ -1187,6 +1230,27 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	iommu->reset_disabled = device_property_read_bool(dev,
 					"rockchip,disable-mmu-reset");
 
+	iommu->aclk = devm_clk_get(dev, "aclk");
+	if (IS_ERR(iommu->aclk)) {
+		dev_info(dev, "can't get aclk\n");
+		iommu->aclk = NULL;
+	}
+
+	iommu->hclk = devm_clk_get(dev, "hclk");
+	if (IS_ERR(iommu->hclk)) {
+		dev_info(dev, "can't get hclk\n");
+		iommu->hclk = NULL;
+	}
+
+	if (iommu->aclk && iommu->hclk) {
+		clk_prepare(iommu->aclk);
+		clk_prepare(iommu->hclk);
+	}
+
+	pm_runtime_enable(iommu->dev);
+	pm_runtime_get_sync(iommu->dev);
+	list_add(&iommu->dev_node, &iommu_dev_list);
+
 	err = iommu_device_sysfs_add(&iommu->iommu, dev, NULL, dev_name(dev));
 	if (err)
 		return err;
@@ -1201,6 +1265,8 @@ static int rk_iommu_remove(struct platform_device *pdev)
 {
 	struct rk_iommu *iommu = platform_get_drvdata(pdev);
 
+	pm_runtime_disable(iommu->dev);
+
 	if (iommu) {
 		iommu_device_sysfs_remove(&iommu->iommu);
 		iommu_device_unregister(&iommu->iommu);
@@ -1208,6 +1274,17 @@ static int rk_iommu_remove(struct platform_device *pdev)
 
 	return 0;
 }
+
+static int __init rk_iommu_runtime_put(void)
+{
+	struct rk_iommu *iommu;
+
+	list_for_each_entry(iommu, &iommu_dev_list, dev_node)
+		pm_runtime_put_sync(iommu->dev);
+
+	return 0;
+}
+late_initcall_sync(rk_iommu_runtime_put);
 
 static const struct of_device_id rk_iommu_dt_ids[] = {
 	{ .compatible = "rockchip,iommu" },

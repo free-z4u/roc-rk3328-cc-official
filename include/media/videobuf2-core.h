@@ -440,6 +440,9 @@ struct vb2_buf_ops {
  * @fileio_read_once:		report EOF after reading the first buffer
  * @fileio_write_immediately:	queue buffer after each write() call
  * @allow_zero_bytesused:	allow bytesused == 0 to be passed to the driver
+ * @use_dma_bidirectional:	use DMA_BIDIRECTIONAL for CAPTURE buffers; this
+ *				allows HW to read from the CAPTURE buffers in
+ *				addition to writing; ignored for OUTPUT queues
  * @quirk_poll_must_check_waiting_for_buffers: Return POLLERR at poll when QBUF
  *              has not been called. This is a vb1 idiom that has been adopted
  *              also by vb2.
@@ -500,6 +503,7 @@ struct vb2_buf_ops {
  *		when a buffer with the V4L2_BUF_FLAG_LAST is dequeued.
  * @fileio:	file io emulator internal data, used only if emulator is active
  * @threadio:	thread io internal data, used only if thread is active
+ * @dma_dir:	DMA direction to use for buffers on this queue
  */
 struct vb2_queue {
 	unsigned int			type;
@@ -510,6 +514,7 @@ struct vb2_queue {
 	unsigned			fileio_read_once:1;
 	unsigned			fileio_write_immediately:1;
 	unsigned			allow_zero_bytesused:1;
+	unsigned			use_dma_bidirectional:1;
 	unsigned		   quirk_poll_must_check_waiting_for_buffers:1;
 
 	struct mutex			*lock;

@@ -269,6 +269,15 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	if (device_property_read_bool(&pdev->dev, "quirk-broken-port-ped"))
 		xhci->quirks |= XHCI_BROKEN_PORT_PED;
 
+	xhci->shared_hcd->usb_phy = devm_usb_get_phy(&pdev->dev,
+						     USB_PHY_TYPE_USB3);
+	if (IS_ERR(xhci->shared_hcd->usb_phy)) {
+		ret = PTR_ERR(xhci->shared_hcd->usb_phy);
+		if (ret == -EPROBE_DEFER)
+			goto put_usb3_hcd;
+		xhci->shared_hcd->usb_phy = NULL;
+	}
+
 	hcd->usb_phy = devm_usb_get_phy_by_phandle(sysdev, "usb-phy", 0);
 	if (IS_ERR(hcd->usb_phy)) {
 		ret = PTR_ERR(hcd->usb_phy);

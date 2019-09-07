@@ -724,9 +724,15 @@ static inline void __update_cgrp_time(struct perf_cgroup *cgrp)
 
 static inline void update_cgrp_time_from_cpuctx(struct perf_cpu_context *cpuctx)
 {
-	struct perf_cgroup *cgrp_out = cpuctx->cgrp;
-	if (cgrp_out)
-		__update_cgrp_time(cgrp_out);
+	struct perf_cgroup *cgrp = cpuctx->cgrp;
+	struct cgroup_subsys_state *css;
+
+	if (cgrp) {
+		for (css = &cgrp->css; css; css = css->parent) {
+			cgrp = container_of(css, struct perf_cgroup, css);
+			__update_cgrp_time(cgrp);
+		}
+	}
 }
 
 static inline void update_cgrp_time_from_event(struct perf_event *event)
@@ -754,6 +760,7 @@ perf_cgroup_set_timestamp(struct task_struct *task,
 {
 	struct perf_cgroup *cgrp;
 	struct perf_cgroup_info *info;
+	struct cgroup_subsys_state *css;
 
 	/*
 	 * ctx->lock held by caller
@@ -764,8 +771,12 @@ perf_cgroup_set_timestamp(struct task_struct *task,
 		return;
 
 	cgrp = perf_cgroup_from_task(task, ctx);
-	info = this_cpu_ptr(cgrp->info);
-	info->timestamp = ctx->timestamp;
+
+	for (css = &cgrp->css; css; css = css->parent) {
+		cgrp = container_of(css, struct perf_cgroup, css);
+		info = this_cpu_ptr(cgrp->info);
+		info->timestamp = ctx->timestamp;
+	}
 }
 
 static DEFINE_PER_CPU(struct list_head, cgrp_cpuctx_list);
@@ -4107,6 +4118,9 @@ static void _free_event(struct perf_event *event)
 	if (event->destroy)
 		event->destroy(event);
 
+	if (event->pmu->free_drv_configs)
+		event->pmu->free_drv_configs(event);
+
 	if (event->ctx)
 		put_ctx(event->ctx);
 
@@ -4663,6 +4677,8 @@ static int perf_event_set_output(struct perf_event *event,
 				 struct perf_event *output_event);
 static int perf_event_set_filter(struct perf_event *event, void __user *arg);
 static int perf_event_set_bpf_prog(struct perf_event *event, u32 prog_fd);
+static int perf_event_drv_configs(struct perf_event *event,
+				  void __user *arg);
 
 static long _perf_ioctl(struct perf_event *event, unsigned int cmd, unsigned long arg)
 {
@@ -4732,6 +4748,10 @@ static long _perf_ioctl(struct perf_event *event, unsigned int cmd, unsigned lon
 		rcu_read_unlock();
 		return 0;
 	}
+
+	case PERF_EVENT_IOC_SET_DRV_CONFIGS:
+		return perf_event_drv_configs(event, (void __user *)arg);
+
 	default:
 		return -ENOTTY;
 	}
@@ -4764,6 +4784,7 @@ static long perf_compat_ioctl(struct file *file, unsigned int cmd,
 	switch (_IOC_NR(cmd)) {
 	case _IOC_NR(PERF_EVENT_IOC_SET_FILTER):
 	case _IOC_NR(PERF_EVENT_IOC_ID):
+	case _IOC_NR(PERF_EVENT_IOC_SET_DRV_CONFIGS):
 		/* Fix up pointer size (usually 4 -> 8 in 32-on-64-bit case */
 		if (_IOC_SIZE(cmd) == sizeof(compat_uptr_t)) {
 			cmd &= ~IOCSIZE_MASK;
@@ -5726,7 +5747,8 @@ static void perf_output_read_group(struct perf_output_handle *handle,
 	if (read_format & PERF_FORMAT_TOTAL_TIME_RUNNING)
 		values[n++] = running;
 
-	if (leader != event)
+	if ((leader != event) &&
+	    (leader->state == PERF_EVENT_STATE_ACTIVE))
 		leader->pmu->read(leader);
 
 	values[n++] = perf_event_count(leader);
@@ -8146,6 +8168,15 @@ void perf_bp_event(struct perf_event *bp, void *data)
 }
 #endif
 
+static int perf_event_drv_configs(struct perf_event *event,
+				  void __user *arg)
+{
+	if (!event->pmu->get_drv_configs)
+		return -EINVAL;
+
+	return event->pmu->get_drv_configs(event, arg);
+}
+
 /*
  * Allocate a new address filter
  */
@@ -9424,6 +9455,7 @@ perf_event_alloc(struct perf_event_attr *attr, int cpu,
 	INIT_LIST_HEAD(&event->rb_entry);
 	INIT_LIST_HEAD(&event->active_entry);
 	INIT_LIST_HEAD(&event->addr_filters.list);
+	INIT_LIST_HEAD(&event->drv_configs);
 	INIT_HLIST_NODE(&event->hlist_entry);
 
 
@@ -9690,9 +9722,9 @@ static int perf_copy_attr(struct perf_event_attr __user *uattr,
 		 * __u16 sample size limit.
 		 */
 		if (attr->sample_stack_user >= USHRT_MAX)
-			ret = -EINVAL;
+			return -EINVAL;
 		else if (!IS_ALIGNED(attr->sample_stack_user, sizeof(u64)))
-			ret = -EINVAL;
+			return -EINVAL;
 	}
 
 	if (attr->sample_type & PERF_SAMPLE_REGS_INTR)

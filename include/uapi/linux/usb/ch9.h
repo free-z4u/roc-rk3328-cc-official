@@ -1077,9 +1077,9 @@ struct usb_ptm_cap_descriptor {
 #define USB_DT_USB_PTM_ID_SIZE		3
 /*
  * The size of the descriptor for the Sublink Speed Attribute Count
- * (SSAC) specified in bmAttributes[4:0].
+ * (SSAC) specified in bmAttributes[4:0]. SSAC is zero-based
  */
-#define USB_DT_USB_SSP_CAP_SIZE(ssac)	(16 + ssac * 4)
+#define USB_DT_USB_SSP_CAP_SIZE(ssac)	(12 + (ssac + 1) * 4)
 
 /*-------------------------------------------------------------------------*/
 
@@ -1176,6 +1176,7 @@ enum usb3_link_state {
 	USB3_LPM_U3
 };
 
+#define USB_DT_USB_PTM_ID_SIZE		3
 /*
  * A U1 timeout of 0x0 means the parent hub will reject any transitions to U1.
  * 0xff means the parent hub will accept transitions to U1, but will not
