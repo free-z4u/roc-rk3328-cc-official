@@ -81,7 +81,7 @@ config LEDS_TRIGGER_ACTIVITY
 	tristate "LED activity Trigger"
 	depends on LEDS_TRIGGERS
 	help
-	  This allows LEDs to be controlled by a immediate CPU usage.
+	  This allows LEDs to be controlled by an immediate CPU usage.
 	  The flash frequency and duty cycle varies from faint flashes to
 	  intense brightness depending on the instant CPU load.
 	  If unsure, say N.
@@ -135,10 +135,11 @@ config LEDS_TRIGGER_PANIC
 	  a different trigger.
 	  If unsure, say Y.
 
-config LEDS_TRIGGER_MULTI_CTRL
-	tristate "LED Multi-Control Trigger"
-	depends on LEDS_TRIGGERS && LEDS_TRIGGER_DEFAULT_ON && LEDS_TRIGGER_TIMER && LEDS_TRIGGER_ONESHOT
+config LEDS_TRIGGER_NETDEV
+	tristate "LED Netdev Trigger"
+	depends on NET && LEDS_TRIGGERS
 	help
-	  This allows userspace control all the leds at one time by ioctl operation.
+	  This allows LEDs to be controlled by network device activity.
+	  If unsure, say Y.
 
 endif # LEDS_TRIGGERS
