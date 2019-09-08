@@ -2801,9 +2801,6 @@ replay:
 	if (err < 0)
 		return err;
 
-	if (tb[IFLA_IF_NETNSID])
-		return -EOPNOTSUPP;
-
 	if (tb[IFLA_IFNAME])
 		nla_strlcpy(ifname, tb[IFLA_IFNAME], IFNAMSIZ);
 	else
