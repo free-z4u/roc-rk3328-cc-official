@@ -348,7 +348,7 @@ static int set_sync_ep_implicit_fb_quirk(struct snd_usb_substream *subs,
 
 		alts = &iface->altsetting[1];
 		goto add_sync_ep;
-	case USB_ID(0x2466, 0x8003): /* Fractal Audio Axe-Fx II */
+	case USB_ID(0x2466, 0x8003):
 		ep = 0x86;
 		iface = usb_ifnum_to_if(dev, 2);
 
@@ -357,7 +357,7 @@ static int set_sync_ep_implicit_fb_quirk(struct snd_usb_substream *subs,
 
 		alts = &iface->altsetting[1];
 		goto add_sync_ep;
-	case USB_ID(0x1397, 0x0002): /* Behringer UFX1204 */
+	case USB_ID(0x1397, 0x0002):
 		ep = 0x81;
 		iface = usb_ifnum_to_if(dev, 1);
 
@@ -1311,7 +1311,7 @@ static void retire_capture_urb(struct snd_usb_substream *subs,
 		if (bytes % (runtime->sample_bits >> 3) != 0) {
 			int oldbytes = bytes;
 			bytes = frames * stride;
-			dev_warn_ratelimited(&subs->dev->dev,
+			dev_warn(&subs->dev->dev,
 				 "Corrected urb data len. %d->%d\n",
 							oldbytes, bytes);
 		}
