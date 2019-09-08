@@ -658,10 +658,15 @@ struct cache_set {
 	atomic_long_t		writeback_keys_done;
 	atomic_long_t		writeback_keys_failed;
 
+	atomic_long_t		reclaim;
+	atomic_long_t		flush_write;
+	atomic_long_t		retry_flush_write;
+
 	enum			{
 		ON_ERROR_UNREGISTER,
 		ON_ERROR_PANIC,
 	}			on_error;
+#define DEFAULT_IO_ERROR_LIMIT 8
 	unsigned		error_limit;
 	unsigned		error_decay;
 
@@ -675,6 +680,8 @@ struct cache_set {
 
 #define BUCKET_HASH_BITS	12
 	struct hlist_head	bucket_hash[1 << BUCKET_HASH_BITS];
+
+	DECLARE_HEAP(struct btree *, flush_btree);
 };
 
 struct bbio {
