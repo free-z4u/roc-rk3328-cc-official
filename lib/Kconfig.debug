@@ -1651,6 +1651,7 @@ config DMA_API_DEBUG
 
 menuconfig RUNTIME_TESTING_MENU
 	bool "Runtime Testing"
+	def_bool y
 
 if RUNTIME_TESTING_MENU
 
