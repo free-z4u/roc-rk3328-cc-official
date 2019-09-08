@@ -242,7 +242,7 @@ p9_fd_poll(struct p9_client *client, struct poll_table_struct *pt, int *err)
 	if (!ts) {
 		if (err)
 			*err = -EREMOTEIO;
-		return POLLERR;
+		return EPOLLERR;
 	}
 
 	if (!ts->rd->f_op->poll)
@@ -255,7 +255,7 @@ p9_fd_poll(struct p9_client *client, struct poll_table_struct *pt, int *err)
 			n = DEFAULT_POLLMASK;
 		else
 			n = ts->wr->f_op->poll(ts->wr, pt);
-		ret = (ret & ~POLLOUT) | (n & ~POLLIN);
+		ret = (ret & ~EPOLLOUT) | (n & ~EPOLLIN);
 	}
 
 	return ret;
@@ -398,11 +398,11 @@ end_clear:
 
 	if (!list_empty(&m->req_list)) {
 		if (test_and_clear_bit(Rpending, &m->wsched))
-			n = POLLIN;
+			n = EPOLLIN;
 		else
 			n = p9_fd_poll(m->client, NULL, NULL);
 
-		if ((n & POLLIN) && !test_and_set_bit(Rworksched, &m->wsched)) {
+		if ((n & EPOLLIN) && !test_and_set_bit(Rworksched, &m->wsched)) {
 			p9_debug(P9_DEBUG_TRANS, "sched read work %p\n", m);
 			schedule_work(&m->rq);
 		}
@@ -507,11 +507,11 @@ end_clear:
 
 	if (m->wsize || !list_empty(&m->unsent_req_list)) {
 		if (test_and_clear_bit(Wpending, &m->wsched))
-			n = POLLOUT;
+			n = EPOLLOUT;
 		else
 			n = p9_fd_poll(m->client, NULL, NULL);
 
-		if ((n & POLLOUT) &&
+		if ((n & EPOLLOUT) &&
 		   !test_and_set_bit(Wworksched, &m->wsched)) {
 			p9_debug(P9_DEBUG_TRANS, "sched write work %p\n", m);
 			schedule_work(&m->wq);
@@ -601,12 +601,12 @@ static void p9_conn_create(struct p9_client *client)
 	init_poll_funcptr(&m->pt, p9_pollwait);
 
 	n = p9_fd_poll(client, &m->pt, NULL);
-	if (n & POLLIN) {
+	if (n & EPOLLIN) {
 		p9_debug(P9_DEBUG_TRANS, "mux %p can read\n", m);
 		set_bit(Rpending, &m->wsched);
 	}
 
-	if (n & POLLOUT) {
+	if (n & EPOLLOUT) {
 		p9_debug(P9_DEBUG_TRANS, "mux %p can write\n", m);
 		set_bit(Wpending, &m->wsched);
 	}
@@ -627,12 +627,12 @@ static void p9_poll_mux(struct p9_conn *m)
 		return;
 
 	n = p9_fd_poll(m->client, NULL, &err);
-	if (n & (POLLERR | POLLHUP | POLLNVAL)) {
+	if (n & (EPOLLERR | EPOLLHUP | EPOLLNVAL)) {
 		p9_debug(P9_DEBUG_TRANS, "error mux %p err %d\n", m, n);
 		p9_conn_cancel(m, err);
 	}
 
-	if (n & POLLIN) {
+	if (n & EPOLLIN) {
 		set_bit(Rpending, &m->wsched);
 		p9_debug(P9_DEBUG_TRANS, "mux %p can read\n", m);
 		if (!test_and_set_bit(Rworksched, &m->wsched)) {
@@ -641,7 +641,7 @@ static void p9_poll_mux(struct p9_conn *m)
 		}
 	}
 
-	if (n & POLLOUT) {
+	if (n & EPOLLOUT) {
 		set_bit(Wpending, &m->wsched);
 		p9_debug(P9_DEBUG_TRANS, "mux %p can write\n", m);
 		if ((m->wsize || !list_empty(&m->unsent_req_list)) &&
@@ -680,11 +680,11 @@ static int p9_fd_request(struct p9_client *client, struct p9_req_t *req)
 	spin_unlock(&client->lock);
 
 	if (test_and_clear_bit(Wpending, &m->wsched))
-		n = POLLOUT;
+		n = EPOLLOUT;
 	else
 		n = p9_fd_poll(m->client, NULL, NULL);
 
-	if (n & POLLOUT && !test_and_set_bit(Wworksched, &m->wsched))
+	if (n & EPOLLOUT && !test_and_set_bit(Wworksched, &m->wsched))
 		schedule_work(&m->wq);
 
 	return 0;
