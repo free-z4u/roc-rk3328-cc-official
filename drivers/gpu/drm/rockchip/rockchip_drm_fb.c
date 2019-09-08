@@ -199,13 +199,6 @@ err_gem_object_unreference:
 	return ERR_PTR(ret);
 }
 
-static void rockchip_drm_output_poll_changed(struct drm_device *dev)
-{
-	struct rockchip_drm_private *private = dev->dev_private;
-
-	drm_fb_helper_hotplug_event(&private->fbdev_helper);
-}
-
 static int rockchip_drm_bandwidth_atomic_check(struct drm_device *dev,
 					       struct drm_atomic_state *state,
 					       size_t *bandwidth)
@@ -339,7 +332,7 @@ static const struct drm_mode_config_helper_funcs rockchip_mode_config_helpers = 
 
 static const struct drm_mode_config_funcs rockchip_drm_mode_config_funcs = {
 	.fb_create = rockchip_user_fb_create,
-	.output_poll_changed = rockchip_drm_output_poll_changed,
+	.output_poll_changed = drm_fb_helper_output_poll_changed,
 	.atomic_check = drm_atomic_helper_check,
 	.atomic_commit = rockchip_drm_atomic_commit,
 };
