@@ -17,21 +17,16 @@ enum host_chn_shift{
         CUSTOM_CHN_SHIFT = 28
 };
 
-enum host_chn_mask{
-        SARADC_CHN_MASK = 0x0000000f,  // saradc: 0 -- 15
-        CUSTOM_CHN_MASK = 0xf0000000,
-};
-
 struct adc_host;
 struct adc_client {
-        unsigned int index;
-        unsigned int chn;
-        unsigned int is_finished;
-        unsigned int flags;
-        int result;
+	unsigned int index;
+	unsigned int chn;
+	unsigned int is_finished;
+	unsigned int flags;
+	int result;
 	struct adc_host *adc;
-        struct list_head list;
-        wait_queue_head_t	wait;
+	struct list_head list;
+	wait_queue_head_t	wait;
 	void (*callback)(struct adc_client *, void *, int);
 	void *callback_param;
 };

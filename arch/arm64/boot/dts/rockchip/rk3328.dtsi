@@ -183,6 +183,24 @@
 		};
 	};
 
+	amba {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		dmac: dmac@ff1f0000 {
+			compatible = "arm,pl330", "arm,primecell";
+			reg = <0x0 0xff1f0000 0x0 0x4000>;
+			interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cru ACLK_DMAC>;
+			clock-names = "apb_pclk";
+			#dma-cells = <1>;
+			peripherals-req-type-burst;
+		};
+	};
+
 	arm-pmu {
 		compatible = "arm,cortex-a53-pmu";
 		interrupts = <GIC_SPI 100 IRQ_TYPE_LEVEL_HIGH>,
@@ -206,7 +224,7 @@
 	};
 
 	psci {
-		compatible = "arm,psci-1.0";
+		compatible = "arm,psci-1.0", "arm,psci-0.2";
 		method = "smc";
 	};
 
@@ -348,85 +366,15 @@
 		reboot-mode {
 			compatible = "syscon-reboot-mode";
 			offset = <0x5c8>;
+			mode-normal = <BOOT_NORMAL>;
+			mode-recovery = <BOOT_RECOVERY>;
 			mode-bootloader = <BOOT_BL_DOWNLOAD>;
 			mode-charge = <BOOT_CHARGING>;
 			mode-fastboot = <BOOT_FASTBOOT>;
 			mode-loader = <BOOT_BL_DOWNLOAD>;
-			mode-normal = <BOOT_NORMAL>;
-			mode-recovery = <BOOT_RECOVERY>;
 			mode-ums = <BOOT_UMS>;
 		};
-	};
 
-	thermal-zones {
-		soc_thermal: soc-thermal {
-			polling-delay-passive = <20>; /* milliseconds */
-			polling-delay = <1000>; /* milliseconds */
-			sustainable-power = <1000>; /* milliwatts */
-
-			thermal-sensors = <&tsadc 0>;
-
-			trips {
-				threshold: trip-point@0 {
-					temperature = <70000>; /* millicelsius */
-					hysteresis = <2000>; /* millicelsius */
-					type = "passive";
-				};
-				target: trip-point@1 {
-					temperature = <85000>; /* millicelsius */
-					hysteresis = <2000>; /* millicelsius */
-					type = "passive";
-				};
-				soc_crit: soc-crit {
-					temperature = <95000>; /* millicelsius */
-					hysteresis = <2000>; /* millicelsius */
-					type = "critical";
-				};
-			};
-
-			cooling-maps {
-				map0 {
-					trip = <&target>;
-					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-					contribution = <4096>;
-				};
-				map1 {
-					trip = <&target>;
-					cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-					contribution = <4096>;
-				};
-				map2 {
-					trip = <&target>;
-					cooling-device = <&rkvdec THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-					contribution = <1024>;
-				};
-				map3 {
-					trip = <&target>;
-					cooling-device = <&dmc THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-					contribution = <1024>;
-				};
-			};
-		};
-	};
-
-	tsadc: tsadc@ff250000 {
-		compatible = "rockchip,rk3328-tsadc";
-		reg = <0x0 0xff250000 0x0 0x100>;
-		interrupts = <GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>;
-		rockchip,grf = <&grf>;
-		clocks = <&cru SCLK_TSADC>, <&cru PCLK_TSADC>;
-		clock-names = "tsadc", "apb_pclk";
-		assigned-clocks = <&cru SCLK_TSADC>;
-		assigned-clock-rates = <50000>;
-		resets = <&cru SRST_TSADC>;
-		reset-names = "tsadc-apb";
-		pinctrl-names = "init", "default", "sleep";
-		pinctrl-0 = <&otp_gpio>;
-		pinctrl-1 = <&otp_out>;
-		pinctrl-2 = <&otp_gpio>;
-		#thermal-sensor-cells = <1>;
-		rockchip,hw-tshut-temp = <100000>;
-		status = "disabled";
 	};
 
 	uart0: serial@ff110000 {
@@ -557,33 +505,33 @@
 	pwm0: pwm@ff1b0000 {
 		compatible = "rockchip,rk3328-pwm";
 		reg = <0x0 0xff1b0000 0x0 0x10>;
-		#pwm-cells = <3>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pwm0_pin>;
 		clocks = <&cru SCLK_PWM>, <&cru PCLK_PWM>;
 		clock-names = "pwm", "pclk";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwm0_pin>;
+		#pwm-cells = <3>;
 		status = "disabled";
 	};
 
 	pwm1: pwm@ff1b0010 {
 		compatible = "rockchip,rk3328-pwm";
 		reg = <0x0 0xff1b0010 0x0 0x10>;
-		#pwm-cells = <3>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pwm1_pin>;
 		clocks = <&cru SCLK_PWM>, <&cru PCLK_PWM>;
 		clock-names = "pwm", "pclk";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwm1_pin>;
+		#pwm-cells = <3>;
 		status = "disabled";
 	};
 
 	pwm2: pwm@ff1b0020 {
 		compatible = "rockchip,rk3328-pwm";
 		reg = <0x0 0xff1b0020 0x0 0x10>;
-		#pwm-cells = <3>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pwm2_pin>;
 		clocks = <&cru SCLK_PWM>, <&cru PCLK_PWM>;
 		clock-names = "pwm", "pclk";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwm2_pin>;
+		#pwm-cells = <3>;
 		status = "disabled";
 	};
 
@@ -591,30 +539,84 @@
 		compatible = "rockchip,rk3328-pwm";
 		reg = <0x0 0xff1b0030 0x0 0x10>;
 		interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
-		#pwm-cells = <3>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pwmir_pin>;
 		clocks = <&cru SCLK_PWM>, <&cru PCLK_PWM>;
 		clock-names = "pwm", "pclk";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwmir_pin>;
+		#pwm-cells = <3>;
 		status = "disabled";
 	};
 
-	amba {
-		compatible = "simple-bus";
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
+	thermal-zones {
+		soc_thermal: soc-thermal {
+			polling-delay-passive = <20>;
+			polling-delay = <1000>;
+			sustainable-power = <1000>;
 
-		dmac: dmac@ff1f0000 {
-			compatible = "arm,pl330", "arm,primecell";
-			reg = <0x0 0xff1f0000 0x0 0x4000>;
-			interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&cru ACLK_DMAC>;
-			clock-names = "apb_pclk";
-			#dma-cells = <1>;
-			peripherals-req-type-burst;
+			thermal-sensors = <&tsadc 0>;
+
+			trips {
+				threshold: trip-point@0 {
+					temperature = <70000>;
+					hysteresis = <2000>;
+					type = "passive";
+				};
+				target: trip-point@1 {
+					temperature = <85000>;
+					hysteresis = <2000>;
+					type = "passive";
+				};
+				soc_crit: soc-crit {
+					temperature = <95000>;
+					hysteresis = <2000>;
+					type = "critical";
+				};
+			};
+
+			cooling-maps {
+				map0 {
+					trip = <&target>;
+					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+					contribution = <4096>;
+				};
+				map1 {
+					trip = <&target>;
+					cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+					contribution = <4096>;
+				};
+				map2 {
+					trip = <&target>;
+					cooling-device = <&rkvdec THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+					contribution = <1024>;
+				};
+				map3 {
+					trip = <&target>;
+					cooling-device = <&dmc THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+					contribution = <1024>;
+				};
+			};
 		};
+
+	};
+
+	tsadc: tsadc@ff250000 {
+		compatible = "rockchip,rk3328-tsadc";
+		reg = <0x0 0xff250000 0x0 0x100>;
+		interrupts = <GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>;
+		assigned-clocks = <&cru SCLK_TSADC>;
+		assigned-clock-rates = <50000>;
+		clocks = <&cru SCLK_TSADC>, <&cru PCLK_TSADC>;
+		clock-names = "tsadc", "apb_pclk";
+		pinctrl-names = "init", "default", "sleep";
+		pinctrl-0 = <&otp_gpio>;
+		pinctrl-1 = <&otp_out>;
+		pinctrl-2 = <&otp_gpio>;
+		resets = <&cru SRST_TSADC>;
+		reset-names = "tsadc-apb";
+		rockchip,grf = <&grf>;
+		rockchip,hw-tshut-temp = <100000>;
+		#thermal-sensor-cells = <1>;
+		status = "disabled";
 	};
 
 	efuse: efuse@ff260000 {
@@ -642,7 +644,7 @@
 		};
 	};
 
-	saradc: saradc@ff280000 {
+	saradc: adc@ff280000 {
 		compatible = "rockchip,rk3328-saradc", "rockchip,rk3399-saradc";
 		reg = <0x0 0xff280000 0x0 0x100>;
 		interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
@@ -655,10 +657,8 @@
 	};
 
 	gpu: gpu@ff300000 {
-		compatible = "arm,mali-450";
-		/* first item of 'reg' is dummy, to fit src code. */
-		reg = <0x0 0xff300000 0x0 0x40000>,
-		      <0x0 0xff300000 0x0 0x40000>;
+		compatible = "rockchip,rk3328-mali", "arm,mali-450";
+		reg = <0x0 0xff300000 0x0 0x40000>;
 		interrupts = <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 87 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>,
@@ -666,15 +666,16 @@
 			     <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 91 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "Mali_GP_IRQ",
-				  "Mali_GP_MMU_IRQ",
-				  "IRQPP",
-				  "Mali_PP0_IRQ",
-				  "Mali_PP0_MMU_IRQ",
-				  "Mali_PP1_IRQ",
-				  "Mali_PP1_MMU_IRQ";
-		clocks = <&cru ACLK_GPU>;
-		clock-names = "clk_mali";
+		interrupt-names = "gp",
+				  "gpmmu",
+				  "pp",
+				  "pp0",
+				  "ppmmu0",
+				  "pp1",
+				  "ppmmu1";
+		clocks = <&cru ACLK_GPU>, <&cru ACLK_GPU>;
+		clock-names = "bus", "core";
+		resets = <&cru SRST_GPU_A>;
 		#cooling-cells = <2>; /* min followed by max */
 		operating-points-v2 = <&gpu_opp_table>;
 		status = "disabled";
@@ -688,6 +689,26 @@
 			ts = <32000 4700 (-80) 2>;
 			thermal-zone = "soc-thermal";
 		};
+	};
+
+	h265e_mmu: iommu@ff330200 {
+		compatible = "rockchip,iommu";
+		reg = <0x0 0xff330200 0 0x100>;
+		interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "h265e_mmu";
+		#iommu-cells = <0>;
+		power-domains = <&power RK3328_PD_HEVC>;
+	};
+
+	vepu_mmu: iommu@ff340800 {
+		compatible = "rockchip,iommu";
+		reg = <0x0 0xff340800 0x0 0x40>;
+		interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "vepu_mmu";
+		#iommu-cells = <0>;
+		clocks = <&cru ACLK_H264>, <&cru HCLK_H264>;
+		clock-names = "aclk", "hclk";
+		power-domains = <&power RK3328_PD_HEVC>;
 	};
 
 	gpu_opp_table: gpu-opp-table {
@@ -873,15 +894,6 @@
 		status = "disabled";
 	};
 
-	h265e_mmu: iommu@ff330200 {
-		compatible = "rockchip,iommu";
-		reg = <0x0 0xff330200 0 0x100>;
-		interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "h265e_mmu";
-		power-domains = <&power RK3328_PD_HEVC>;
-		#iommu-cells = <0>;
-	};
-
 	vepu: vepu@ff340000 {
 		compatible = "rockchip,rk3328-vepu", "rockchip,vepu";
 		rockchip,grf = <&grf>;
@@ -903,17 +915,6 @@
 		allocator = <1>;
 		power-domains = <&power RK3328_PD_HEVC>;
 		status = "disabled";
-	};
-
-	vepu_mmu: iommu@ff340800 {
-		compatible = "rockchip,iommu";
-		reg = <0x0 0xff340800 0x0 0x40>;
-		interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "vepu_mmu";
-		clocks = <&cru ACLK_H264>, <&cru HCLK_H264>;
-		clock-names = "aclk", "hclk";
-		power-domains = <&power RK3328_PD_HEVC>;
-		#iommu-cells = <0>;
 	};
 
 	venc_srv: venc_srv {
