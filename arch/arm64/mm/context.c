@@ -88,13 +88,6 @@ void verify_cpu_asid_bits(void)
 	}
 }
 
-static void set_reserved_asid_bits(void)
-{
-	if (IS_ENABLED(CONFIG_QCOM_FALKOR_ERRATUM_1003) &&
-	    cpus_have_const_cap(ARM64_WORKAROUND_QCOM_FALKOR_E1003))
-		__set_bit(FALKOR_RESERVED_ASID, asid_map);
-}
-
 static void flush_context(unsigned int cpu)
 {
 	int i;
@@ -102,8 +95,6 @@ static void flush_context(unsigned int cpu)
 
 	/* Update the list of reserved ASIDs and the ASID bitmap. */
 	bitmap_clear(asid_map, 0, NUM_USER_ASIDS);
-
-	set_reserved_asid_bits();
 
 	for_each_possible_cpu(i) {
 		asid = atomic64_xchg_relaxed(&per_cpu(active_asids, i), 0);
@@ -203,26 +194,29 @@ set_asid:
 void check_and_switch_context(struct mm_struct *mm, unsigned int cpu)
 {
 	unsigned long flags;
-	u64 asid;
+	u64 asid, old_active_asid;
 
 	asid = atomic64_read(&mm->context.id);
 
 	/*
 	 * The memory ordering here is subtle.
-	 * If our ASID matches the current generation, then we update
-	 * our active_asids entry with a relaxed xchg. Racing with a
-	 * concurrent rollover means that either:
+	 * If our active_asids is non-zero and the ASID matches the current
+	 * generation, then we update the active_asids entry with a relaxed
+	 * cmpxchg. Racing with a concurrent rollover means that either:
 	 *
-	 * - We get a zero back from the xchg and end up waiting on the
+	 * - We get a zero back from the cmpxchg and end up waiting on the
 	 *   lock. Taking the lock synchronises with the rollover and so
 	 *   we are forced to see the updated generation.
 	 *
-	 * - We get a valid ASID back from the xchg, which means the
+	 * - We get a valid ASID back from the cmpxchg, which means the
 	 *   relaxed xchg in flush_context will treat us as reserved
 	 *   because atomic RmWs are totally ordered for a given location.
 	 */
-	if (!((asid ^ atomic64_read(&asid_generation)) >> asid_bits)
-	    && atomic64_xchg_relaxed(&per_cpu(active_asids, cpu), asid))
+	old_active_asid = atomic64_read(&per_cpu(active_asids, cpu));
+	if (old_active_asid &&
+	    !((asid ^ atomic64_read(&asid_generation)) >> asid_bits) &&
+	    atomic64_cmpxchg_relaxed(&per_cpu(active_asids, cpu),
+				     old_active_asid, asid))
 		goto switch_mm_fastpath;
 
 	raw_spin_lock_irqsave(&cpu_asid_lock, flags);
@@ -240,6 +234,9 @@ void check_and_switch_context(struct mm_struct *mm, unsigned int cpu)
 	raw_spin_unlock_irqrestore(&cpu_asid_lock, flags);
 
 switch_mm_fastpath:
+
+	arm64_apply_bp_hardening();
+
 	/*
 	 * Defer TTBR0_EL1 setting for user threads to uaccess_enable() when
 	 * emulating PAN.
@@ -271,8 +268,6 @@ static int asids_init(void)
 	if (!asid_map)
 		panic("Failed to allocate bitmap for %lu ASIDs\n",
 		      NUM_USER_ASIDS);
-
-	set_reserved_asid_bits();
 
 	pr_info("ASID allocator initialised with %lu entries\n", NUM_USER_ASIDS);
 	return 0;
