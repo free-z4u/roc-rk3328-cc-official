@@ -486,6 +486,17 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
 	b.ne	9998b
 	.endm
 
+	/*
+	 * @sym: The name of the per-cpu variable
+	 * @reg: Result of per_cpu(sym, smp_processor_id())
+	 * @tmp: scratch register
+	 */
+	.macro this_cpu_ptr, sym, reg, tmp
+	adr_l	\reg, \sym
+	mrs	\tmp, tpidr_el1
+	add	\reg, \reg, \tmp
+	.endm
+
 /*
  * Annotate a function as position independent, i.e., safe to be called before
  * the kernel virtual mapping is activated.

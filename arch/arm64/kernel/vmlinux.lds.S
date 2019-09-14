@@ -138,6 +138,11 @@ SECTIONS
 	EXCEPTION_TABLE(8)		/* __init_begin will be marked RO NX */
 	NOTES
 
+#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+	tramp_pg_dir = .;
+	. += PAGE_SIZE;
+#endif
+
 	. = ALIGN(SEGMENT_ALIGN);
 	__init_begin = .;
 	__inittext_begin = .;

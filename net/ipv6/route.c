@@ -110,7 +110,7 @@ static struct rt6_info *rt6_find_cached_rt(struct rt6_info *rt,
 					   struct in6_addr *saddr);
 
 #ifdef CONFIG_IPV6_ROUTE_INFO
-static struct rt6_info *rt6_add_route_info(struct net *net,
+static struct rt6_info *rt6_add_route_info(struct net_device *dev,
 					   const struct in6_addr *prefix, int prefixlen,
 					   const struct in6_addr *gwaddr,
 					   struct net_device *dev,
@@ -3196,7 +3196,7 @@ static void ip6_rt_copy_init(struct rt6_info *rt, struct rt6_info *ort)
 }
 
 #ifdef CONFIG_IPV6_ROUTE_INFO
-static struct rt6_info *rt6_get_route_info(struct net *net,
+static struct rt6_info *rt6_get_route_info(struct net_device *dev,
 					   const struct in6_addr *prefix, int prefixlen,
 					   const struct in6_addr *gwaddr,
 					   struct net_device *dev)
@@ -3231,7 +3231,7 @@ out:
 	return rt;
 }
 
-static struct rt6_info *rt6_add_route_info(struct net *net,
+static struct rt6_info *rt6_add_route_info(struct net_device *dev,
 					   const struct in6_addr *prefix, int prefixlen,
 					   const struct in6_addr *gwaddr,
 					   struct net_device *dev,
@@ -3246,7 +3246,7 @@ static struct rt6_info *rt6_add_route_info(struct net *net,
 		.fc_protocol = RTPROT_RA,
 		.fc_nlinfo.portid = 0,
 		.fc_nlinfo.nlh = NULL,
-		.fc_nlinfo.nl_net = net,
+		.fc_nlinfo.nl_net = dev_net(dev),
 	};
 
 	cfg.fc_table = l3mdev_fib_table(dev) ? : RT6_TABLE_INFO,
@@ -3291,7 +3291,7 @@ struct rt6_info *rt6_add_dflt_router(const struct in6_addr *gwaddr,
 				     unsigned int pref)
 {
 	struct fib6_config cfg = {
-		.fc_table	= l3mdev_fib_table(dev) ? : RT6_TABLE_DFLT,
+		.fc_table	= l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_DFLT),
 		.fc_metric	= IP6_RT_PRIO_USER,
 		.fc_ifindex	= dev->ifindex,
 		.fc_flags	= RTF_GATEWAY | RTF_ADDRCONF | RTF_DEFAULT |
@@ -3862,6 +3862,7 @@ void rt6_mtu_change(struct net_device *dev, unsigned int mtu)
 
 static const struct nla_policy rtm_ipv6_policy[RTA_MAX+1] = {
 	[RTA_GATEWAY]           = { .len = sizeof(struct in6_addr) },
+	[RTA_PREFSRC]		= { .len = sizeof(struct in6_addr) },
 	[RTA_OIF]               = { .type = NLA_U32 },
 	[RTA_IIF]		= { .type = NLA_U32 },
 	[RTA_PRIORITY]          = { .type = NLA_U32 },
@@ -3873,6 +3874,7 @@ static const struct nla_policy rtm_ipv6_policy[RTA_MAX+1] = {
 	[RTA_EXPIRES]		= { .type = NLA_U32 },
 	[RTA_UID]		= { .type = NLA_U32 },
 	[RTA_MARK]		= { .type = NLA_U32 },
+	[RTA_TABLE]		= { .type = NLA_U32 },
 };
 
 static int rtm_to_fib6_config(struct sk_buff *skb, struct nlmsghdr *nlh,

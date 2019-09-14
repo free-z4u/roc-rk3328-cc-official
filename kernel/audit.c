@@ -1058,6 +1058,8 @@ static void audit_log_feature_change(int which, u32 old_feature, u32 new_feature
 		return;
 
 	ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_FEATURE_CHANGE);
+	if (!ab)
+		return;
 	audit_log_task_info(ab, current);
 	audit_log_format(ab, " feature=%s old=%u new=%u old_lock=%u new_lock=%u res=%d",
 			 audit_feature_names[which], !!old_feature, !!new_feature,
@@ -1567,19 +1569,26 @@ static int __init audit_init(void)
 }
 postcore_initcall(audit_init);
 
-/* Process kernel command-line parameter at boot time.  audit=0 or audit=1. */
+/*
+ * Process kernel command-line parameter at boot time.
+ * audit={0|off} or audit={1|on}.
+ */
 static int __init audit_enable(char *str)
 {
-	long val;
-
-	if (kstrtol(str, 0, &val))
-		panic("audit: invalid 'audit' parameter value (%s)\n", str);
-	audit_default = (val ? AUDIT_ON : AUDIT_OFF);
+	if (!strcasecmp(str, "off") || !strcmp(str, "0"))
+		audit_default = AUDIT_OFF;
+	else if (!strcasecmp(str, "on") || !strcmp(str, "1"))
+		audit_default = AUDIT_ON;
+	else {
+		pr_err("audit: invalid 'audit' parameter value (%s)\n", str);
+		audit_default = AUDIT_ON;
+	}
 
 	if (audit_default == AUDIT_OFF)
 		audit_initialized = AUDIT_DISABLED;
 	if (audit_set_enabled(audit_default))
-		panic("audit: error setting audit state (%d)\n", audit_default);
+		pr_err("audit: error setting audit state (%d)\n",
+		       audit_default);
 
 	pr_info("%s\n", audit_default ?
 		"enabled (after initialization)" : "disabled (until reboot)");

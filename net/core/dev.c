@@ -1027,7 +1027,7 @@ bool dev_valid_name(const char *name)
 {
 	if (*name == '\0')
 		return false;
-	if (strlen(name) >= IFNAMSIZ)
+	if (strnlen(name, IFNAMSIZ) == IFNAMSIZ)
 		return false;
 	if (!strcmp(name, ".") || !strcmp(name, ".."))
 		return false;
@@ -2942,7 +2942,7 @@ netdev_features_t passthru_features_check(struct sk_buff *skb,
 }
 EXPORT_SYMBOL(passthru_features_check);
 
-static netdev_features_t dflt_features_check(const struct sk_buff *skb,
+static netdev_features_t dflt_features_check(struct sk_buff *skb,
 					     struct net_device *dev,
 					     netdev_features_t features)
 {
@@ -8547,7 +8547,8 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 		/* We get here if we can't use the current device name */
 		if (!pat)
 			goto out;
-		if (dev_get_valid_name(net, dev, pat) < 0)
+		err = dev_get_valid_name(net, dev, pat);
+		if (err < 0)
 			goto out;
 	}
 
@@ -8559,7 +8560,6 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 	dev_close(dev);
 
 	/* And unlink it from device chain */
-	err = -ENODEV;
 	unlist_netdevice(dev);
 
 	synchronize_net();

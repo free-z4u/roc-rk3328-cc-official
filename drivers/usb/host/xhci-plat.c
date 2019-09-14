@@ -269,6 +269,15 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	if (device_property_read_bool(&pdev->dev, "quirk-broken-port-ped"))
 		xhci->quirks |= XHCI_BROKEN_PORT_PED;
 
+	xhci->shared_hcd->usb_phy = devm_usb_get_phy(&pdev->dev,
+						     USB_PHY_TYPE_USB3);
+	if (IS_ERR(xhci->shared_hcd->usb_phy)) {
+		ret = PTR_ERR(xhci->shared_hcd->usb_phy);
+		if (ret == -EPROBE_DEFER)
+			goto put_usb3_hcd;
+		xhci->shared_hcd->usb_phy = NULL;
+	}
+
 	/* imod_interval is the interrupt moderation value in nanoseconds. */
 	xhci->imod_interval = 40000;
 	device_property_read_u32(sysdev, "imod-interval-ns",

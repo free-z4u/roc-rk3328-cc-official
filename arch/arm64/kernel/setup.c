@@ -257,6 +257,13 @@ void __init setup_arch(char **cmdline_p)
 
 	setup_machine_fdt(__fdt_pointer);
 
+  if (strstr(boot_command_line, "storagemedia=sd")) {
+    char *root;
+    const char *fix_dev = "root=/dev/mmcblk1p";
+    root = strstr(boot_command_line, fix_dev);
+    if (root)
+      root[strlen(fix_dev)-2] = '0';
+  }
 	parse_early_param();
 
 	/*

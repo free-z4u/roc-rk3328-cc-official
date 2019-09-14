@@ -23,6 +23,7 @@
 #include <drm/bridge/analogix_dp.h>
 #endif
 
+#include <linux/devfreq.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
@@ -41,6 +42,8 @@
 #include "rockchip_drm_fb.h"
 #include "rockchip_drm_psr.h"
 #include "rockchip_drm_vop.h"
+
+#define MAX_VOPS	2
 
 #define VOP_WIN_SET(x, win, name, v) \
 		vop_reg_set(vop, &win->phy->name, win->base, ~0, v, #name)
@@ -120,6 +123,8 @@ struct vop {
 	spinlock_t reg_lock;
 	/* lock vop irq reg */
 	spinlock_t irq_lock;
+	/* mutex vop enable and disable */
+	struct mutex vop_lock;
 
 	unsigned int irq;
 
@@ -133,8 +138,14 @@ struct vop {
 	/* vop dclk reset */
 	struct reset_control *dclk_rst;
 
+	struct notifier_block dmc_nb;
+
 	struct vop_win win[];
 };
+
+static struct vop *dmc_vop[MAX_VOPS];
+static struct devfreq *devfreq_vop;
+static DEFINE_MUTEX(register_devfreq_lock);
 
 static inline void vop_writel(struct vop *vop, uint32_t offset, uint32_t v)
 {
@@ -582,6 +593,8 @@ static void vop_crtc_atomic_disable(struct drm_crtc *crtc,
 
 	rockchip_drm_psr_deactivate(&vop->crtc);
 
+	mutex_lock(&vop->vop_lock);
+
 	drm_crtc_vblank_off(crtc);
 
 	/*
@@ -616,6 +629,7 @@ static void vop_crtc_atomic_disable(struct drm_crtc *crtc,
 	clk_disable(vop->dclk);
 	clk_disable(vop->aclk);
 	clk_disable(vop->hclk);
+	mutex_unlock(&vop->vop_lock);
 	pm_runtime_put(vop->dev);
 
 	if (crtc->state->event && !crtc->state->active) {
@@ -895,6 +909,7 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 		return;
 	}
 
+	mutex_lock(&vop->vop_lock);
 	pin_pol = BIT(DCLK_INVERT);
 	pin_pol |= (adjusted_mode->flags & DRM_MODE_FLAG_PHSYNC) ?
 		   BIT(HSYNC_POSITIVE) : 0;
@@ -956,6 +971,7 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 	VOP_REG_SET(vop, common, standby, 0);
 
 	rockchip_drm_psr_activate(&vop->crtc);
+	mutex_unlock(&vop->vop_lock);
 }
 
 static bool vop_fs_irq_is_pending(struct vop *vop)
@@ -1494,15 +1510,21 @@ int rockchip_drm_wait_vact_end(struct drm_crtc *crtc, unsigned int mstimeout)
 {
 	struct vop *vop = to_vop(crtc);
 	unsigned long jiffies_left;
+	int ret = 0;
 
 	if (!crtc || !vop->is_enabled)
 		return -ENODEV;
 
-	if (mstimeout <= 0)
-		return -EINVAL;
+	mutex_lock(&vop->vop_lock);
+	if (mstimeout <= 0) {
+		ret = -EINVAL;
+		goto out;
+	}
 
-	if (vop_line_flag_irq_is_enabled(vop))
-		return -EBUSY;
+	if (vop_line_flag_irq_is_enabled(vop)) {
+		ret = -EBUSY;
+		goto out;
+	}
 
 	reinit_completion(&vop->line_flag_completion);
 	vop_line_flag_irq_enable(vop);
@@ -1513,12 +1535,54 @@ int rockchip_drm_wait_vact_end(struct drm_crtc *crtc, unsigned int mstimeout)
 
 	if (jiffies_left == 0) {
 		DRM_DEV_ERROR(vop->dev, "Timeout waiting for IRQ\n");
-		return -ETIMEDOUT;
+		ret = -ETIMEDOUT;
+		goto out;
 	}
+
+out:
+	mutex_unlock(&vop->vop_lock);
+	return ret;
+}
+EXPORT_SYMBOL(rockchip_drm_wait_vact_end);
+
+static int dmc_notifier_call(struct notifier_block *nb, unsigned long event,
+			     void *data)
+{
+	struct vop *vop = container_of(nb, struct vop, dmc_nb);
+
+	if (event == DEVFREQ_PRECHANGE)
+		mutex_lock(&vop->vop_lock);
+	else if (event == DEVFREQ_POSTCHANGE)
+		mutex_unlock(&vop->vop_lock);
+
+	return NOTIFY_OK;
+}
+
+int rockchip_drm_register_notifier_to_dmc(struct devfreq *devfreq)
+{
+	int i, j = 0;
+
+	mutex_lock(&register_devfreq_lock);
+
+	devfreq_vop = devfreq;
+
+	for (i = 0; i < ARRAY_SIZE(dmc_vop); i++) {
+		if (!dmc_vop[i])
+			continue;
+		dmc_vop[i]->dmc_nb.notifier_call = dmc_notifier_call;
+		devfreq_register_notifier(devfreq_vop, &dmc_vop[i]->dmc_nb,
+					  DEVFREQ_TRANSITION_NOTIFIER);
+		j++;
+	}
+
+	mutex_unlock(&register_devfreq_lock);
+
+	if (j == 0)
+		return -ENOMEM;
 
 	return 0;
 }
-EXPORT_SYMBOL(rockchip_drm_wait_vact_end);
+EXPORT_SYMBOL(rockchip_drm_register_notifier_to_dmc);
 
 static int vop_bind(struct device *dev, struct device *master, void *data)
 {
@@ -1528,7 +1592,7 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	struct vop *vop;
 	struct resource *res;
 	size_t alloc_size;
-	int ret, irq;
+	int ret, irq, i;
 
 	vop_data = of_device_get_match_data(dev);
 	if (!vop_data)
@@ -1566,6 +1630,7 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 
 	spin_lock_init(&vop->reg_lock);
 	spin_lock_init(&vop->irq_lock);
+	mutex_init(&vop->vop_lock);
 
 	mutex_init(&vop->vsync_mutex);
 
@@ -1582,6 +1647,23 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 		goto err_enable_irq;
 
 	pm_runtime_enable(&pdev->dev);
+
+	mutex_lock(&register_devfreq_lock);
+
+	for (i = 0; i < ARRAY_SIZE(dmc_vop); i++) {
+		if (dmc_vop[i])
+			continue;
+		if (devfreq_vop) {
+			vop->dmc_nb.notifier_call = dmc_notifier_call;
+			devfreq_register_notifier(devfreq_vop,
+						  &vop->dmc_nb,
+						  DEVFREQ_TRANSITION_NOTIFIER);
+		}
+		dmc_vop[i] = vop;
+		break;
+	}
+
+	mutex_unlock(&register_devfreq_lock);
 
 	ret = vop_initial(vop);
 	if (ret < 0) {
@@ -1603,6 +1685,24 @@ err_enable_irq:
 static void vop_unbind(struct device *dev, struct device *master, void *data)
 {
 	struct vop *vop = dev_get_drvdata(dev);
+	int i;
+
+	mutex_lock(&register_devfreq_lock);
+
+	for (i = 0; i < ARRAY_SIZE(dmc_vop); i++) {
+		if (dmc_vop[i] != vop)
+			continue;
+		dmc_vop[i] = NULL;
+
+		if (!devfreq_vop)
+			break;
+		devfreq_unregister_notifier(devfreq_vop,
+					    &vop->dmc_nb,
+					    DEVFREQ_TRANSITION_NOTIFIER);
+		break;
+	}
+
+	mutex_unlock(&register_devfreq_lock);
 
 	pm_runtime_disable(dev);
 	vop_destroy_crtc(vop);

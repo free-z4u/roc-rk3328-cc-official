@@ -592,7 +592,7 @@ static int snd_timer_stop1(struct snd_timer_instance *timeri, bool stop)
 	else
 		timeri->flags |= SNDRV_TIMER_IFLG_PAUSED;
 	snd_timer_notify1(timeri, stop ? SNDRV_TIMER_EVENT_STOP :
-			  SNDRV_TIMER_EVENT_CONTINUE);
+			  SNDRV_TIMER_EVENT_PAUSE);
  unlock:
 	spin_unlock_irqrestore(&timer->lock, flags);
 	return result;
@@ -614,7 +614,7 @@ static int snd_timer_stop_slave(struct snd_timer_instance *timeri, bool stop)
 		list_del_init(&timeri->ack_list);
 		list_del_init(&timeri->active_list);
 		snd_timer_notify1(timeri, stop ? SNDRV_TIMER_EVENT_STOP :
-				  SNDRV_TIMER_EVENT_CONTINUE);
+				  SNDRV_TIMER_EVENT_PAUSE);
 		spin_unlock(&timeri->timer->lock);
 	}
 	spin_unlock_irqrestore(&slave_active_lock, flags);
@@ -981,6 +981,11 @@ static int snd_timer_dev_register(struct snd_device *dev)
 	mutex_unlock(&register_mutex);
 	return 0;
 }
+
+/* just for reference in snd_timer_dev_disconnect() below */
+static void snd_timer_user_ccallback(struct snd_timer_instance *timeri,
+				     int event, struct timespec *tstamp,
+				     unsigned long resolution);
 
 static int snd_timer_dev_disconnect(struct snd_device *device)
 {

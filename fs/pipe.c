@@ -1075,6 +1075,9 @@ static long pipe_set_size(struct pipe_inode_info *pipe, unsigned long arg)
 		goto out_revert_acct;
 	}
 
+	if (!nr_pages)
+		return -EINVAL;
+
 	/*
 	 * We can shrink the pipe, if arg >= pipe->nrbufs. Since we don't
 	 * expect a lot of shrink+grow operations, just free and allocate

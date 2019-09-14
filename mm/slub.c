@@ -710,7 +710,7 @@ void object_err(struct kmem_cache *s, struct page *page,
 	print_trailer(s, page, object);
 }
 
-static void slab_err(struct kmem_cache *s, struct page *page,
+static __printf(3, 4) void slab_err(struct kmem_cache *s, struct page *page,
 			const char *fmt, ...)
 {
 	va_list args;
@@ -3031,6 +3031,9 @@ int build_detached_freelist(struct kmem_cache *s, size_t size,
 
 	if (!object)
 		return 0;
+
+	/* Support for memcg, compiler can optimize this out */
+	df->s = cache_from_obj(s, object);
 
 	page = virt_to_head_page(object);
 	if (!s) {

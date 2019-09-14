@@ -92,6 +92,11 @@ deb-pkg: FORCE
 	$(MAKE) KBUILD_SRC=
 	+$(call cmd,builddeb)
 
+%_deb-pkg: FORCE
+	$(MAKE) clean
+	$(MAKE) KBUILD_SRC=
+	+$(call cmd,builddeb)
+
 bindeb-pkg: FORCE
 	$(MAKE) KBUILD_SRC=
 	+$(call cmd,builddeb)

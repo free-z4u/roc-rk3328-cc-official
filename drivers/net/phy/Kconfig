@@ -87,6 +87,11 @@ config MDIO_BUS_MUX_MMIOREG
 
 	  Currently, only 8/16/32 bits registers are supported.
 
+config ROCKCHIP_PHY
+	tristate "Driver for Rockchip Ethernet PHYs"
+	---help---
+	  Currently supports the integrated Ethernet PHY.
+
 config MDIO_CAVIUM
 	tristate
 
