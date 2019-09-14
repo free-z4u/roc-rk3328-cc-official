@@ -1803,8 +1803,8 @@ static bool dw_mci_reset(struct dw_mci *host)
 	}
 
 	if (host->use_dma == TRANS_MODE_IDMAC)
-		/* It is also recommended that we reset and reprogram idmac */
-		dw_mci_idmac_reset(host);
+		/* It is also required that we reinit idmac */
+		dw_mci_idmac_init(host);
 
 	ret = true;
 
@@ -1953,7 +1953,7 @@ static void dw_mci_set_drto(struct dw_mci *host)
 	if (drto_div == 0)
 		drto_div = 1;
 
-	drto_ms = DIV_ROUND_UP_ULL(MSEC_PER_SEC * drto_clks * drto_div,
+	drto_ms = DIV_ROUND_UP_ULL((u64)MSEC_PER_SEC * drto_clks * drto_div,
 				   host->bus_hz);
 
 	/* add a bit spare time */
