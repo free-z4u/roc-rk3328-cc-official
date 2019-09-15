@@ -430,13 +430,6 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 		return PTR_ERR(hdmi->dclk);
 	}
 
-	ret = clk_prepare_enable(hdmi->vpll_clk);
-	if (ret) {
-		DRM_DEV_ERROR(hdmi->dev,
-			      "Failed to enable HDMI vpll: %d\n", ret);
-		return ret;
-	}
-
 	ret = clk_prepare_enable(hdmi->hclk_vio);
 	if (ret) {
 		DRM_DEV_ERROR(hdmi->dev, "Failed to eanble HDMI hclk_vio: %d\n",
@@ -1218,6 +1211,13 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	if (ret < 0)
 		return ret;
 
+	ret = clk_prepare_enable(hdmi->vpll_clk);
+	if (ret) {
+		DRM_DEV_ERROR(hdmi->dev, "Failed to enable HDMI vpll: %d\n",
+			      ret);
+		return ret;
+	}
+
 	drm_encoder_helper_add(encoder, &dw_hdmi_rockchip_encoder_helper_funcs);
 	drm_encoder_init(drm, encoder, &dw_hdmi_rockchip_encoder_funcs,
 			 DRM_MODE_ENCODER_TMDS, NULL);
@@ -1233,6 +1233,7 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	if (IS_ERR(hdmi->hdmi)) {
 		ret = PTR_ERR(hdmi->hdmi);
 		drm_encoder_cleanup(encoder);
+		clk_disable_unprepare(hdmi->vpll_clk);
 	}
 
 	return ret;
@@ -1244,6 +1245,7 @@ static void dw_hdmi_rockchip_unbind(struct device *dev, struct device *master,
 	struct rockchip_hdmi *hdmi = dev_get_drvdata(dev);
 
 	dw_hdmi_unbind(hdmi->hdmi);
+	clk_disable_unprepare(hdmi->vpll_clk);
 }
 
 static const struct component_ops dw_hdmi_rockchip_ops = {

@@ -1012,27 +1012,30 @@ static int analogix_dp_bridge_attach(struct drm_bridge *bridge)
 {
 	struct analogix_dp_device *dp = bridge->driver_private;
 	struct drm_encoder *encoder = dp->encoder;
-	struct drm_connector *connector = &dp->connector;
-	int ret;
+	struct drm_connector *connector = NULL;
+	int ret = 0;
 
 	if (!bridge->encoder) {
 		DRM_ERROR("Parent encoder object not found");
 		return -ENODEV;
 	}
 
-	connector->polled = DRM_CONNECTOR_POLL_HPD;
+	if (!dp->plat_data->skip_connector) {
+		connector = &dp->connector;
+		connector->polled = DRM_CONNECTOR_POLL_HPD;
 
-	ret = drm_connector_init(dp->drm_dev, connector,
-				 &analogix_dp_connector_funcs,
-				 DRM_MODE_CONNECTOR_eDP);
-	if (ret) {
-		DRM_ERROR("Failed to initialize connector with drm\n");
-		return ret;
+		ret = drm_connector_init(dp->drm_dev, connector,
+					 &analogix_dp_connector_funcs,
+					 DRM_MODE_CONNECTOR_eDP);
+		if (ret) {
+			DRM_ERROR("Failed to initialize connector with drm\n");
+			return ret;
+		}
+
+		drm_connector_helper_add(connector,
+					 &analogix_dp_connector_helper_funcs);
+		drm_mode_connector_attach_encoder(connector, encoder);
 	}
-
-	drm_connector_helper_add(connector,
-				 &analogix_dp_connector_helper_funcs);
-	drm_mode_connector_attach_encoder(connector, encoder);
 
 	/*
 	 * NOTE: the connector registration is implemented in analogix
@@ -1376,13 +1379,6 @@ analogix_dp_bind(struct device *dev, struct drm_device *drm_dev,
 		return ERR_PTR(-ENODEV);
 	}
 
-	pm_runtime_enable(dev);
-
-	pm_runtime_get_sync(dev);
-	phy_power_on(dp->phy);
-
-	analogix_dp_init_dp(dp);
-
 	ret = devm_request_threaded_irq(&pdev->dev, dp->irq,
 					analogix_dp_hardirq,
 					analogix_dp_irq_thread,
@@ -1402,7 +1398,9 @@ analogix_dp_bind(struct device *dev, struct drm_device *drm_dev,
 
 	ret = drm_dp_aux_register(&dp->aux);
 	if (ret)
-		goto err_disable_pm_runtime;
+		return ERR_PTR(ret);
+
+	pm_runtime_enable(dev);
 
 	ret = analogix_dp_create_bridge(drm_dev, dp);
 	if (ret) {
@@ -1410,15 +1408,10 @@ analogix_dp_bind(struct device *dev, struct drm_device *drm_dev,
 		goto err_disable_pm_runtime;
 	}
 
-	phy_power_off(dp->phy);
-	pm_runtime_put(dev);
-
 	return dp;
 
 err_disable_pm_runtime:
 
-	phy_power_off(dp->phy);
-	pm_runtime_put(dev);
 	pm_runtime_disable(dev);
 
 	return ERR_PTR(ret);

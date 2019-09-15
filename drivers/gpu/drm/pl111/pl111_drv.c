@@ -192,7 +192,7 @@ static int pl111_modeset_init(struct drm_device *dev)
 
 	drm_mode_config_reset(dev);
 
-	drm_fb_cma_fbdev_init(dev, 32, 0);
+	drm_fb_cma_fbdev_init(dev, priv->variant->fb_bpp, 0);
 
 	drm_kms_helper_poll_init(dev);
 
@@ -256,6 +256,12 @@ static int pl111_amba_probe(struct amba_device *amba_dev,
 	priv->drm = drm;
 	drm->dev_private = priv;
 	priv->variant = variant;
+
+	if (of_property_read_u32(dev->of_node, "max-memory-bandwidth",
+				 &priv->memory_bw)) {
+		dev_info(dev, "no max memory bandwidth specified, assume unlimited\n");
+		priv->memory_bw = 0;
+	}
 
 	/* The two variants swap this register */
 	if (variant->is_pl110) {
@@ -336,6 +342,7 @@ static const struct pl111_variant_data pl110_variant = {
 	.is_pl110 = true,
 	.formats = pl110_pixel_formats,
 	.nformats = ARRAY_SIZE(pl110_pixel_formats),
+	.fb_bpp = 16,
 };
 
 /* RealView, Versatile Express etc use this modern variant */
@@ -360,6 +367,7 @@ static const struct pl111_variant_data pl111_variant = {
 	.name = "PL111",
 	.formats = pl111_pixel_formats,
 	.nformats = ARRAY_SIZE(pl111_pixel_formats),
+	.fb_bpp = 32,
 };
 
 static const struct amba_id pl111_id_table[] = {
