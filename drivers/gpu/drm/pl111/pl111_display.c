@@ -138,6 +138,9 @@ static void pl111_display_enable(struct drm_simple_display_pipe *pipe,
 	tim2 = readl(priv->regs + CLCD_TIM2);
 	tim2 &= (TIM2_BCD | TIM2_PCD_LO_MASK | TIM2_PCD_HI_MASK);
 
+	if (priv->variant->broken_clockdivider)
+		tim2 |= TIM2_BCD;
+
 	if (mode->flags & DRM_MODE_FLAG_NHSYNC)
 		tim2 |= TIM2_IHS;
 
@@ -199,10 +202,17 @@ static void pl111_display_enable(struct drm_simple_display_pipe *pipe,
 		cntl |= CNTL_LCDBPP24 | CNTL_BGR;
 		break;
 	case DRM_FORMAT_BGR565:
-		cntl |= CNTL_LCDBPP16_565;
+		if (priv->variant->is_pl110)
+			cntl |= CNTL_LCDBPP16;
+		else
+			cntl |= CNTL_LCDBPP16_565;
 		break;
 	case DRM_FORMAT_RGB565:
-		cntl |= CNTL_LCDBPP16_565 | CNTL_BGR;
+		if (priv->variant->is_pl110)
+			cntl |= CNTL_LCDBPP16;
+		else
+			cntl |= CNTL_LCDBPP16_565;
+		cntl |= CNTL_BGR;
 		break;
 	case DRM_FORMAT_ABGR1555:
 	case DRM_FORMAT_XBGR1555:
@@ -226,6 +236,10 @@ static void pl111_display_enable(struct drm_simple_display_pipe *pipe,
 		break;
 	}
 
+	/* The PL110 in Integrator/Versatile does the BGR routing externally */
+	if (priv->variant->external_bgr)
+		cntl &= ~CNTL_BGR;
+
 	/* Power sequence: first enable and chill */
 	writel(cntl, priv->regs + priv->ctrl);
 
@@ -242,7 +256,8 @@ static void pl111_display_enable(struct drm_simple_display_pipe *pipe,
 	cntl |= CNTL_LCDPWR;
 	writel(cntl, priv->regs + priv->ctrl);
 
-	drm_crtc_vblank_on(crtc);
+	if (!priv->variant->broken_vblank)
+		drm_crtc_vblank_on(crtc);
 }
 
 void pl111_display_disable(struct drm_simple_display_pipe *pipe)
@@ -252,7 +267,8 @@ void pl111_display_disable(struct drm_simple_display_pipe *pipe)
 	struct pl111_drm_dev_private *priv = drm->dev_private;
 	u32 cntl;
 
-	drm_crtc_vblank_off(crtc);
+	if (!priv->variant->broken_vblank)
+		drm_crtc_vblank_off(crtc);
 
 	/* Power Down */
 	cntl = readl(priv->regs + priv->ctrl);
@@ -443,6 +459,11 @@ pl111_init_clock_divider(struct drm_device *drm)
 	if (IS_ERR(parent)) {
 		dev_err(drm->dev, "CLCD: unable to get clcdclk.\n");
 		return PTR_ERR(parent);
+	}
+	/* If the clock divider is broken, use the parent directly */
+	if (priv->variant->broken_clockdivider) {
+		priv->clk = parent;
+		return 0;
 	}
 	parent_name = __clk_get_name(parent);
 

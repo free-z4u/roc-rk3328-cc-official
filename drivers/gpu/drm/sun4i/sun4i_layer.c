@@ -20,14 +20,15 @@
 #include "sunxi_engine.h"
 
 struct sun4i_plane_desc {
-	       enum drm_plane_type     type;
-	       u8                      pipe;
-	       const uint32_t          *formats;
-	       uint32_t                nformats;
+	enum drm_plane_type     type;
+	u8                      pipe;
+	const uint32_t          *formats;
+	uint32_t                nformats;
 };
 
 static void sun4i_backend_layer_reset(struct drm_plane *plane)
 {
+	struct sun4i_layer *layer = plane_to_sun4i_layer(plane);
 	struct sun4i_layer_state *state;
 
 	if (plane->state) {
@@ -43,6 +44,7 @@ static void sun4i_backend_layer_reset(struct drm_plane *plane)
 	if (state) {
 		plane->state = &state->state;
 		plane->state->plane = plane;
+		plane->state->zpos = layer->id;
 	}
 }
 
@@ -106,14 +108,14 @@ static void sun4i_backend_layer_atomic_update(struct drm_plane *plane,
 					      DRM_FORMAT_ARGB8888);
 		sun4i_backend_update_layer_frontend(backend, layer->id,
 						    DRM_FORMAT_ARGB8888);
-		sun4i_backend_update_layer_coord(backend, layer->id, plane);
 		sun4i_frontend_enable(frontend);
 	} else {
-		sun4i_backend_update_layer_coord(backend, layer->id, plane);
 		sun4i_backend_update_layer_formats(backend, layer->id, plane);
 		sun4i_backend_update_layer_buffer(backend, layer->id, plane);
 	}
 
+	sun4i_backend_update_layer_coord(backend, layer->id, plane);
+	sun4i_backend_update_layer_zpos(backend, layer->id, plane);
 	sun4i_backend_layer_enable(backend, layer->id, true);
 }
 
@@ -199,32 +201,12 @@ struct drm_plane **sun4i_layers_init(struct drm_device *drm,
 	struct sun4i_backend *backend = engine_to_sun4i_backend(engine);
 	int i;
 
-	planes = devm_kcalloc(drm->dev, ARRAY_SIZE(sun4i_backend_planes) + 1,
+	/* We need to have a sentinel at the need, hence the overallocation */
+	planes = devm_kcalloc(drm->dev, SUN4I_BACKEND_NUM_LAYERS + 1,
 			      sizeof(*planes), GFP_KERNEL);
 	if (!planes)
 		return ERR_PTR(-ENOMEM);
 
-	/*
-	 * The hardware is a bit unusual here.
-	 *
-	 * Even though it supports 4 layers, it does the composition
-	 * in two separate steps.
-	 *
-	 * The first one is assigning a layer to one of its two
-	 * pipes. If more that 1 layer is assigned to the same pipe,
-	 * and if pixels overlaps, the pipe will take the pixel from
-	 * the layer with the highest priority.
-	 *
-	 * The second step is the actual alpha blending, that takes
-	 * the two pipes as input, and uses the eventual alpha
-	 * component to do the transparency between the two.
-	 *
-	 * This two steps scenario makes us unable to guarantee a
-	 * robust alpha blending between the 4 layers in all
-	 * situations. So we just expose two layers, one per pipe. On
-	 * SoCs that support it, sprites could fill the need for more
-	 * layers.
-	 */
 	for (i = 0; i < ARRAY_SIZE(sun4i_backend_planes); i++) {
 		const struct sun4i_plane_desc *plane = &sun4i_backend_planes[i];
 		struct sun4i_layer *layer;
@@ -235,6 +217,8 @@ struct drm_plane **sun4i_layers_init(struct drm_device *drm,
 				i ? "overlay" : "primary");
 			return ERR_CAST(layer);
 		};
+
+		drm_plane_create_zpos_immutable_property(&layer->plane, i);
 
 		DRM_DEBUG_DRIVER("Assigning %s plane to pipe %d\n",
 				 i ? "overlay" : "primary", plane->pipe);

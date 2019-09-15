@@ -29,7 +29,10 @@
 #include <drm/bridge/dw_mipi_dsi.h>
 #include <video/mipi_display.h>
 
+#define HWVER_131			0x31333100	/* IP version 1.31 */
+
 #define DSI_VERSION			0x00
+#define VERSION				GENMASK(31, 8)
 
 #define DSI_PWR_UP			0x04
 #define RESET				0
@@ -165,11 +168,12 @@
 #define PHY_CLKHS2LP_TIME(lbcc)		(((lbcc) & 0x3ff) << 16)
 #define PHY_CLKLP2HS_TIME(lbcc)		((lbcc) & 0x3ff)
 
-/* TODO Next register is slightly different between 1.30 & 1.31 IP version */
 #define DSI_PHY_TMR_CFG			0x9c
 #define PHY_HS2LP_TIME(lbcc)		(((lbcc) & 0xff) << 24)
 #define PHY_LP2HS_TIME(lbcc)		(((lbcc) & 0xff) << 16)
 #define MAX_RD_TIME(lbcc)		((lbcc) & 0x7fff)
+#define PHY_HS2LP_TIME_V131(lbcc)	(((lbcc) & 0x3ff) << 16)
+#define PHY_LP2HS_TIME_V131(lbcc)	((lbcc) & 0x3ff)
 
 #define DSI_PHY_RSTZ			0xa0
 #define PHY_DISFORCEPLL			0
@@ -208,7 +212,9 @@
 #define DSI_INT_ST1			0xc0
 #define DSI_INT_MSK0			0xc4
 #define DSI_INT_MSK1			0xc8
+
 #define DSI_PHY_TMR_RD_CFG		0xf4
+#define MAX_RD_TIME_V131(lbcc)		((lbcc) & 0x7fff)
 
 #define PHY_STATUS_TIMEOUT_US		10000
 #define CMD_PKT_STATUS_TIMEOUT_US	20000
@@ -391,12 +397,46 @@ static int dw_mipi_dsi_write(struct dw_mipi_dsi *dsi,
 	return dw_mipi_dsi_gen_pkt_hdr_write(dsi, le32_to_cpu(word));
 }
 
+static int dw_mipi_dsi_read(struct dw_mipi_dsi *dsi,
+			    const struct mipi_dsi_msg *msg)
+{
+	int i, j, ret, len = msg->rx_len;
+	u8 *buf = msg->rx_buf;
+	u32 val;
+
+	/* Wait end of the read operation */
+	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
+				 val, !(val & GEN_RD_CMD_BUSY),
+				 1000, CMD_PKT_STATUS_TIMEOUT_US);
+	if (ret) {
+		dev_err(dsi->dev, "Timeout during read operation\n");
+		return ret;
+	}
+
+	for (i = 0; i < len; i += 4) {
+		/* Read fifo must not be empty before all bytes are read */
+		ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
+					 val, !(val & GEN_PLD_R_EMPTY),
+					 1000, CMD_PKT_STATUS_TIMEOUT_US);
+		if (ret) {
+			dev_err(dsi->dev, "Read payload FIFO is empty\n");
+			return ret;
+		}
+
+		val = dsi_read(dsi, DSI_GEN_PLD_DATA);
+		for (j = 0; j < 4 && j + i < len; j++)
+			buf[i + j] = val >> (8 * j);
+	}
+
+	return ret;
+}
+
 static ssize_t dw_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 					 const struct mipi_dsi_msg *msg)
 {
 	struct dw_mipi_dsi *dsi = host_to_dsi(host);
 	struct mipi_dsi_packet packet;
-	int ret;
+	int ret, nb_bytes;
 
 	ret = mipi_dsi_create_packet(&packet, msg);
 	if (ret) {
@@ -406,7 +446,20 @@ static ssize_t dw_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
 
 	dw_mipi_message_config(dsi, msg);
 
-	return dw_mipi_dsi_write(dsi, &packet);
+	ret = dw_mipi_dsi_write(dsi, &packet);
+	if (ret)
+		return ret;
+
+	if (msg->rx_buf && msg->rx_len) {
+		ret = dw_mipi_dsi_read(dsi, msg);
+		if (ret)
+			return ret;
+		nb_bytes = msg->rx_len;
+	} else {
+		nb_bytes = packet.size;
+	}
+
+	return nb_bytes;
 }
 
 static const struct mipi_dsi_host_ops dw_mipi_dsi_host_ops = {
@@ -612,6 +665,8 @@ static void dw_mipi_dsi_vertical_timing_config(struct dw_mipi_dsi *dsi,
 
 static void dw_mipi_dsi_dphy_timing_config(struct dw_mipi_dsi *dsi)
 {
+	u32 hw_version;
+
 	/*
 	 * TODO dw drv improvements
 	 * data & clock lane timers should be computed according to panel
@@ -619,8 +674,17 @@ static void dw_mipi_dsi_dphy_timing_config(struct dw_mipi_dsi *dsi)
 	 * note: DSI_PHY_TMR_CFG.MAX_RD_TIME should be in line with
 	 * DSI_CMD_MODE_CFG.MAX_RD_PKT_SIZE_LP (see CMD_MODE_ALL_LP)
 	 */
-	dsi_write(dsi, DSI_PHY_TMR_CFG, PHY_HS2LP_TIME(0x40)
-		  | PHY_LP2HS_TIME(0x40) | MAX_RD_TIME(10000));
+
+	hw_version = dsi_read(dsi, DSI_VERSION) & VERSION;
+
+	if (hw_version >= HWVER_131) {
+		dsi_write(dsi, DSI_PHY_TMR_CFG, PHY_HS2LP_TIME_V131(0x40) |
+			  PHY_LP2HS_TIME_V131(0x40));
+		dsi_write(dsi, DSI_PHY_TMR_RD_CFG, MAX_RD_TIME_V131(10000));
+	} else {
+		dsi_write(dsi, DSI_PHY_TMR_CFG, PHY_HS2LP_TIME(0x40) |
+			  PHY_LP2HS_TIME(0x40) | MAX_RD_TIME(10000));
+	}
 
 	dsi_write(dsi, DSI_PHY_TMR_LPCLK_CFG, PHY_CLKHS2LP_TIME(0x40)
 		  | PHY_CLKLP2HS_TIME(0x40));
