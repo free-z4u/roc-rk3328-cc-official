@@ -80,7 +80,6 @@ struct rockchip_crtc_state {
 	int color_space;
 	int eotf;
 };
-
 #define to_rockchip_crtc_state(s) \
 		container_of(s, struct rockchip_crtc_state, base)
 
@@ -94,14 +93,14 @@ struct rockchip_crtc_state {
 struct rockchip_drm_private {
 	struct drm_fb_helper fbdev_helper;
 	struct drm_gem_object *fbdev_bo;
-	const struct rockchip_crtc_funcs *crtc_funcs[ROCKCHIP_MAX_CRTC];
 	struct drm_atomic_state *state;
 	struct iommu_domain *domain;
 	struct mutex mm_lock;
 	struct drm_mm mm;
 	struct list_head psr_list;
-	spinlock_t psr_list_lock;
+	struct mutex psr_list_lock;
 
+	const struct rockchip_crtc_funcs *crtc_funcs[ROCKCHIP_MAX_CRTC];
 	struct rockchip_atomic_commit *commit;
 	/* protect async commit */
 	struct mutex commit_lock;
