@@ -107,10 +107,6 @@ struct rockchip_drm_private {
 	struct mutex commit_lock;
 	struct work_struct commit_work;
 	struct gen_pool *secure_buffer_pool;
-#ifdef CONFIG_DRM_DMA_SYNC
-	unsigned int cpu_fence_context;
-	atomic_t cpu_fence_seqno;
-#endif
 	struct devfreq *devfreq;
 };
 

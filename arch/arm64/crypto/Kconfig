@@ -55,11 +55,6 @@ config CRYPTO_GHASH_ARM64_CE
 	select CRYPTO_AES
 	select CRYPTO_AES_ARM64
 
-config CRYPTO_POLY_HASH_ARM64_CE
-	tristate "poly_hash (for HEH encryption mode) using ARMv8 Crypto Extensions"
-	depends on ARM64 && KERNEL_MODE_NEON
-	select CRYPTO_HASH
-
 config CRYPTO_CRCT10DIF_ARM64_CE
 	tristate "CRCT10DIF digest algorithm using PMULL instructions"
 	depends on KERNEL_MODE_NEON && CRC_T10DIF
