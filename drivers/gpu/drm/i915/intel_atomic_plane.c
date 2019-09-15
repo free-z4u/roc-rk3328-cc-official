@@ -56,7 +56,6 @@ intel_create_plane_state(struct drm_plane *plane)
 
 	state->base.plane = plane;
 	state->base.rotation = DRM_MODE_ROTATE_0;
-	state->ckey.flags = I915_SET_COLORKEY_NONE;
 
 	return state;
 }
@@ -86,6 +85,7 @@ intel_plane_duplicate_state(struct drm_plane *plane)
 	__drm_atomic_helper_plane_duplicate_state(plane, state);
 
 	intel_state->vma = NULL;
+	intel_state->flags = 0;
 
 	return state;
 }
