@@ -529,7 +529,9 @@ static int vop_enable(struct drm_crtc *crtc)
 	}
 
 	spin_lock(&vop->reg_lock);
-	memcpy(vop->regs, vop->regsbak, vop->len);
+	for (i = 0; i < vop->len; i += 4)
+		writel_relaxed(vop->regsbak[i / 4], vop->regs + i);
+
 	/*
 	 * We need to make sure that all windows are disabled before we
 	 * enable the crtc. Otherwise we might try to scan from a destroyed
@@ -1413,7 +1415,8 @@ static int vop_initial(struct vop *vop)
 	VOP_INTR_SET_TYPE(vop, clear, INTR_MASK, 1);
 	VOP_INTR_SET_TYPE(vop, enable, INTR_MASK, 0);
 
-	memcpy(vop->regsbak, vop->regs, vop->len);
+	for (i = 0; i < vop->len; i += sizeof(u32))
+		vop->regsbak[i / 4] = readl_relaxed(vop->regs + i);
 
 	VOP_REG_SET(vop, misc, global_regdone_en, 1);
 	VOP_REG_SET(vop, common, dsp_blank, 0);
