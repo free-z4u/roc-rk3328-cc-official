@@ -104,7 +104,7 @@ static int create_in_format_blob(struct drm_device *dev, struct drm_plane *plane
 	if (IS_ERR(blob))
 		return -1;
 
-	blob_data = (struct drm_format_modifier_blob *)blob->data;
+	blob_data = blob->data;
 	blob_data->version = FORMAT_BLOB_CURRENT;
 	blob_data->count_formats = plane->format_count;
 	blob_data->formats_offset = sizeof(struct drm_format_modifier_blob);
@@ -967,7 +967,7 @@ int drm_mode_page_flip_ioctl(struct drm_device *dev,
 		if (r)
 			return r;
 
-		current_vblank = drm_crtc_vblank_count(crtc);
+		current_vblank = (u32)drm_crtc_vblank_count(crtc);
 
 		switch (page_flip->flags & DRM_MODE_PAGE_FLIP_TARGET) {
 		case DRM_MODE_PAGE_FLIP_TARGET_ABSOLUTE:
