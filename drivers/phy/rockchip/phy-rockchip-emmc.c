@@ -99,6 +99,7 @@ static int rockchip_emmc_phy_power(struct phy *phy, bool on_off)
 	unsigned int dllrdy;
 	unsigned int freqsel = PHYCTRL_FREQSEL_200M;
 	unsigned long rate;
+	int ret;
 
 	/*
 	 * Keep phyctrl_pdb and phyctrl_endll low to allow
@@ -175,12 +176,13 @@ static int rockchip_emmc_phy_power(struct phy *phy, bool on_off)
 	 * failure cases are found which indicates we should be more tolerant
 	 * to calpad busy trimming.
 	 */
-	if (regmap_read_poll_timeout(rk_phy->reg_base,
-				     rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
-				     caldone, PHYCTRL_IS_CALDONE(caldone),
-				     5, 50)) {
-		pr_err("rockchip_emmc_phy_power: caldone timeout.\n");
-		return -ETIMEDOUT;
+	ret = regmap_read_poll_timeout(rk_phy->reg_base,
+				       rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
+				       caldone, PHYCTRL_IS_CALDONE(caldone),
+				       0, 50);
+	if (ret) {
+		pr_err("%s: caldone failed, ret=%d\n", __func__, ret);
+		return ret;
 	}
 
 	/* Set the frequency of the DLL operation */
@@ -220,19 +222,15 @@ static int rockchip_emmc_phy_power(struct phy *phy, bool on_off)
 	 * NOTE: There appear to be corner cases where the DLL seems to take
 	 * extra long to lock for reasons that aren't understood.  In some
 	 * extreme cases we've seen it take up to over 10ms (!).  We'll be
-	 * generous and give it 50ms.  We still busy wait here because:
-	 * - In most cases it should be super fast.
-	 * - This is not called lots during normal operation so it shouldn't
-	 *   be a power or performance problem to busy wait.  We expect it
-	 *   only at boot / resume.  In both cases, eMMC is probably on the
-	 *   critical path so busy waiting a little extra time should be OK.
+	 * generous and give it 50ms.
 	 */
-	if (regmap_read_poll_timeout(rk_phy->reg_base,
-				     rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
-				     dllrdy, PHYCTRL_IS_DLLRDY(dllrdy),
-				     1, 50 * USEC_PER_MSEC)) {
-		pr_err("rockchip_emmc_phy_power: dllrdy timeout.\n");
-		return -ETIMEDOUT;
+	ret = regmap_read_poll_timeout(rk_phy->reg_base,
+				       rk_phy->reg_offset + GRF_EMMCPHY_STATUS,
+				       dllrdy, PHYCTRL_IS_DLLRDY(dllrdy),
+				       0, 50 * USEC_PER_MSEC);
+	if (ret) {
+		pr_err("%s: dllrdy failed. ret=%d\n", __func__, ret);
+		return ret;
 	}
 
 	return 0;
