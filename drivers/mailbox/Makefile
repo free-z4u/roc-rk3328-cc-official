@@ -27,6 +27,8 @@ obj-$(CONFIG_TI_MESSAGE_MANAGER) += ti-msgmgr.o
 
 obj-$(CONFIG_XGENE_SLIMPRO_MBOX) += mailbox-xgene-slimpro.o
 
+obj-$(CONFIG_HI3660_MBOX)	+= hi3660-mailbox.o
+
 obj-$(CONFIG_HI6220_MBOX)	+= hi6220-mailbox.o
 
 obj-$(CONFIG_RK3368_MBOX)	+= rk3368-mailbox.o
