@@ -1381,7 +1381,7 @@ static int __init ip_auto_config(void)
 		ic_nameservers_predef();
 
 #ifdef CONFIG_PROC_FS
-	proc_create("pnp", S_IRUGO, init_net.proc_net, &pnp_seq_fops);
+	proc_create("pnp", 0444, init_net.proc_net, &pnp_seq_fops);
 #endif /* CONFIG_PROC_FS */
 
 	if (!ic_enable)
