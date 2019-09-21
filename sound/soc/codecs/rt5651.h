@@ -2076,9 +2076,7 @@ struct rt5651_priv {
 	int pll_out;
 
 	int dmic_en;
-	int asrc_en;
 	bool hp_mute;
-	struct clk *mclk;
 };
 
 int rt5651_set_jack_detect(struct snd_soc_codec *codec,
