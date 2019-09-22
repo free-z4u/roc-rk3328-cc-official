@@ -1176,7 +1176,6 @@ enum usb3_link_state {
 	USB3_LPM_U3
 };
 
-#define USB_DT_USB_PTM_ID_SIZE		3
 /*
  * A U1 timeout of 0x0 means the parent hub will reject any transitions to U1.
  * 0xff means the parent hub will accept transitions to U1, but will not
