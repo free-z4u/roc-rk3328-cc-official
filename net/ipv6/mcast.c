@@ -2082,8 +2082,7 @@ void ipv6_mc_dad_complete(struct inet6_dev *idev)
 		mld_send_initial_cr(idev);
 		idev->mc_dad_count--;
 		if (idev->mc_dad_count)
-			mld_dad_start_timer(idev,
-					    unsolicited_report_interval(idev));
+			mld_dad_start_timer(idev, idev->mc_maxdelay);
 	}
 }
 
@@ -2095,8 +2094,7 @@ static void mld_dad_timer_expire(struct timer_list *t)
 	if (idev->mc_dad_count) {
 		idev->mc_dad_count--;
 		if (idev->mc_dad_count)
-			mld_dad_start_timer(idev,
-					    unsolicited_report_interval(idev));
+			mld_dad_start_timer(idev, idev->mc_maxdelay);
 	}
 	in6_dev_put(idev);
 }
@@ -2454,8 +2452,7 @@ static void mld_ifc_timer_expire(struct timer_list *t)
 	if (idev->mc_ifc_count) {
 		idev->mc_ifc_count--;
 		if (idev->mc_ifc_count)
-			mld_ifc_start_timer(idev,
-					    unsolicited_report_interval(idev));
+			mld_ifc_start_timer(idev, idev->mc_maxdelay);
 	}
 	in6_dev_put(idev);
 }

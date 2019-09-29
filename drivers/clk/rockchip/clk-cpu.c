@@ -156,6 +156,13 @@ static int rockchip_cpuclk_pre_rate_change(struct rockchip_cpuclk *cpuclk,
 			alt_div = reg_data->div_core_mask;
 		}
 
+		/*
+		 * Change parents and add dividers in a single transaction.
+		 *
+		 * NOTE: we do this in a single transaction so we're never
+		 * dividing the primary parent by the extra dividers that were
+		 * needed for the alt.
+		 */
 		pr_debug("%s: setting div %lu as alt-rate %lu > old-rate %lu\n",
 			 __func__, alt_div, alt_prate, ndata->old_rate);
 
@@ -201,7 +208,13 @@ static int rockchip_cpuclk_post_rate_change(struct rockchip_cpuclk *cpuclk,
 			     reg_data->mux_core_shift),
 	       cpuclk->reg_base + reg_data->core_reg);
 
-	/* remove dividers */
+	/*
+	 * post-rate change event, re-mux to primary parent and remove dividers.
+	 *
+	 * NOTE: we do this in a single transaction so we're never dividing the
+	 * primary parent by the extra dividers that were needed for the alt.
+	 */
+
 	writel(HIWORD_UPDATE(0, reg_data->div_core_mask,
 			     reg_data->div_core_shift),
 	       cpuclk->reg_base + reg_data->core_reg);
