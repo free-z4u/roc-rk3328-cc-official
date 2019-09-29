@@ -106,14 +106,7 @@ int ip6_datagram_dst_update(struct sock *sk, bool fix_sk_saddr)
 		}
 	}
 
-	ip6_dst_store(sk, dst,
-		      ipv6_addr_equal(&fl6.daddr, &sk->sk_v6_daddr) ?
-		      &sk->sk_v6_daddr : NULL,
-#ifdef CONFIG_IPV6_SUBTREES
-		      ipv6_addr_equal(&fl6.saddr, &np->saddr) ?
-		      &np->saddr :
-#endif
-		      NULL);
+	ip6_sk_dst_store_flow(sk, dst, &fl6);
 
 out:
 	fl6_sock_release(flowlabel);
@@ -707,16 +700,13 @@ void ip6_datagram_recv_specific_ctl(struct sock *sk, struct msghdr *msg,
 	}
 	if (np->rxopt.bits.rxorigdstaddr) {
 		struct sockaddr_in6 sin6;
-		__be16 *ports;
-		int end;
+		__be16 *ports = (__be16 *) skb_transport_header(skb);
 
-		end = skb_transport_offset(skb) + 4;
-		if (end <= 0 || pskb_may_pull(skb, end)) {
+		if (skb_transport_offset(skb) + 4 <= (int)skb->len) {
 			/* All current transport protocols have the port numbers in the
 			 * first four bytes of the transport header and this function is
 			 * written with this assumption in mind.
 			 */
-			ports = (__be16 *)skb_transport_header(skb);
 
 			sin6.sin6_family = AF_INET6;
 			sin6.sin6_addr = ipv6_hdr(skb)->daddr;
@@ -811,8 +801,9 @@ int ip6_datagram_send_ctl(struct net *net, struct sock *sk,
 			if (addr_type != IPV6_ADDR_ANY) {
 				int strict = __ipv6_addr_src_scope(addr_type) <= IPV6_ADDR_SCOPE_LINKLOCAL;
 				if (!(inet_sk(sk)->freebind || inet_sk(sk)->transparent) &&
-				    !ipv6_chk_addr(net, &src_info->ipi6_addr,
-						   strict ? dev : NULL, 0) &&
+				    !ipv6_chk_addr_and_flags(net, &src_info->ipi6_addr,
+							     dev, !strict, 0,
+							     IFA_F_TENTATIVE) &&
 				    !ipv6_chk_acast_addr_src(net, dev,
 							     &src_info->ipi6_addr))
 					err = -EINVAL;

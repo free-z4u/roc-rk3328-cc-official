@@ -2910,6 +2910,8 @@ static int packet_snd(struct socket *sock, struct msghdr *msg, size_t len)
 		offset = dev_hard_header(skb, dev, ntohs(proto), addr, NULL, len);
 		if (unlikely(offset < 0))
 			goto out_free;
+	} else if (reserve) {
+		skb_reserve(skb, -reserve);
 	}
 
 	/* Returns -EFAULT on error */
@@ -3418,7 +3420,7 @@ out:
 }
 
 static int packet_getname_spkt(struct socket *sock, struct sockaddr *uaddr,
-			       int *uaddr_len, int peer)
+			       int peer)
 {
 	struct net_device *dev;
 	struct sock *sk	= sock->sk;
@@ -3433,13 +3435,12 @@ static int packet_getname_spkt(struct socket *sock, struct sockaddr *uaddr,
 	if (dev)
 		strlcpy(uaddr->sa_data, dev->name, sizeof(uaddr->sa_data));
 	rcu_read_unlock();
-	*uaddr_len = sizeof(*uaddr);
 
-	return 0;
+	return sizeof(*uaddr);
 }
 
 static int packet_getname(struct socket *sock, struct sockaddr *uaddr,
-			  int *uaddr_len, int peer)
+			  int peer)
 {
 	struct net_device *dev;
 	struct sock *sk = sock->sk;
@@ -3464,9 +3465,8 @@ static int packet_getname(struct socket *sock, struct sockaddr *uaddr,
 		sll->sll_halen = 0;
 	}
 	rcu_read_unlock();
-	*uaddr_len = offsetof(struct sockaddr_ll, sll_addr) + sll->sll_halen;
 
-	return 0;
+	return offsetof(struct sockaddr_ll, sll_addr) + sll->sll_halen;
 }
 
 static int packet_dev_mc(struct net_device *dev, struct packet_mclist *i,
@@ -3672,7 +3672,7 @@ packet_setsockopt(struct socket *sock, int level, int optname, char __user *optv
 				ret = -EFAULT;
 			else
 				ret = packet_set_ring(sk, &req_u, 0,
-						      optname == PACKET_TX_RING);
+						    optname == PACKET_TX_RING);
 		}
 		release_sock(sk);
 		return ret;
@@ -4246,8 +4246,6 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 	/* Added to avoid minimal code churn */
 	struct tpacket_req *req = &req_u->req;
 
-	lock_sock(sk);
-
 	rb = tx_ring ? &po->tx_ring : &po->rx_ring;
 	rb_queue = tx_ring ? &sk->sk_write_queue : &sk->sk_receive_queue;
 
@@ -4260,8 +4258,6 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 	}
 
 	if (req->tp_block_nr) {
-		unsigned int min_frame_size;
-
 		/* Sanity tests and some calculations */
 		err = -EBUSY;
 		if (unlikely(rb->pg_vec))
@@ -4284,12 +4280,12 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 			goto out;
 		if (unlikely(!PAGE_ALIGNED(req->tp_block_size)))
 			goto out;
-		min_frame_size = po->tp_hdrlen + po->tp_reserve;
 		if (po->tp_version >= TPACKET_V3 &&
-		    req->tp_block_size <
-		    BLK_PLUS_PRIV((u64)req_u->req3.tp_sizeof_priv) + min_frame_size)
+		    req->tp_block_size <=
+			  BLK_PLUS_PRIV((u64)req_u->req3.tp_sizeof_priv))
 			goto out;
-		if (unlikely(req->tp_frame_size < min_frame_size))
+		if (unlikely(req->tp_frame_size < po->tp_hdrlen +
+					po->tp_reserve))
 			goto out;
 		if (unlikely(req->tp_frame_size & (TPACKET_ALIGNMENT - 1)))
 			goto out;
@@ -4387,7 +4383,6 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 	if (pg_vec)
 		free_pg_vec(pg_vec, order, req->tp_block_nr);
 out:
-	release_sock(sk);
 	return err;
 }
 

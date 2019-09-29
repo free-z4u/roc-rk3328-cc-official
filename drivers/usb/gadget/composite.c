@@ -192,7 +192,7 @@ int config_ep_by_speed(struct usb_gadget *g,
 
 ep_found:
 	/* commit results */
-	_ep->maxpacket = usb_endpoint_maxp(chosen_desc) & 0x7ff;
+	_ep->maxpacket = usb_endpoint_maxp(chosen_desc);
 	_ep->desc = chosen_desc;
 	_ep->comp_desc = NULL;
 	_ep->maxburst = 0;
@@ -1427,6 +1427,7 @@ static int fill_ext_compat(struct usb_configuration *c, u8 *buf)
 	int i, count;
 
 	count = 16;
+	buf += 16;
 	for (i = 0; i < c->next_interface_id; ++i) {
 		struct usb_function *f;
 		int j;
@@ -1502,6 +1503,7 @@ static int fill_ext_prop(struct usb_configuration *c, int interface, u8 *buf)
 
 	f = c->interface[interface];
 	count = 10; /* header length */
+	buf += 10;
 	for (j = 0; j < f->os_desc_n; ++j) {
 		if (interface != f->os_desc_table[j].if_id)
 			continue;
@@ -1717,8 +1719,6 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		 */
 		if (w_value && !f->get_alt)
 			break;
-
-		spin_lock(&cdev->lock);
 		value = f->set_alt(f, w_index, w_value);
 		if (value == USB_GADGET_DELAYED_STATUS) {
 			DBG(cdev,
@@ -1728,7 +1728,6 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 			DBG(cdev, "delayed_status count %d\n",
 					cdev->delayed_status);
 		}
-		spin_unlock(&cdev->lock);
 		break;
 	case USB_REQ_GET_INTERFACE:
 		if (ctrl->bRequestType != (USB_DIR_IN|USB_RECIP_INTERFACE))
@@ -1836,22 +1835,14 @@ unknown:
 				if (w_index != 0x4 || (w_value >> 8))
 					break;
 				buf[6] = w_index;
-				if (w_length == 0x10) {
-					/* Number of ext compat interfaces */
-					count = count_ext_compat(os_desc_cfg);
-					buf[8] = count;
-					count *= 24; /* 24 B/ext compat desc */
-					count += 16; /* header */
-					put_unaligned_le32(count, buf);
-					value = w_length;
-				} else {
-					/* "extended compatibility ID"s */
-					count = count_ext_compat(os_desc_cfg);
-					buf[8] = count;
-					count *= 24; /* 24 B/ext compat desc */
-					count += 16; /* header */
-					put_unaligned_le32(count, buf);
-					buf += 16;
+				/* Number of ext compat interfaces */
+				count = count_ext_compat(os_desc_cfg);
+				buf[8] = count;
+				count *= 24; /* 24 B/ext compat desc */
+				count += 16; /* header */
+				put_unaligned_le32(count, buf);
+				value = w_length;
+				if (w_length > 0x10) {
 					value = fill_ext_compat(os_desc_cfg, buf);
 					value = min_t(u16, w_length, value);
 				}
@@ -1861,46 +1852,23 @@ unknown:
 					break;
 				interface = w_value & 0xFF;
 				buf[6] = w_index;
-				if (w_length == 0x0A) {
-					count = count_ext_prop(os_desc_cfg,
-						interface);
-					put_unaligned_le16(count, buf + 8);
-					count = len_ext_prop(os_desc_cfg,
-						interface);
-					put_unaligned_le32(count, buf);
-
-					value = w_length;
-				} else {
-					count = count_ext_prop(os_desc_cfg,
-						interface);
-					put_unaligned_le16(count, buf + 8);
-					count = len_ext_prop(os_desc_cfg,
-						interface);
-					put_unaligned_le32(count, buf);
-					buf += 10;
+				count = count_ext_prop(os_desc_cfg,
+					interface);
+				put_unaligned_le16(count, buf + 8);
+				count = len_ext_prop(os_desc_cfg,
+					interface);
+				put_unaligned_le32(count, buf);
+				value = w_length;
+				if (w_length > 0x0A) {
 					value = fill_ext_prop(os_desc_cfg,
 							      interface, buf);
-					if (value < 0)
-						return value;
-					value = min_t(u16, w_length, value);
+					if (value >= 0)
+						value = min_t(u16, w_length, value);
 				}
 				break;
 			}
 
-			if (value >= 0) {
-				req->length = value;
-				req->context = cdev;
-				req->zero = value < w_length;
-				value = composite_ep0_queue(cdev, req,
-							    GFP_ATOMIC);
-				if (value < 0) {
-					DBG(cdev, "ep_queue --> %d\n", value);
-					req->status = 0;
-					composite_setup_complete(gadget->ep0,
-								 req);
-				}
-			}
-			return value;
+			goto check_value;
 		}
 
 		VDBG(cdev,
@@ -1974,6 +1942,7 @@ try_fun_setup:
 		goto done;
 	}
 
+check_value:
 	/* respond with data transfer before status phase? */
 	if (value >= 0 && value != USB_GADGET_DELAYED_STATUS) {
 		req->length = value;
@@ -2000,12 +1969,6 @@ void composite_disconnect(struct usb_gadget *gadget)
 {
 	struct usb_composite_dev	*cdev = get_gadget_data(gadget);
 	unsigned long			flags;
-
-	if (cdev == NULL) {
-		WARN(1, "%s: Calling disconnect on a Gadget that is \
-			 not connected\n", __func__);
-		return;
-	}
 
 	/* REVISIT:  should we have config and device level
 	 * disconnect callbacks?
@@ -2179,6 +2142,7 @@ end:
 void composite_dev_cleanup(struct usb_composite_dev *cdev)
 {
 	struct usb_gadget_string_container *uc, *tmp;
+	struct usb_ep			   *ep, *tmp_ep;
 
 	list_for_each_entry_safe(uc, tmp, &cdev->gstrings, list) {
 		list_del(&uc->list);
@@ -2190,7 +2154,6 @@ void composite_dev_cleanup(struct usb_composite_dev *cdev)
 
 		kfree(cdev->os_desc_req->buf);
 		usb_ep_free_request(cdev->gadget->ep0, cdev->os_desc_req);
-		cdev->os_desc_req = NULL;
 	}
 	if (cdev->req) {
 		if (cdev->setup_pending)
@@ -2198,10 +2161,24 @@ void composite_dev_cleanup(struct usb_composite_dev *cdev)
 
 		kfree(cdev->req->buf);
 		usb_ep_free_request(cdev->gadget->ep0, cdev->req);
-		cdev->req = NULL;
 	}
 	cdev->next_string_id = 0;
 	device_remove_file(&cdev->gadget->dev, &dev_attr_suspended);
+
+	/*
+	 * Some UDC backends have a dynamic EP allocation scheme.
+	 *
+	 * In that case, the dispose() callback is used to notify the
+	 * backend that the EPs are no longer in use.
+	 *
+	 * Note: The UDC backend can remove the EP from the ep_list as
+	 *	 a result, so we need to use the _safe list iterator.
+	 */
+	list_for_each_entry_safe(ep, tmp_ep,
+				 &cdev->gadget->ep_list, ep_list) {
+		if (ep->ops->dispose)
+			ep->ops->dispose(ep);
+	}
 }
 
 static int composite_bind(struct usb_gadget *gadget,

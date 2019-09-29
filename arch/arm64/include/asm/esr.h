@@ -187,13 +187,6 @@
 
 #define ESR_ELx_SYS64_ISS_SYS_OP_MASK	(ESR_ELx_SYS64_ISS_SYS_MASK | \
 					 ESR_ELx_SYS64_ISS_DIR_MASK)
-
-#define ESR_ELx_SYS64_ISS_SYS_CNTVCT	(ESR_ELx_SYS64_ISS_SYS_VAL(3, 3, 2, 14, 0) | \
-					 ESR_ELx_SYS64_ISS_DIR_READ)
-
-#define ESR_ELx_SYS64_ISS_SYS_CNTFRQ	(ESR_ELx_SYS64_ISS_SYS_VAL(3, 3, 0, 14, 0) | \
-					 ESR_ELx_SYS64_ISS_DIR_READ)
-
 /*
  * User space cache operations have the following sysreg encoding
  * in System instructions.
@@ -246,6 +239,15 @@
 		 ESR_ELx_SYS64_ISS_CRM_SHIFT),			\
 		(((e) & ESR_ELx_SYS64_ISS_OP2_MASK) >>		\
 		 ESR_ELx_SYS64_ISS_OP2_SHIFT))
+
+/*
+ * ISS field definitions for floating-point exception traps
+ * (FP_EXC_32/FP_EXC_64).
+ *
+ * (The FPEXC_* constants are used instead for common bits.)
+ */
+
+#define ESR_ELx_FP_EXC_TFV	(UL(1) << 23)
 
 #ifndef __ASSEMBLY__
 #include <asm/types.h>

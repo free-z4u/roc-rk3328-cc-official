@@ -292,8 +292,7 @@ static ssize_t coredump_store(struct device *dev, struct device_attribute *attr,
 			    const char *buf, size_t count)
 {
 	device_lock(dev);
-	if (dev->driver->coredump)
-		dev->driver->coredump(dev);
+	dev->driver->coredump(dev);
 	device_unlock(dev);
 
 	return count;
@@ -436,6 +435,14 @@ re_probe:
 		if (ret)
 			goto probe_failed;
 	}
+
+	/*
+	 * Ensure devices are listed in devices_kset in correct order
+	 * It's important to move Dev to the end of devices_kset before
+	 * calling .probe, because it could be recursive and parent Dev
+	 * should always go first
+	 */
+	devices_kset_move_last(dev);
 
 	if (dev->bus->probe) {
 		ret = dev->bus->probe(dev);

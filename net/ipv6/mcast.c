@@ -165,7 +165,7 @@ int ipv6_sock_mc_join(struct sock *sk, int ifindex, const struct in6_addr *addr)
 
 	if (ifindex == 0) {
 		struct rt6_info *rt;
-		rt = rt6_lookup(net, addr, NULL, 0, 0);
+		rt = rt6_lookup(net, addr, NULL, 0, NULL, 0);
 		if (rt) {
 			dev = rt->dst.dev;
 			ip6_rt_put(rt);
@@ -254,7 +254,7 @@ static struct inet6_dev *ip6_mc_find_dev_rcu(struct net *net,
 	struct inet6_dev *idev = NULL;
 
 	if (ifindex == 0) {
-		struct rt6_info *rt = rt6_lookup(net, group, NULL, 0, 0);
+		struct rt6_info *rt = rt6_lookup(net, group, NULL, 0, NULL, 0);
 
 		if (rt) {
 			dev = rt->dst.dev;
@@ -2082,8 +2082,7 @@ void ipv6_mc_dad_complete(struct inet6_dev *idev)
 		mld_send_initial_cr(idev);
 		idev->mc_dad_count--;
 		if (idev->mc_dad_count)
-			mld_dad_start_timer(idev,
-					    unsolicited_report_interval(idev));
+			mld_dad_start_timer(idev, idev->mc_maxdelay);
 	}
 }
 
@@ -2095,8 +2094,7 @@ static void mld_dad_timer_expire(struct timer_list *t)
 	if (idev->mc_dad_count) {
 		idev->mc_dad_count--;
 		if (idev->mc_dad_count)
-			mld_dad_start_timer(idev,
-					    unsolicited_report_interval(idev));
+			mld_dad_start_timer(idev, idev->mc_maxdelay);
 	}
 	in6_dev_put(idev);
 }
@@ -2454,8 +2452,7 @@ static void mld_ifc_timer_expire(struct timer_list *t)
 	if (idev->mc_ifc_count) {
 		idev->mc_ifc_count--;
 		if (idev->mc_ifc_count)
-			mld_ifc_start_timer(idev,
-					    unsolicited_report_interval(idev));
+			mld_ifc_start_timer(idev, idev->mc_maxdelay);
 	}
 	in6_dev_put(idev);
 }
@@ -2924,9 +2921,9 @@ static int __net_init igmp6_proc_init(struct net *net)
 	int err;
 
 	err = -ENOMEM;
-	if (!proc_create("igmp6", S_IRUGO, net->proc_net, &igmp6_mc_seq_fops))
+	if (!proc_create("igmp6", 0444, net->proc_net, &igmp6_mc_seq_fops))
 		goto out;
-	if (!proc_create("mcfilter6", S_IRUGO, net->proc_net,
+	if (!proc_create("mcfilter6", 0444, net->proc_net,
 			 &igmp6_mcf_seq_fops))
 		goto out_proc_net_igmp6;
 

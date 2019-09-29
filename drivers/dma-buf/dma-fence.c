@@ -171,6 +171,7 @@ void dma_fence_release(struct kref *kref)
 
 	trace_dma_fence_destroy(fence);
 
+	/* Failed to signal before release, could be a refcounting issue */
 	WARN_ON(!list_empty(&fence->cb_list));
 
 	if (fence->ops->release)
@@ -328,12 +329,8 @@ dma_fence_remove_callback(struct dma_fence *fence, struct dma_fence_cb *cb)
 	spin_lock_irqsave(fence->lock, flags);
 
 	ret = !list_empty(&cb->node);
-	if (ret) {
+	if (ret)
 		list_del_init(&cb->node);
-		if (list_empty(&fence->cb_list))
-			if (fence->ops->disable_signaling)
-				fence->ops->disable_signaling(fence);
-	}
 
 	spin_unlock_irqrestore(fence->lock, flags);
 

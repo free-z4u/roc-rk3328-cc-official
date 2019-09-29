@@ -3001,6 +3001,33 @@ static const struct alg_test_desc alg_test_descs[] = {
 			}
 		}
 	}, {
+		.alg = "ecb(sm4)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = {
+				.enc = __VECS(sm4_enc_tv_template),
+				.dec = __VECS(sm4_dec_tv_template)
+			}
+		}
+	}, {
+		.alg = "ecb(speck128)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = {
+				.enc = __VECS(speck128_enc_tv_template),
+				.dec = __VECS(speck128_dec_tv_template)
+			}
+		}
+	}, {
+		.alg = "ecb(speck64)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = {
+				.enc = __VECS(speck64_enc_tv_template),
+				.dec = __VECS(speck64_dec_tv_template)
+			}
+		}
+	}, {
 		.alg = "ecb(tea)",
 		.test = alg_test_skcipher,
 		.suite = {
@@ -3068,21 +3095,6 @@ static const struct alg_test_desc alg_test_descs[] = {
 		.fips_allowed = 1,
 		.suite = {
 			.hash = __VECS(ghash_tv_template)
-		}
-	}, {
-		.alg = "heh(aes)",
-		.test = alg_test_skcipher,
-		.suite = {
-			.cipher = {
-				.enc = {
-					.vecs = aes_heh_enc_tv_template,
-					.count = AES_HEH_ENC_TEST_VECTORS
-				},
-				.dec = {
-					.vecs = aes_heh_dec_tv_template,
-					.count = AES_HEH_DEC_TEST_VECTORS
-				}
-			}
 		}
 	}, {
 		.alg = "hmac(crc32)",
@@ -3570,6 +3582,24 @@ static const struct alg_test_desc alg_test_descs[] = {
 			.cipher = {
 				.enc = __VECS(serpent_xts_enc_tv_template),
 				.dec = __VECS(serpent_xts_dec_tv_template)
+			}
+		}
+	}, {
+		.alg = "xts(speck128)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = {
+				.enc = __VECS(speck128_xts_enc_tv_template),
+				.dec = __VECS(speck128_xts_dec_tv_template)
+			}
+		}
+	}, {
+		.alg = "xts(speck64)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = {
+				.enc = __VECS(speck64_xts_enc_tv_template),
+				.dec = __VECS(speck64_xts_dec_tv_template)
 			}
 		}
 	}, {

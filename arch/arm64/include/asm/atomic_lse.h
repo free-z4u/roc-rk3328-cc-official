@@ -135,7 +135,7 @@ static inline int atomic_fetch_and##name(int i, atomic_t *v)		\
 	/* LSE atomics */						\
 	"	mvn	%w[i], %w[i]\n"					\
 	"	ldclr" #mb "	%w[i], %w[i], %[v]")			\
-	: [i] "+r" (w0), [v] "+Q" (v->counter)				\
+	: [i] "+&r" (w0), [v] "+Q" (v->counter)				\
 	: "r" (x1)							\
 	: __LL_SC_CLOBBERS, ##cl);					\
 									\
@@ -207,7 +207,7 @@ static inline int atomic_fetch_sub##name(int i, atomic_t *v)		\
 	/* LSE atomics */						\
 	"	neg	%w[i], %w[i]\n"					\
 	"	ldadd" #mb "	%w[i], %w[i], %[v]")			\
-	: [i] "+r" (w0), [v] "+Q" (v->counter)				\
+	: [i] "+&r" (w0), [v] "+Q" (v->counter)				\
 	: "r" (x1)							\
 	: __LL_SC_CLOBBERS, ##cl);					\
 									\
@@ -332,7 +332,7 @@ static inline long atomic64_fetch_and##name(long i, atomic64_t *v)	\
 	/* LSE atomics */						\
 	"	mvn	%[i], %[i]\n"					\
 	"	ldclr" #mb "	%[i], %[i], %[v]")			\
-	: [i] "+r" (x0), [v] "+Q" (v->counter)				\
+	: [i] "+&r" (x0), [v] "+Q" (v->counter)				\
 	: "r" (x1)							\
 	: __LL_SC_CLOBBERS, ##cl);					\
 									\
@@ -404,7 +404,7 @@ static inline long atomic64_fetch_sub##name(long i, atomic64_t *v)	\
 	/* LSE atomics */						\
 	"	neg	%[i], %[i]\n"					\
 	"	ldadd" #mb "	%[i], %[i], %[v]")			\
-	: [i] "+r" (x0), [v] "+Q" (v->counter)				\
+	: [i] "+&r" (x0), [v] "+Q" (v->counter)				\
 	: "r" (x1)							\
 	: __LL_SC_CLOBBERS, ##cl);					\
 									\
@@ -435,7 +435,7 @@ static inline long atomic64_dec_if_positive(atomic64_t *v)
 	"	sub	x30, x30, %[ret]\n"
 	"	cbnz	x30, 1b\n"
 	"2:")
-	: [ret] "+r" (x0), [v] "+Q" (v->counter)
+	: [ret] "+&r" (x0), [v] "+Q" (v->counter)
 	:
 	: __LL_SC_CLOBBERS, "cc", "memory");
 

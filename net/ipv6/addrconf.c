@@ -94,15 +94,6 @@
 #include <linux/seq_file.h>
 #include <linux/export.h>
 
-/* Set to 3 to get tracing... */
-#define ACONF_DEBUG 2
-
-#if ACONF_DEBUG >= 3
-#define ADBG(fmt, ...) printk(fmt, ##__VA_ARGS__)
-#else
-#define ADBG(fmt, ...) do { if (0) printk(fmt, ##__VA_ARGS__); } while (0)
-#endif
-
 #define	INFINITY_LIFE_TIME	0xFFFFFFFF
 
 #define IPV6_MAX_STRLEN \
@@ -229,7 +220,6 @@ static struct ipv6_devconf ipv6_devconf __read_mostly = {
 	.accept_ra_rt_info_max_plen = 0,
 #endif
 #endif
-	.accept_ra_rt_table	= 0,
 	.proxy_ndp		= 0,
 	.accept_source_route	= 0,	/* we do not accept RH0 by default. */
 	.disable_ipv6		= 0,
@@ -284,7 +274,6 @@ static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
 	.accept_ra_rt_info_max_plen = 0,
 #endif
 #endif
-	.accept_ra_rt_table	= 0,
 	.proxy_ndp		= 0,
 	.accept_source_route	= 0,	/* we do not accept RH0 by default. */
 	.disable_ipv6		= 0,
@@ -411,9 +400,8 @@ static struct inet6_dev *ipv6_add_dev(struct net_device *dev)
 	dev_hold(dev);
 
 	if (snmp6_alloc_dev(ndev) < 0) {
-		ADBG(KERN_WARNING
-			"%s: cannot allocate memory for statistics; dev=%s.\n",
-			__func__, dev->name);
+		netdev_dbg(dev, "%s: cannot allocate memory for statistics\n",
+			   __func__);
 		neigh_parms_release(&nd_tbl, ndev->nd_parms);
 		dev_put(dev);
 		kfree(ndev);
@@ -421,9 +409,8 @@ static struct inet6_dev *ipv6_add_dev(struct net_device *dev)
 	}
 
 	if (snmp6_register_dev(ndev) < 0) {
-		ADBG(KERN_WARNING
-			"%s: cannot create /proc/net/dev_snmp6/%s\n",
-			__func__, dev->name);
+		netdev_dbg(dev, "%s: cannot create /proc/net/dev_snmp6/%s\n",
+			   __func__, dev->name);
 		goto err_release;
 	}
 
@@ -986,7 +973,7 @@ static int ipv6_add_addr_hash(struct net_device *dev, struct inet6_ifaddr *ifa)
 
 	/* Ignore adding duplicate addresses on an interface */
 	if (ipv6_chk_same_addr(dev_net(dev), &ifa->addr, dev, hash)) {
-		ADBG("ipv6_add_addr: already assigned\n");
+		netdev_dbg(dev, "ipv6_add_addr: already assigned\n");
 		err = -EEXIST;
 	} else {
 		hlist_add_head_rcu(&ifa->addr_lst, &inet6_addr_lst[hash]);
@@ -1046,7 +1033,6 @@ ipv6_add_addr(struct inet6_dev *idev, const struct in6_addr *addr,
 
 	ifa = kzalloc(sizeof(*ifa), gfp_flags);
 	if (!ifa) {
-		ADBG("ipv6_add_addr: malloc failed\n");
 		err = -ENOBUFS;
 		goto out;
 	}
@@ -1461,6 +1447,21 @@ static bool ipv6_use_optimistic_addr(struct net *net,
 #endif
 }
 
+static bool ipv6_allow_optimistic_dad(struct net *net,
+				      struct inet6_dev *idev)
+{
+#ifdef CONFIG_IPV6_OPTIMISTIC_DAD
+	if (!idev)
+		return false;
+	if (!net->ipv6.devconf_all->optimistic_dad && !idev->cnf.optimistic_dad)
+		return false;
+
+	return true;
+#else
+	return false;
+#endif
+}
+
 static int ipv6_get_saddr_eval(struct net *net,
 			       struct ipv6_saddr_score *score,
 			       struct ipv6_saddr_dst *dst,
@@ -1838,22 +1839,42 @@ static int ipv6_count_addresses(const struct inet6_dev *idev)
 int ipv6_chk_addr(struct net *net, const struct in6_addr *addr,
 		  const struct net_device *dev, int strict)
 {
-	return ipv6_chk_addr_and_flags(net, addr, dev, strict, IFA_F_TENTATIVE);
+	return ipv6_chk_addr_and_flags(net, addr, dev, !dev,
+				       strict, IFA_F_TENTATIVE);
 }
 EXPORT_SYMBOL(ipv6_chk_addr);
 
+/* device argument is used to find the L3 domain of interest. If
+ * skip_dev_check is set, then the ifp device is not checked against
+ * the passed in dev argument. So the 2 cases for addresses checks are:
+ *   1. does the address exist in the L3 domain that dev is part of
+ *      (skip_dev_check = true), or
+ *
+ *   2. does the address exist on the specific device
+ *      (skip_dev_check = false)
+ */
 int ipv6_chk_addr_and_flags(struct net *net, const struct in6_addr *addr,
-			    const struct net_device *dev, int strict,
-			    u32 banned_flags)
+			    const struct net_device *dev, bool skip_dev_check,
+			    int strict, u32 banned_flags)
 {
 	unsigned int hash = inet6_addr_hash(net, addr);
+	const struct net_device *l3mdev;
 	struct inet6_ifaddr *ifp;
 	u32 ifp_flags;
 
 	rcu_read_lock();
+
+	l3mdev = l3mdev_master_dev_rcu(dev);
+	if (skip_dev_check)
+		dev = NULL;
+
 	hlist_for_each_entry_rcu(ifp, &inet6_addr_lst[hash], addr_lst) {
 		if (!net_eq(dev_net(ifp->idev->dev), net))
 			continue;
+
+		if (l3mdev_master_dev_rcu(ifp->idev->dev) != l3mdev)
+			continue;
+
 		/* Decouple optimistic from tentative for evaluation here.
 		 * Ban optimistic addresses explicitly, when required.
 		 */
@@ -1971,7 +1992,7 @@ static void addrconf_dad_stop(struct inet6_ifaddr *ifp, int dad_failed)
 		addrconf_del_dad_work(ifp);
 		ifp->flags |= IFA_F_TENTATIVE;
 		if (dad_failed)
-			ifp->flags |= IFA_F_DADFAILED;
+			ifp->flags &= ~IFA_F_OPTIMISTIC;
 		spin_unlock_bh(&ifp->lock);
 		if (dad_failed)
 			ipv6_ifa_notify(0, ifp);
@@ -2293,31 +2314,6 @@ static void  ipv6_try_regen_rndid(struct inet6_dev *idev, struct in6_addr *tmpad
 		ipv6_regen_rndid(idev);
 }
 
-u32 addrconf_rt_table(const struct net_device *dev, u32 default_table) {
-	/* Determines into what table to put autoconf PIO/RIO/default routes
-	 * learned on this device.
-	 *
-	 * - If 0, use the same table for every device. This puts routes into
-	 *   one of RT_TABLE_{PREFIX,INFO,DFLT} depending on the type of route
-	 *   (but note that these three are currently all equal to
-	 *   RT6_TABLE_MAIN).
-	 * - If > 0, use the specified table.
-	 * - If < 0, put routes into table dev->ifindex + (-rt_table).
-	 */
-	struct inet6_dev *idev = in6_dev_get(dev);
-	u32 table;
-	int sysctl = idev->cnf.accept_ra_rt_table;
-	if (sysctl == 0) {
-		table = default_table;
-	} else if (sysctl > 0) {
-		table = (u32) sysctl;
-	} else {
-		table = (unsigned) dev->ifindex + (-sysctl);
-	}
-	in6_dev_put(idev);
-	return table;
-}
-
 /*
  *	Add prefix route.
  */
@@ -2327,7 +2323,7 @@ addrconf_prefix_route(struct in6_addr *pfx, int plen, struct net_device *dev,
 		      unsigned long expires, u32 flags)
 {
 	struct fib6_config cfg = {
-		.fc_table = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_PREFIX),
+		.fc_table = l3mdev_fib_table(dev) ? : RT6_TABLE_PREFIX,
 		.fc_metric = IP6_RT_PRIO_ADDRCONF,
 		.fc_ifindex = dev->ifindex,
 		.fc_expires = expires,
@@ -2360,7 +2356,7 @@ static struct rt6_info *addrconf_get_prefix_route(const struct in6_addr *pfx,
 	struct fib6_node *fn;
 	struct rt6_info *rt = NULL;
 	struct fib6_table *table;
-	u32 tb_id = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_PREFIX);
+	u32 tb_id = l3mdev_fib_table(dev) ? : RT6_TABLE_PREFIX;
 
 	table = fib6_get_table(dev_net(dev), tb_id);
 	if (!table)
@@ -2610,7 +2606,7 @@ void addrconf_prefix_rcv(struct net_device *dev, u8 *opt, int len, bool sllao)
 	pinfo = (struct prefix_info *) opt;
 
 	if (len < sizeof(struct prefix_info)) {
-		ADBG("addrconf: prefix option too short\n");
+		netdev_dbg(dev, "addrconf: prefix option too short\n");
 		return;
 	}
 
@@ -4273,7 +4269,7 @@ static const struct file_operations if6_fops = {
 
 static int __net_init if6_proc_net_init(struct net *net)
 {
-	if (!proc_create("if_inet6", S_IRUGO, net->proc_net, &if6_fops))
+	if (!proc_create("if_inet6", 0444, net->proc_net, &if6_fops))
 		return -ENOMEM;
 	return 0;
 }
@@ -4437,8 +4433,8 @@ restart:
 	if (time_before(next_sched, jiffies + ADDRCONF_TIMER_FUZZ_MAX))
 		next_sched = jiffies + ADDRCONF_TIMER_FUZZ_MAX;
 
-	ADBG(KERN_DEBUG "now = %lu, schedule = %lu, rounded schedule = %lu => %lu\n",
-	      now, next, next_sec, next_sched);
+	pr_debug("now = %lu, schedule = %lu, rounded schedule = %lu => %lu\n",
+		 now, next, next_sec, next_sched);
 	mod_delayed_work(addrconf_wq, &addr_chk_work, next_sched - now);
 	rcu_read_unlock_bh();
 }
@@ -4529,6 +4525,9 @@ static int inet6_addr_modify(struct inet6_ifaddr *ifp, u32 ifa_flags,
 	    (ifp->flags & IFA_F_TEMPORARY || ifp->prefix_len != 64))
 		return -EINVAL;
 
+	if (!(ifp->flags & IFA_F_TENTATIVE) || ifp->flags & IFA_F_DADFAILED)
+		ifa_flags &= ~IFA_F_OPTIMISTIC;
+
 	timeout = addrconf_timeout_fixup(valid_lft, HZ);
 	if (addrconf_finite_timeout(timeout)) {
 		expires = jiffies_to_clock_t(timeout * HZ);
@@ -4602,6 +4601,7 @@ inet6_rtm_newaddr(struct sk_buff *skb, struct nlmsghdr *nlh,
 	struct in6_addr *pfx, *peer_pfx;
 	struct inet6_ifaddr *ifa;
 	struct net_device *dev;
+	struct inet6_dev *idev;
 	u32 valid_lft = INFINITY_LIFE_TIME, preferred_lft = INFINITY_LIFE_TIME;
 	u32 ifa_flags;
 	int err;
@@ -4635,7 +4635,19 @@ inet6_rtm_newaddr(struct sk_buff *skb, struct nlmsghdr *nlh,
 
 	/* We ignore other flags so far. */
 	ifa_flags &= IFA_F_NODAD | IFA_F_HOMEADDRESS | IFA_F_MANAGETEMPADDR |
-		     IFA_F_NOPREFIXROUTE | IFA_F_MCAUTOJOIN;
+		     IFA_F_NOPREFIXROUTE | IFA_F_MCAUTOJOIN | IFA_F_OPTIMISTIC;
+
+	idev = ipv6_find_idev(dev);
+	if (IS_ERR(idev))
+		return PTR_ERR(idev);
+
+	if (!ipv6_allow_optimistic_dad(net, idev))
+		ifa_flags &= ~IFA_F_OPTIMISTIC;
+
+	if (ifa_flags & IFA_F_NODAD && ifa_flags & IFA_F_OPTIMISTIC) {
+		NL_SET_ERR_MSG(extack, "IFA_F_NODAD and IFA_F_OPTIMISTIC are mutually exclusive");
+		return -EINVAL;
+	}
 
 	ifa = ipv6_get_ifaddr(net, pfx, dev, 1);
 	if (!ifa) {
@@ -5086,7 +5098,6 @@ static inline void ipv6_store_devconf(struct ipv6_devconf *cnf,
 	array[DEVCONF_ACCEPT_RA_RT_INFO_MAX_PLEN] = cnf->accept_ra_rt_info_max_plen;
 #endif
 #endif
-	array[DEVCONF_ACCEPT_RA_RT_TABLE] = cnf->accept_ra_rt_table;
 	array[DEVCONF_PROXY_NDP] = cnf->proxy_ndp;
 	array[DEVCONF_ACCEPT_SOURCE_ROUTE] = cnf->accept_source_route;
 #ifdef CONFIG_IPV6_OPTIMISTIC_DAD
@@ -6247,13 +6258,6 @@ static const struct ctl_table addrconf_sysctl[] = {
 	},
 #endif
 #endif
-	{
-		.procname	= "accept_ra_rt_table",
-		.data		= &ipv6_devconf.accept_ra_rt_table,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
 	{
 		.procname	= "proxy_ndp",
 		.data		= &ipv6_devconf.proxy_ndp,

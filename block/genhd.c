@@ -82,6 +82,18 @@ void part_in_flight(struct request_queue *q, struct hd_struct *part,
 	}
 }
 
+void part_in_flight_rw(struct request_queue *q, struct hd_struct *part,
+		       unsigned int inflight[2])
+{
+	if (q->mq_ops) {
+		blk_mq_in_flight_rw(q, part, inflight);
+		return;
+	}
+
+	inflight[0] = atomic_read(&part->in_flight[0]);
+	inflight[1] = atomic_read(&part->in_flight[1]);
+}
+
 struct hd_struct *__disk_get_part(struct gendisk *disk, int partno)
 {
 	struct disk_part_tbl *ptbl = rcu_dereference(disk->part_tbl);
@@ -308,19 +320,22 @@ void blkdev_show(struct seq_file *seqf, off_t offset)
 /**
  * register_blkdev - register a new block device
  *
- * @major: the requested major device number [1..255]. If @major = 0, try to
- *         allocate any unused major number.
+ * @major: the requested major device number [1..BLKDEV_MAJOR_MAX-1]. If
+ *         @major = 0, try to allocate any unused major number.
  * @name: the name of the new block device as a zero terminated string
  *
  * The @name must be unique within the system.
  *
  * The return value depends on the @major input parameter:
  *
- *  - if a major device number was requested in range [1..255] then the
- *    function returns zero on success, or a negative error code
+ *  - if a major device number was requested in range [1..BLKDEV_MAJOR_MAX-1]
+ *    then the function returns zero on success, or a negative error code
  *  - if any unused major number was requested with @major = 0 parameter
  *    then the return value is the allocated major number in range
- *    [1..255] or a negative error code otherwise
+ *    [1..BLKDEV_MAJOR_MAX-1] or a negative error code otherwise
+ *
+ * See Documentation/admin-guide/devices.txt for the list of allocated
+ * major numbers.
  */
 int register_blkdev(unsigned int major, const char *name)
 {
@@ -347,8 +362,8 @@ int register_blkdev(unsigned int major, const char *name)
 	}
 
 	if (major >= BLKDEV_MAJOR_MAX) {
-		pr_err("register_blkdev: major requested (%d) is greater than the maximum (%d) for %s\n",
-		       major, BLKDEV_MAJOR_MAX, name);
+		pr_err("register_blkdev: major requested (%u) is greater than the maximum (%u) for %s\n",
+		       major, BLKDEV_MAJOR_MAX-1, name);
 
 		ret = -EINVAL;
 		goto out;
@@ -375,7 +390,7 @@ int register_blkdev(unsigned int major, const char *name)
 		ret = -EBUSY;
 
 	if (ret < 0) {
-		printk("register_blkdev: cannot get major %d for %s\n",
+		printk("register_blkdev: cannot get major %u for %s\n",
 		       major, name);
 		kfree(p);
 	}
@@ -1281,22 +1296,6 @@ static void disk_release(struct device *dev)
 		blk_put_queue(disk->queue);
 	kfree(disk);
 }
-
-static int disk_uevent(struct device *dev, struct kobj_uevent_env *env)
-{
-	struct gendisk *disk = dev_to_disk(dev);
-	struct disk_part_iter piter;
-	struct hd_struct *part;
-	int cnt = 0;
-
-	disk_part_iter_init(&piter, disk, 0);
-	while((part = disk_part_iter_next(&piter)))
-		cnt++;
-	disk_part_iter_exit(&piter);
-	add_uevent_var(env, "NPARTS=%u", cnt);
-	return 0;
-}
-
 struct class block_class = {
 	.name		= "block",
 };
@@ -1316,7 +1315,6 @@ static const struct device_type disk_type = {
 	.groups		= disk_attr_groups,
 	.release	= disk_release,
 	.devnode	= block_devnode,
-	.uevent		= disk_uevent,
 };
 
 #ifdef CONFIG_PROC_FS

@@ -436,6 +436,3 @@ config HAVE_CBPF_JIT
 # Extended BPF JIT (eBPF)
 config HAVE_EBPF_JIT
 	bool
-
-config HAVE_EBPF_JIT
-	bool
