@@ -316,10 +316,15 @@ struct clk *rockchip_clk_register_mmc(const char *name,
 				void __iomem *reg, int shift);
 
 /*
- * DDRCLK flags, including method of setting the rate
+ * for COMPOSITE_DDRCLK div_flag,
+ * there may have serval ways to set ddr clock, use
+ * this flag to distinguish them.
  * ROCKCHIP_DDRCLK_SIP: use SIP call to bl31 to change ddrclk rate.
+ * ROCKCHIP_DDRCLK_SCPI: use SCPI APIs to let mcu change ddrclk rate.
  */
 #define ROCKCHIP_DDRCLK_SIP		BIT(0)
+#define ROCKCHIP_DDRCLK_SCPI		0x02
+#define ROCKCHIP_DDRCLK_SIP_V2		0x03
 
 struct clk *rockchip_clk_register_ddrclk(const char *name, int flags,
 					 const char *const *parent_names,

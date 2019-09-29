@@ -366,6 +366,15 @@ config REGULATOR_LP872X
 	help
 	  This driver supports LP8720/LP8725 PMIC
 
+config REGULATOR_LP8752
+	tristate "TI LP8752 High Performance PMU driver"
+	depends on I2C
+	select REGMAP_I2C
+	help
+	  This driver supports LP8752 High Performance PMU driver. This
+	  chip contains four step-down DC/DC converters which can support
+	  4 mode multiphase configuration.
+
 config REGULATOR_LP873X
 	tristate "TI LP873X Power regulators"
 	depends on MFD_TI_LP873X && OF
@@ -549,6 +558,13 @@ config REGULATOR_MC13892
 	  Say y here to support the regulators found on the Freescale MC13892
 	  PMIC.
 
+config REGULATOR_MP8865
+	tristate "MPS MP8865 Power Regulator"
+	depends on I2C
+	select REGMAP_I2C
+	help
+	  This driver supports MP8865 voltage regulator chip.
+
 config REGULATOR_MT6311
 	tristate "MediaTek MT6311 PMIC"
 	depends on I2C
@@ -713,6 +729,13 @@ config REGULATOR_RK808
 	  This driver supports the control of different power rails of device
 	  through regulator interface. The device supports multiple DCDC/LDO
 	  outputs which can be controlled by i2c communication.
+
+config REGULATOR_RK818
+	tristate "Rockchip RK818 Power regulators"
+	depends on MFD_RK808
+	help
+	  Select this option to enable the power regulator of ROCKCHIP
+	  PMIC RK818.
 
 config REGULATOR_RN5T618
 	tristate "Ricoh RN5T567/618 voltage regulators"
@@ -973,6 +996,12 @@ config REGULATOR_WM8994
 	help
 	  This driver provides support for the voltage regulators on the
 	  WM8994 CODEC.
+
+config REGULATOR_XZ3216
+	tristate "Xizhuo XZ3216 voltage regulator"
+	depends on I2C
+	help
+	  Support the voltage and current regulators of the XZ321X series of DCDC devices.
 
 endif
 

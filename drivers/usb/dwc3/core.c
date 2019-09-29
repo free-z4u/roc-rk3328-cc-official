@@ -845,6 +845,20 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		goto err4;
 	}
 
+	reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
+
+	/*
+	 * Enable hardware control of sending remote wakeup in HS when
+	 * the device is in the L1 state.
+	 */
+	if (dwc->revision >= DWC3_REVISION_290A)
+		reg |= DWC3_GUCTL1_DEV_L1_EXIT_BY_HW;
+
+	if (dwc->dis_tx_ipgap_linecheck_quirk)
+		reg |= DWC3_GUCTL1_TX_IPGAP_LINECHECK_DIS;
+
+	dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
+
 	/*
 	 * ENDXFER polling is available on version 3.10a and later of
 	 * the DWC_usb3 controller. It is NOT available in the
@@ -1142,6 +1156,8 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 				"snps,lfps_filter_quirk");
 	dwc->rx_detect_poll_quirk = device_property_read_bool(dev,
 				"snps,rx_detect_poll_quirk");
+	dwc->dis_u3_autosuspend_quirk = device_property_read_bool(dev,
+				"snps,dis-u3-autosuspend-quirk");
 	dwc->dis_u3_susphy_quirk = device_property_read_bool(dev,
 				"snps,dis_u3_susphy_quirk");
 	dwc->dis_u2_susphy_quirk = device_property_read_bool(dev,
@@ -1257,6 +1273,21 @@ static int dwc3_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	dwc->dev = dev;
+
+	/* Try to set 64-bit DMA first */
+	if (!pdev->dev.dma_mask)
+		/* Platform did not initialize dma_mask */
+		ret = dma_coerce_mask_and_coherent(&pdev->dev,
+						   DMA_BIT_MASK(64));
+	else
+		ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
+
+	/* If seting 64-bit DMA mask fails, fall back to 32-bit DMA mask */
+	if (ret) {
+		ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+		if (ret)
+			return ret;
+	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
