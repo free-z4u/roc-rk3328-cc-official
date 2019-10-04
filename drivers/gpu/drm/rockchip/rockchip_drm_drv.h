@@ -71,6 +71,7 @@ struct rockchip_crtc_state {
 	int dsp_layer_sel;
 	int output_type;
 	int output_mode;
+	int output_bpc;
 	int output_flags;
 	int bus_format;
 	int yuv_overlay;
