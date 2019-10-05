@@ -216,12 +216,12 @@ static ssize_t get_mm_cmdline(struct mm_struct *mm, char __user *buf,
 	if (!mm->env_end)
 		return 0;
 
-	down_read(&mm->mmap_sem);
+	spin_lock(&mm->arg_lock);
 	arg_start = mm->arg_start;
 	arg_end = mm->arg_end;
 	env_start = mm->env_start;
 	env_end = mm->env_end;
-	up_read(&mm->mmap_sem);
+	spin_unlock(&mm->arg_lock);
 
 	if (arg_start >= arg_end)
 		return 0;
@@ -234,6 +234,10 @@ static ssize_t get_mm_cmdline(struct mm_struct *mm, char __user *buf,
 	 */
 	if (env_start != arg_end || env_start >= env_end)
 		env_start = env_end = arg_end;
+
+	/* .. and limit it to a maximum of one page of slop */
+	if (env_end >= arg_end + PAGE_SIZE)
+		env_end = arg_end + PAGE_SIZE - 1;
 
 	/* We're not going to care if "*ppos" has high bits set */
 	pos = arg_start + *ppos;
@@ -254,10 +258,19 @@ static ssize_t get_mm_cmdline(struct mm_struct *mm, char __user *buf,
 	while (count) {
 		int got;
 		size_t size = min_t(size_t, PAGE_SIZE, count);
+		long offset;
 
-		got = access_remote_vm(mm, pos, page, size, FOLL_ANON);
-		if (got <= 0)
+		/*
+		 * Are we already starting past the official end?
+		 * We always include the last byte that is *supposed*
+		 * to be NUL
+		 */
+		offset = (pos >= arg_end) ? pos - arg_end + 1 : 0;
+
+		got = access_remote_vm(mm, pos - offset, page, size + offset, FOLL_ANON);
+		if (got <= offset)
 			break;
+		got -= offset;
 
 		/* Don't walk past a NUL character once you hit arg_end */
 		if (pos + got >= arg_end) {
@@ -276,12 +289,17 @@ static ssize_t get_mm_cmdline(struct mm_struct *mm, char __user *buf,
 				n = arg_end - pos - 1;
 
 			/* Cut off at first NUL after 'n' */
-			got = n + strnlen(page+n, got-n);
-			if (!got)
+			got = n + strnlen(page+n, offset+got-n);
+			if (got < offset)
 				break;
+			got -= offset;
+
+			/* Include the NUL if it existed */
+			if (got < size)
+				got++;
 		}
 
-		got -= copy_to_user(buf, page, got);
+		got -= copy_to_user(buf, page+offset, got);
 		if (unlikely(!got)) {
 			if (!len)
 				len = -EFAULT;
@@ -388,9 +406,9 @@ static int proc_pid_stack(struct seq_file *m, struct pid_namespace *ns,
 	struct stack_trace trace;
 	unsigned long *entries;
 	int err;
-	int i;
 
-	entries = kmalloc(MAX_STACK_TRACE_DEPTH * sizeof(*entries), GFP_KERNEL);
+	entries = kmalloc_array(MAX_STACK_TRACE_DEPTH, sizeof(*entries),
+				GFP_KERNEL);
 	if (!entries)
 		return -ENOMEM;
 
@@ -401,6 +419,8 @@ static int proc_pid_stack(struct seq_file *m, struct pid_namespace *ns,
 
 	err = lock_trace(task);
 	if (!err) {
+		unsigned int i;
+
 		save_stack_trace_tsk(task, &trace);
 
 		for (i = 0; i < trace.nr_entries; i++) {
@@ -885,10 +905,10 @@ static ssize_t environ_read(struct file *file, char __user *buf,
 	if (!mmget_not_zero(mm))
 		goto free;
 
-	down_read(&mm->mmap_sem);
+	spin_lock(&mm->arg_lock);
 	env_start = mm->env_start;
 	env_end = mm->env_end;
-	up_read(&mm->mmap_sem);
+	spin_unlock(&mm->arg_lock);
 
 	while (count > 0) {
 		size_t this_len, max_len;
@@ -1742,9 +1762,9 @@ int pid_getattr(const struct path *path, struct kstat *stat,
 
 	generic_fillattr(inode, stat);
 
-	rcu_read_lock();
 	stat->uid = GLOBAL_ROOT_UID;
 	stat->gid = GLOBAL_ROOT_GID;
+	rcu_read_lock();
 	task = pid_task(proc_pid(inode), PIDTYPE_PID);
 	if (task) {
 		if (!has_pid_permissions(pid, task, HIDEPID_INVISIBLE)) {
@@ -1833,7 +1853,7 @@ const struct dentry_operations pid_dentry_operations =
  * by stat.
  */
 bool proc_fill_cache(struct file *file, struct dir_context *ctx,
-	const char *name, int len,
+	const char *name, unsigned int len,
 	instantiate_t instantiate, struct task_struct *task, const void *ptr)
 {
 	struct dentry *child, *dir = file->f_path.dentry;
@@ -1852,19 +1872,19 @@ bool proc_fill_cache(struct file *file, struct dir_context *ctx,
 			struct dentry *res;
 			res = instantiate(child, task, ptr);
 			d_lookup_done(child);
-			if (IS_ERR(res))
-				goto end_instantiate;
 			if (unlikely(res)) {
 				dput(child);
 				child = res;
+				if (IS_ERR(child))
+					goto end_instantiate;
 			}
 		}
 	}
 	inode = d_inode(child);
 	ino = inode->i_ino;
 	type = inode->i_mode >> 12;
-end_instantiate:
 	dput(child);
+end_instantiate:
 	return dir_emit(ctx, name, len, ino, type);
 }
 
@@ -2437,14 +2457,11 @@ static struct dentry *proc_pident_lookup(struct inode *dir,
 	for (p = ents; p < last; p++) {
 		if (p->len != dentry->d_name.len)
 			continue;
-		if (!memcmp(dentry->d_name.name, p->name, p->len))
+		if (!memcmp(dentry->d_name.name, p->name, p->len)) {
+			res = proc_pident_instantiate(dentry, task, p);
 			break;
+		}
 	}
-	if (p >= last)
-		goto out;
-
-	res = proc_pident_instantiate(dentry, task, p);
-out:
 	put_task_struct(task);
 out_no_task:
 	return res;
@@ -3209,7 +3226,7 @@ int proc_pid_readdir(struct file *file, struct dir_context *ctx)
 	     iter.task;
 	     iter.tgid += 1, iter = next_tgid(ns, iter)) {
 		char name[10 + 1];
-		int len;
+		unsigned int len;
 
 		cond_resched();
 		if (!has_pid_permissions(ns, iter.task, HIDEPID_INVISIBLE))
@@ -3536,7 +3553,7 @@ static int proc_task_readdir(struct file *file, struct dir_context *ctx)
 	     task;
 	     task = next_tid(task), ctx->pos++) {
 		char name[10 + 1];
-		int len;
+		unsigned int len;
 		tid = task_pid_nr_ns(task, ns);
 		len = snprintf(name, sizeof(name), "%u", tid);
 		if (!proc_fill_cache(file, ctx, name, len,
