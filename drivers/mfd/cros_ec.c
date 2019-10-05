@@ -119,9 +119,9 @@ int cros_ec_register(struct cros_ec_device *ec_dev)
 	}
 
 	if (ec_dev->irq) {
-		err = request_threaded_irq(ec_dev->irq, NULL, ec_irq_thread,
-					   IRQF_TRIGGER_LOW | IRQF_ONESHOT,
-					   "chromeos-ec", ec_dev);
+		err = devm_request_threaded_irq(dev, ec_dev->irq, NULL,
+				ec_irq_thread, IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+				"chromeos-ec", ec_dev);
 		if (err) {
 			dev_err(dev, "Failed to request IRQ %d: %d",
 				ec_dev->irq, err);
@@ -135,7 +135,7 @@ int cros_ec_register(struct cros_ec_device *ec_dev)
 		dev_err(dev,
 			"Failed to register Embedded Controller subdevice %d\n",
 			err);
-		goto fail_mfd;
+		return err;
 	}
 
 	if (ec_dev->max_passthru) {
@@ -153,7 +153,7 @@ int cros_ec_register(struct cros_ec_device *ec_dev)
 			dev_err(dev,
 				"Failed to register Power Delivery subdevice %d\n",
 				err);
-			goto fail_mfd;
+			return err;
 		}
 	}
 
@@ -162,7 +162,7 @@ int cros_ec_register(struct cros_ec_device *ec_dev)
 		if (err) {
 			mfd_remove_devices(dev);
 			dev_err(dev, "Failed to register sub-devices\n");
-			goto fail_mfd;
+			return err;
 		}
 	}
 
@@ -177,25 +177,13 @@ int cros_ec_register(struct cros_ec_device *ec_dev)
 
 	dev_info(dev, "Chrome EC device registered\n");
 
-	cros_ec_acpi_install_gpe_handler(dev);
-
 	return 0;
-
-fail_mfd:
-	if (ec_dev->irq)
-		free_irq(ec_dev->irq, ec_dev);
-	return err;
 }
 EXPORT_SYMBOL(cros_ec_register);
 
 int cros_ec_remove(struct cros_ec_device *ec_dev)
 {
 	mfd_remove_devices(ec_dev->dev);
-
-	cros_ec_acpi_remove_gpe_handler();
-
-	if (ec_dev->irq)
-		free_irq(ec_dev->irq, ec_dev);
 
 	return 0;
 }
@@ -208,14 +196,9 @@ int cros_ec_suspend(struct cros_ec_device *ec_dev)
 	int ret;
 	u8 sleep_event;
 
-	if (!IS_ENABLED(CONFIG_ACPI) || pm_suspend_via_firmware()) {
-		sleep_event = HOST_SLEEP_EVENT_S3_SUSPEND;
-	} else {
-		sleep_event = HOST_SLEEP_EVENT_S0IX_SUSPEND;
-
-		/* Clearing the GPE status for any pending event */
-		cros_ec_acpi_clear_gpe();
-	}
+	sleep_event = (!IS_ENABLED(CONFIG_ACPI) || pm_suspend_via_firmware()) ?
+		      HOST_SLEEP_EVENT_S3_SUSPEND :
+		      HOST_SLEEP_EVENT_S0IX_SUSPEND;
 
 	ret = cros_ec_sleep_event(ec_dev, sleep_event);
 	if (ret < 0)
