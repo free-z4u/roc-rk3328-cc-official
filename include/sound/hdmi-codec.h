@@ -53,6 +53,13 @@ struct hdmi_codec_params {
 	int sample_rate;
 	int sample_width;
 	int channels;
+	int mode;
+};
+
+enum {
+	LPCM = 0,
+	NLPCM,
+	HBR,
 };
 
 struct hdmi_codec_pdata;
@@ -106,6 +113,9 @@ struct hdmi_codec_pdata {
 	int max_i2s_channels;
 	void *data;
 };
+
+struct snd_soc_codec;
+struct snd_soc_jack;
 
 #define HDMI_CODEC_DRV_NAME "hdmi-audio-codec"
 

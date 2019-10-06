@@ -120,6 +120,15 @@ static inline bool drm_core_check_feature(struct drm_device *dev, int feature)
 	return dev->driver->driver_features & feature;
 }
 
+#ifdef CONFIG_DRM
+struct drm_device *drm_device_get_by_name(const char *name);
+#else
+static inline struct drm_device *drm_device_get_by_name(const char *name)
+{
+	return NULL;
+}
+#endif
+
 /* returns true if currently okay to sleep */
 static inline bool drm_can_sleep(void)
 {

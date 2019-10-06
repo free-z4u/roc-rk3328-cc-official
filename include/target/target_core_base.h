@@ -708,6 +708,7 @@ struct se_lun {
 	u64			unpacked_lun;
 	bool			lun_shutdown;
 	bool			lun_access_ro;
+	bool			lun_shutdown;
 	u32			lun_index;
 
 	/* RELATIVE TARGET PORT IDENTIFER */
