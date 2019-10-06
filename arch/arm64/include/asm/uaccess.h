@@ -20,7 +20,6 @@
 
 #include <asm/alternative.h>
 #include <asm/kernel-pgtable.h>
-#include <asm/mmu.h>
 #include <asm/sysreg.h>
 
 /*

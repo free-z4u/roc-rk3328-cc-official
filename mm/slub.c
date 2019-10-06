@@ -3013,9 +3013,6 @@ int build_detached_freelist(struct kmem_cache *s, size_t size,
 	if (!object)
 		return 0;
 
-	/* Support for memcg, compiler can optimize this out */
-	df->s = cache_from_obj(s, object);
-
 	page = virt_to_head_page(object);
 	if (!s) {
 		/* Handle kalloc'ed objects */
