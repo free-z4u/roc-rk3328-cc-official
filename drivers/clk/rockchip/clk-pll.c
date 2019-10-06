@@ -402,11 +402,6 @@ static int rockchip_rk3036_pll_set_params(struct rockchip_clk_pll *pll,
 		rate_change_remuxed = 1;
 	}
 
-	/* set pll power down */
-	writel(HIWORD_UPDATE(1,
-			     RK3036_PLLCON1_PWRDOWN, 13),
-	       pll->reg_base + RK3036_PLLCON(1));
-
 	/* update pll values */
 	writel_relaxed(HIWORD_UPDATE(rate->fbdiv, RK3036_PLLCON0_FBDIV_MASK,
 					  RK3036_PLLCON0_FBDIV_SHIFT) |
@@ -427,10 +422,6 @@ static int rockchip_rk3036_pll_set_params(struct rockchip_clk_pll *pll,
 	pllcon &= ~(RK3036_PLLCON2_FRAC_MASK << RK3036_PLLCON2_FRAC_SHIFT);
 	pllcon |= rate->frac << RK3036_PLLCON2_FRAC_SHIFT;
 	writel_relaxed(pllcon, pll->reg_base + RK3036_PLLCON(2));
-
-	/* set pll power up */
-	writel(HIWORD_UPDATE(0, RK3036_PLLCON1_PWRDOWN, 13),
-	       pll->reg_base + RK3036_PLLCON(1));
 
 	/* wait for the pll to lock */
 	ret = rockchip_pll_wait_lock(pll);
@@ -611,9 +602,6 @@ static unsigned long rockchip_rk3066_pll_recalc_rate(struct clk_hw *hw,
 		return prate;
 	}
 
-	if (pll->sel && pll->scaling)
-		return pll->scaling;
-
 	rockchip_rk3066_pll_get_params(pll, &cur);
 
 	rate64 *= cur.nf;
@@ -687,7 +675,6 @@ static int rockchip_rk3066_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 {
 	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
 	const struct rockchip_pll_rate_table *rate;
-	int ret;
 
 	pr_debug("%s: changing %s to %lu with a parent rate of %lu\n",
 		 __func__, clk_hw_get_name(hw), drate, prate);
@@ -700,11 +687,7 @@ static int rockchip_rk3066_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 		return -EINVAL;
 	}
 
-	ret = rockchip_rk3066_pll_set_params(pll, rate);
-	if (ret)
-		pll->scaling = 0;
-
-	return ret;
+	return rockchip_rk3066_pll_set_params(pll, rate);
 }
 
 static int rockchip_rk3066_pll_enable(struct clk_hw *hw)

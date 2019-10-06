@@ -13,7 +13,15 @@
 	compatible = "firefly,roc-rk3328-cc", "rockchip,rk3328";
 
 	chosen {
+		stdout-path = "serial2:1500000n8";
 		bootargs = "rockchip_jtag earlyprintk=uart8250-32bit,0xff130000";
+	};
+
+	gmac_clkin: external-gmac-clock {
+		compatible = "fixed-clock";
+		clock-frequency = <125000000>;
+		clock-output-names = "gmac_clkin";
+		#clock-cells = <0>;
 	};
 
 	fiq-debugger {
@@ -26,13 +34,6 @@
 		rockchip,baudrate = <1500000>;  /* Only 115200 and 1500000 */
 		interrupts = <GIC_SPI 127 IRQ_TYPE_LEVEL_LOW>;
 		status = "okay";
-	};
-
-	gmac_clkin: external-gmac-clock {
-		compatible = "fixed-clock";
-		clock-frequency = <125000000>;
-		clock-output-names = "gmac_clkin";
-		#clock-cells = <0>;
 	};
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -93,16 +94,9 @@
 		#sound-dai-cells = <0>;
 	};
 
-	vcc_phy: vcc-phy-regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_phy";
-		regulator-always-on;
-		regulator-boot-on;
-	};
-
 	vcc_sd: sdmmc-regulator {
 		compatible = "regulator-fixed";
-		gpio = <&gpio0 30 GPIO_ACTIVE_LOW>;
+		gpio = <&gpio0 RK_PD6 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&sdmmc0m1_gpio>;
 		regulator-name = "vcc_sd";
@@ -114,7 +108,7 @@
 	vcc_host1_5v: vcc_otg_5v: vcc5v0-host-regulator {
 		compatible = "regulator-fixed";
 		enable-active-high;
-		gpio = <&gpio1 26 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&host_vbus_drv>;
 		regulator-name = "vcc_host1_5v";
@@ -151,6 +145,13 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
+	};
+
+	vcc_phy: vcc-phy-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_phy";
+		regulator-always-on;
+		regulator-boot-on;
 	};
 
 	wireless-wlan {
@@ -338,29 +339,29 @@
 &emmc {
 	bus-width = <8>;
 	cap-mmc-highspeed;
-	disable-wp;
 	non-removable;
 	num-slots = <1>;
+	disable-wp;
 	pinctrl-names = "default";
 	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_bus8>;
 	status = "okay";
 };
 
 &gmac2io {
-	phy-supply = <&vcc_phy>;
-	phy-mode = "rgmii";
-	clock_in_out = "input";
-	snps,reset-gpio = <&gpio1 RK_PC2 GPIO_ACTIVE_LOW>;
-	snps,reset-active-low;
-	snps,force_thresh_dma_mode;
-	snps,reset-delays-us = <0 10000 50000>;
 	assigned-clocks = <&cru SCLK_MAC2IO>, <&cru SCLK_MAC2IO_EXT>;
 	assigned-clock-parents = <&gmac_clkin>, <&gmac_clkin>;
+	clock_in_out = "input";
+	phy-supply = <&vcc_phy>;
+	phy-mode = "rgmii";
 	pinctrl-names = "default";
 	pinctrl-0 = <&rgmiim1_pins>;
+	snps,reset-gpio = <&gpio1 RK_PC2 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 10000 50000>;
 	tx_delay = <0x28>;
 	rx_delay = <0x16>;
 	status = "okay";
+	snps,force_thresh_dma_mode;
 };
 
 &gmac2phy {
@@ -519,9 +520,9 @@
 				};
 			};
 
-			vdd_18: RK805_LDO1@4 {
+			vcc_18: RK805_LDO1@4 {
 				regulator-compatible = "RK805_LDO1";
-				regulator-name = "vdd_18";
+				regulator-name = "vcc_18";
 				regulator-min-microvolt = <1800000>;
 				regulator-max-microvolt = <1800000>;
 				regulator-always-on;
@@ -532,9 +533,9 @@
 				};
 			};
 
-			vcc_18emmc: RK805_LDO2@5 {
+			vcc18_emmc: RK805_LDO2@5 {
 				regulator-compatible = "RK805_LDO2";
-				regulator-name = "vcc_18emmc";
+				regulator-name = "vcc18_emmc";
 				regulator-min-microvolt = <1800000>;
 				regulator-max-microvolt = <1800000>;
 				regulator-always-on;
@@ -580,10 +581,10 @@
 	status = "okay";
 
 	vccio1-supply = <&vcc_io>;
-	vccio2-supply = <&vcc_18emmc>;
+	vccio2-supply = <&vcc18_emmc>;
 	//vccio3-supply = <&vccio_sd>;
 	vccio3-supply = <&vcc_io>;
-	vccio4-supply = <&vdd_18>;
+	vccio4-supply = <&vcc_18>;
 	vccio5-supply = <&vcc_io>;
 	vccio6-supply = <&vcc_io>;
 	pmuio-supply = <&vcc_io>;
@@ -592,8 +593,7 @@
 &pinctrl {
 	pmic {
 		pmic_int_l: pmic-int-l {
-		rockchip,pins =
-			<1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;	/* gpio1_d0 */
+			rockchip,pins = <1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
@@ -616,16 +616,6 @@
 			rockchip,pins = <0 0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-
-/*
-  sdmmcio-regulator {
-    sd_pwr_1800_sel: sd-pwr-1800-sel {
-			rockchip,pins = 
-        <0 25 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-  };
-*/
-
 };
 
 &rkvdec {
@@ -659,8 +649,8 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_dectn &sdmmc0_bus4>;
-	status = "okay";
 	vmmc-supply = <&vcc_sd>;
+	status = "okay";
 };
 
 &spdif {

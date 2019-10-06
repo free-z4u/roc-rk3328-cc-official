@@ -17,7 +17,8 @@
 
 #define DRIVER_NAME "dw-hdmi-i2s-audio"
 
-static inline void hdmi_write(struct dw_hdmi_i2s_audio_data *audio, u8 val, int offset)
+static inline void hdmi_write(struct dw_hdmi_i2s_audio_data *audio,
+			      u8 val, int offset)
 {
 	struct dw_hdmi *hdmi = audio->hdmi;
 
@@ -242,6 +243,7 @@ static int snd_dw_hdmi_probe(struct platform_device *pdev)
 	struct dw_hdmi_i2s_audio_data *audio = pdev->dev.platform_data;
 	struct platform_device_info pdevinfo;
 	struct hdmi_codec_pdata pdata;
+	struct platform_device *platform;
 
 	pdata.ops		= &dw_hdmi_i2s_ops;
 	pdata.i2s		= 1;
@@ -256,26 +258,29 @@ static int snd_dw_hdmi_probe(struct platform_device *pdev)
 	pdevinfo.size_data	= sizeof(pdata);
 	pdevinfo.dma_mask	= DMA_BIT_MASK(32);
 
-	audio->pdev = platform_device_register_full(&pdevinfo);
-	return IS_ERR_OR_NULL(audio->pdev);
+	platform = platform_device_register_full(&pdevinfo);
+	if (IS_ERR(platform))
+		return PTR_ERR(platform);
+
+	dev_set_drvdata(&pdev->dev, platform);
+
+	return 0;
 }
 
 static int snd_dw_hdmi_remove(struct platform_device *pdev)
 {
-	struct dw_hdmi_i2s_audio_data *audio = pdev->dev.platform_data;
+	struct platform_device *platform = dev_get_drvdata(&pdev->dev);
 
-	if (!IS_ERR_OR_NULL(audio->pdev))
-		platform_device_unregister(audio->pdev);
+	platform_device_unregister(platform);
 
 	return 0;
 }
 
 static struct platform_driver snd_dw_hdmi_driver = {
 	.probe	= snd_dw_hdmi_probe,
-	.remove = snd_dw_hdmi_remove,
+	.remove	= snd_dw_hdmi_remove,
 	.driver	= {
 		.name = DRIVER_NAME,
-		.owner = THIS_MODULE,
 	},
 };
 module_platform_driver(snd_dw_hdmi_driver);

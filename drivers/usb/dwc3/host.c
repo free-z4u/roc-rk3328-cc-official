@@ -78,7 +78,6 @@ int dwc3_host_init(struct dwc3 *dwc)
 	}
 
 	xhci->dev.parent	= dwc->dev;
-	xhci->dev.archdata      = dwc->dev->archdata;
 
 	dwc->xhci = xhci;
 
@@ -90,9 +89,6 @@ int dwc3_host_init(struct dwc3 *dwc)
 	}
 
 	memset(props, 0, sizeof(struct property_entry) * ARRAY_SIZE(props));
-
-	if (dwc->dis_u3_autosuspend_quirk)
-		props[prop_idx++].name = "dis-u3-autosuspend";
 
 	if (dwc->usb3_lpm_capable)
 		props[prop_idx++].name = "usb3-lpm-capable";

@@ -602,7 +602,6 @@ int security_path_chown(const struct path *path, kuid_t uid, kgid_t gid)
 		return 0;
 	return call_int_hook(path_chown, 0, path, uid, gid);
 }
-EXPORT_SYMBOL(security_path_chown);
 
 int security_path_chroot(const struct path *path)
 {
@@ -1358,6 +1357,12 @@ int security_socket_post_create(struct socket *sock, int family,
 	return call_int_hook(socket_post_create, 0, sock, family, type,
 						protocol, kern);
 }
+
+int security_socket_socketpair(struct socket *socka, struct socket *sockb)
+{
+	return call_int_hook(socket_socketpair, 0, socka, sockb);
+}
+EXPORT_SYMBOL(security_socket_socketpair);
 
 int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
 {

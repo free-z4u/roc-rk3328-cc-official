@@ -19,6 +19,7 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_iommu.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
@@ -625,6 +626,7 @@ static void rk_iommu_zap_iova(struct rk_iommu_domain *rk_domain,
 	spin_lock_irqsave(&rk_domain->iommus_lock, flags);
 	list_for_each(pos, &rk_domain->iommus) {
 		struct rk_iommu *iommu;
+
 		iommu = list_entry(pos, struct rk_iommu, node);
 		rk_iommu_zap_lines(iommu, iova, size);
 	}
@@ -1182,7 +1184,7 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	iommu->dev = dev;
 	iommu->num_mmu = 0;
 
-	iommu->bases = devm_kzalloc(dev, sizeof(*iommu->bases) * num_res,
+	iommu->bases = devm_kcalloc(dev, num_res, sizeof(*iommu->bases),
 				    GFP_KERNEL);
 	if (!iommu->bases)
 		return -ENOMEM;

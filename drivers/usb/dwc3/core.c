@@ -8,6 +8,7 @@
  *	    Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  */
 
+#include <linux/clk.h>
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -24,6 +25,7 @@
 #include <linux/of.h>
 #include <linux/acpi.h>
 #include <linux/pinctrl/consumer.h>
+#include <linux/reset.h>
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -265,6 +267,12 @@ done:
 
 	return 0;
 }
+
+static const struct clk_bulk_data dwc3_core_clks[] = {
+	{ .id = "ref" },
+	{ .id = "bus_early" },
+	{ .id = "suspend" },
+};
 
 /*
  * dwc3_frame_length_adjustment - Adjusts frame length if required
@@ -667,6 +675,9 @@ static void dwc3_core_exit(struct dwc3 *dwc)
 	usb_phy_set_suspend(dwc->usb3_phy, 1);
 	phy_power_off(dwc->usb2_generic_phy);
 	phy_power_off(dwc->usb3_generic_phy);
+	clk_bulk_disable(dwc->num_clks, dwc->clks);
+	clk_bulk_unprepare(dwc->num_clks, dwc->clks);
+	reset_control_assert(dwc->reset);
 }
 
 static bool dwc3_core_is_valid(struct dwc3 *dwc)
@@ -844,20 +855,6 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		dev_err(dwc->dev, "failed to setup event buffers\n");
 		goto err4;
 	}
-
-	reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
-
-	/*
-	 * Enable hardware control of sending remote wakeup in HS when
-	 * the device is in the L1 state.
-	 */
-	if (dwc->revision >= DWC3_REVISION_290A)
-		reg |= DWC3_GUCTL1_DEV_L1_EXIT_BY_HW;
-
-	if (dwc->dis_tx_ipgap_linecheck_quirk)
-		reg |= DWC3_GUCTL1_TX_IPGAP_LINECHECK_DIS;
-
-	dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
 
 	/*
 	 * ENDXFER polling is available on version 3.10a and later of
@@ -1156,8 +1153,6 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 				"snps,lfps_filter_quirk");
 	dwc->rx_detect_poll_quirk = device_property_read_bool(dev,
 				"snps,rx_detect_poll_quirk");
-	dwc->dis_u3_autosuspend_quirk = device_property_read_bool(dev,
-				"snps,dis-u3-autosuspend-quirk");
 	dwc->dis_u3_susphy_quirk = device_property_read_bool(dev,
 				"snps,dis_u3_susphy_quirk");
 	dwc->dis_u2_susphy_quirk = device_property_read_bool(dev,
@@ -1261,7 +1256,7 @@ static void dwc3_check_params(struct dwc3 *dwc)
 static int dwc3_probe(struct platform_device *pdev)
 {
 	struct device		*dev = &pdev->dev;
-	struct resource		*res;
+	struct resource		*res, dwc_res;
 	struct dwc3		*dwc;
 
 	int			ret;
@@ -1272,22 +1267,12 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (!dwc)
 		return -ENOMEM;
 
+	dwc->clks = devm_kmemdup(dev, dwc3_core_clks, sizeof(dwc3_core_clks),
+				 GFP_KERNEL);
+	if (!dwc->clks)
+		return -ENOMEM;
+
 	dwc->dev = dev;
-
-	/* Try to set 64-bit DMA first */
-	if (!pdev->dev.dma_mask)
-		/* Platform did not initialize dma_mask */
-		ret = dma_coerce_mask_and_coherent(&pdev->dev,
-						   DMA_BIT_MASK(64));
-	else
-		ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
-
-	/* If seting 64-bit DMA mask fails, fall back to 32-bit DMA mask */
-	if (ret) {
-		ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
-		if (ret)
-			return ret;
-	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
@@ -1301,22 +1286,51 @@ static int dwc3_probe(struct platform_device *pdev)
 	dwc->xhci_resources[0].flags = res->flags;
 	dwc->xhci_resources[0].name = res->name;
 
-	res->start += DWC3_GLOBALS_REGS_START;
-
 	/*
 	 * Request memory region but exclude xHCI regs,
 	 * since it will be requested by the xhci-plat driver.
 	 */
-	regs = devm_ioremap_resource(dev, res);
-	if (IS_ERR(regs)) {
-		ret = PTR_ERR(regs);
-		goto err0;
-	}
+	dwc_res = *res;
+	dwc_res.start += DWC3_GLOBALS_REGS_START;
+
+	regs = devm_ioremap_resource(dev, &dwc_res);
+	if (IS_ERR(regs))
+		return PTR_ERR(regs);
 
 	dwc->regs	= regs;
-	dwc->regs_size	= resource_size(res);
+	dwc->regs_size	= resource_size(&dwc_res);
 
 	dwc3_get_properties(dwc);
+
+	dwc->reset = devm_reset_control_get_optional_shared(dev, NULL);
+	if (IS_ERR(dwc->reset))
+		return PTR_ERR(dwc->reset);
+
+	if (dev->of_node) {
+		dwc->num_clks = ARRAY_SIZE(dwc3_core_clks);
+
+		ret = clk_bulk_get(dev, dwc->num_clks, dwc->clks);
+		if (ret == -EPROBE_DEFER)
+			return ret;
+		/*
+		 * Clocks are optional, but new DT platforms should support all
+		 * clocks as required by the DT-binding.
+		 */
+		if (ret)
+			dwc->num_clks = 0;
+	}
+
+	ret = reset_control_deassert(dwc->reset);
+	if (ret)
+		goto put_clks;
+
+	ret = clk_bulk_prepare(dwc->num_clks, dwc->clks);
+	if (ret)
+		goto assert_reset;
+
+	ret = clk_bulk_enable(dwc->num_clks, dwc->clks);
+	if (ret)
+		goto unprepare_clks;
 
 	platform_set_drvdata(pdev, dwc);
 	dwc3_cache_hwparams(dwc);
@@ -1381,13 +1395,13 @@ err1:
 	pm_runtime_put_sync(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 
-err0:
-	/*
-	 * restore res->start back to its original value so that, in case the
-	 * probe is deferred, we don't end up getting error in request the
-	 * memory region the next time probe is called.
-	 */
-	res->start -= DWC3_GLOBALS_REGS_START;
+	clk_bulk_disable(dwc->num_clks, dwc->clks);
+unprepare_clks:
+	clk_bulk_unprepare(dwc->num_clks, dwc->clks);
+assert_reset:
+	reset_control_assert(dwc->reset);
+put_clks:
+	clk_bulk_put(dwc->num_clks, dwc->clks);
 
 	return ret;
 }
@@ -1395,15 +1409,8 @@ err0:
 static int dwc3_remove(struct platform_device *pdev)
 {
 	struct dwc3	*dwc = platform_get_drvdata(pdev);
-	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
 	pm_runtime_get_sync(&pdev->dev);
-	/*
-	 * restore res->start back to its original value so that, in case the
-	 * probe is deferred, we don't end up getting error in request the
-	 * memory region the next time probe is called.
-	 */
-	res->start -= DWC3_GLOBALS_REGS_START;
 
 	dwc3_debugfs_exit(dwc);
 	dwc3_core_exit_mode(dwc);
@@ -1417,14 +1424,48 @@ static int dwc3_remove(struct platform_device *pdev)
 
 	dwc3_free_event_buffers(dwc);
 	dwc3_free_scratch_buffers(dwc);
+	clk_bulk_put(dwc->num_clks, dwc->clks);
 
 	return 0;
 }
 
 #ifdef CONFIG_PM
+static int dwc3_core_init_for_resume(struct dwc3 *dwc)
+{
+	int ret;
+
+	ret = reset_control_deassert(dwc->reset);
+	if (ret)
+		return ret;
+
+	ret = clk_bulk_prepare(dwc->num_clks, dwc->clks);
+	if (ret)
+		goto assert_reset;
+
+	ret = clk_bulk_enable(dwc->num_clks, dwc->clks);
+	if (ret)
+		goto unprepare_clks;
+
+	ret = dwc3_core_init(dwc);
+	if (ret)
+		goto disable_clks;
+
+	return 0;
+
+disable_clks:
+	clk_bulk_disable(dwc->num_clks, dwc->clks);
+unprepare_clks:
+	clk_bulk_unprepare(dwc->num_clks, dwc->clks);
+assert_reset:
+	reset_control_assert(dwc->reset);
+
+	return ret;
+}
+
 static int dwc3_suspend_common(struct dwc3 *dwc, pm_message_t msg)
 {
 	unsigned long	flags;
+	u32 reg;
 
 	switch (dwc->current_dr_role) {
 	case DWC3_GCTL_PRTCAP_DEVICE:
@@ -1434,9 +1475,25 @@ static int dwc3_suspend_common(struct dwc3 *dwc, pm_message_t msg)
 		dwc3_core_exit(dwc);
 		break;
 	case DWC3_GCTL_PRTCAP_HOST:
-		/* do nothing during host runtime_suspend */
-		if (!PMSG_IS_AUTO(msg))
+		if (!PMSG_IS_AUTO(msg)) {
 			dwc3_core_exit(dwc);
+			break;
+		}
+
+		/* Let controller to suspend HSPHY before PHY driver suspends */
+		if (dwc->dis_u2_susphy_quirk ||
+		    dwc->dis_enblslpm_quirk) {
+			reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+			reg |=  DWC3_GUSB2PHYCFG_ENBLSLPM |
+				DWC3_GUSB2PHYCFG_SUSPHY;
+			dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
+
+			/* Give some time for USB2 PHY to suspend */
+			usleep_range(5000, 6000);
+		}
+
+		phy_pm_runtime_put_sync(dwc->usb2_generic_phy);
+		phy_pm_runtime_put_sync(dwc->usb3_generic_phy);
 		break;
 	case DWC3_GCTL_PRTCAP_OTG:
 		/* do nothing during runtime_suspend */
@@ -1464,10 +1521,11 @@ static int dwc3_resume_common(struct dwc3 *dwc, pm_message_t msg)
 {
 	unsigned long	flags;
 	int		ret;
+	u32		reg;
 
 	switch (dwc->current_dr_role) {
 	case DWC3_GCTL_PRTCAP_DEVICE:
-		ret = dwc3_core_init(dwc);
+		ret = dwc3_core_init_for_resume(dwc);
 		if (ret)
 			return ret;
 
@@ -1477,13 +1535,25 @@ static int dwc3_resume_common(struct dwc3 *dwc, pm_message_t msg)
 		spin_unlock_irqrestore(&dwc->lock, flags);
 		break;
 	case DWC3_GCTL_PRTCAP_HOST:
-		/* nothing to do on host runtime_resume */
 		if (!PMSG_IS_AUTO(msg)) {
-			ret = dwc3_core_init(dwc);
+			ret = dwc3_core_init_for_resume(dwc);
 			if (ret)
 				return ret;
 			dwc3_set_prtcap(dwc, DWC3_GCTL_PRTCAP_HOST);
+			break;
 		}
+		/* Restore GUSB2PHYCFG bits that were modified in suspend */
+		reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+		if (dwc->dis_u2_susphy_quirk)
+			reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
+
+		if (dwc->dis_enblslpm_quirk)
+			reg &= ~DWC3_GUSB2PHYCFG_ENBLSLPM;
+
+		dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
+
+		phy_pm_runtime_get_sync(dwc->usb2_generic_phy);
+		phy_pm_runtime_get_sync(dwc->usb3_generic_phy);
 		break;
 	case DWC3_GCTL_PRTCAP_OTG:
 		/* nothing to do on runtime_resume */

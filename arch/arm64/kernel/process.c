@@ -59,7 +59,7 @@
 #include <asm/processor.h>
 #include <asm/stacktrace.h>
 
-#ifdef CONFIG_CC_STACKPROTECTOR
+#ifdef CONFIG_STACKPROTECTOR
 #include <linux/stackprotector.h>
 unsigned long __stack_chk_guard __read_mostly;
 EXPORT_SYMBOL(__stack_chk_guard);
@@ -149,8 +149,6 @@ void machine_restart(char *cmd)
 	/* Disable interrupts first */
 	local_irq_disable();
 	smp_send_stop();
-
-	do_kernel_i2c_restart(cmd);
 
 	/*
 	 * UpdateCapsule() depends on the system being reset via
