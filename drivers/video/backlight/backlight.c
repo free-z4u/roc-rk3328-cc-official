@@ -46,8 +46,7 @@ static int fb_notifier_callback(struct notifier_block *self,
 	int fb_blank = 0;
 
 	/* If we aren't interested in this event, skip it immediately ... */
-	if (event != FB_EVENT_BLANK && event != FB_EVENT_CONBLANK &&
-	    event != FB_EARLY_EVENT_BLANK)
+	if (event != FB_EVENT_BLANK && event != FB_EVENT_CONBLANK)
 		return 0;
 
 	bd = container_of(self, struct backlight_device, fb_notif);
@@ -57,8 +56,7 @@ static int fb_notifier_callback(struct notifier_block *self,
 		    bd->ops->check_fb(bd, evdata->info)) {
 			fb_blank = *(int *)evdata->data;
 			if (fb_blank == FB_BLANK_UNBLANK &&
-			    !bd->fb_bl_on[node] &&
-			    event != FB_EARLY_EVENT_BLANK) {
+			    !bd->fb_bl_on[node]) {
 				bd->fb_bl_on[node] = true;
 				if (!bd->use_count++) {
 					bd->props.state &= ~BL_CORE_FBBLANK;
@@ -66,8 +64,7 @@ static int fb_notifier_callback(struct notifier_block *self,
 					backlight_update_status(bd);
 				}
 			} else if (fb_blank != FB_BLANK_UNBLANK &&
-				   bd->fb_bl_on[node] &&
-				   event == FB_EARLY_EVENT_BLANK) {
+				   bd->fb_bl_on[node]) {
 				bd->fb_bl_on[node] = false;
 				if (!(--bd->use_count)) {
 					bd->props.state |= BL_CORE_FBBLANK;
