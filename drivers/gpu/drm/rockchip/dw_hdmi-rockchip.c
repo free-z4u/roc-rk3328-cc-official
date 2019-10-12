@@ -584,8 +584,7 @@ dw_hdmi_rockchip_select_output(struct drm_connector_state *conn_state,
 			       struct rockchip_hdmi *hdmi,
 			       unsigned int *color_format,
 			       unsigned int *color_depth,
-			       unsigned long *enc_out_encoding,
-			       unsigned int *eotf)
+			       unsigned long *enc_out_encoding)
 {
 	struct drm_display_info *info = &conn_state->connector->display_info;
 	struct drm_display_mode *mode = &crtc_state->mode;
@@ -650,7 +649,6 @@ dw_hdmi_rockchip_select_output(struct drm_connector_state *conn_state,
 	else
 		*color_depth = 8;
 
-	*eotf = TRADITIONAL_GAMMA_SDR;
 	if ((hdmi->colorimetry == HDMI_EXTENDED_COLORIMETRY_BT2020 &&
 	     info->hdmi.colorimetry & (BIT(6) | BIT(7))))
 		*enc_out_encoding = V4L2_YCBCR_ENC_BT2020;
@@ -713,7 +711,7 @@ dw_hdmi_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
 
 	dw_hdmi_rockchip_select_output(conn_state, crtc_state, hdmi,
 				       &colorformat, &colordepth,
-				       &hdmi->enc_out_encoding, &s->eotf);
+				       &hdmi->enc_out_encoding);
 
 	if (colorformat == DRM_HDMI_OUTPUT_YCBCR420) {
 		s->output_mode = ROCKCHIP_OUT_MODE_YUV420;

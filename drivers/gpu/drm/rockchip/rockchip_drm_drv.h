@@ -79,7 +79,6 @@ struct rockchip_crtc_state {
 	int post_y2r_en;
 	int post_csc_mode;
 	int color_space;
-	int eotf;
 };
 #define to_rockchip_crtc_state(s) \
 		container_of(s, struct rockchip_crtc_state, base)
