@@ -212,7 +212,6 @@ int		rpc_clnt_setup_test_and_add_xprt(struct rpc_clnt *,
 			void *);
 
 const char *rpc_proc_name(const struct rpc_task *task);
-void rpc_cleanup_clids(void);
 
 void rpc_clnt_xprt_switch_put(struct rpc_clnt *);
 void rpc_clnt_xprt_switch_add_xprt(struct rpc_clnt *, struct rpc_xprt *);
