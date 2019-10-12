@@ -114,9 +114,6 @@ struct hdmi_codec_pdata {
 	void *data;
 };
 
-struct snd_soc_codec;
-struct snd_soc_jack;
-
 #define HDMI_CODEC_DRV_NAME "hdmi-audio-codec"
 
 #endif /* __HDMI_CODEC_H__ */
