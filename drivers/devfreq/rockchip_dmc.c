@@ -45,7 +45,6 @@
 #include <soc/rockchip/rockchip_sip.h>
 #include <soc/rockchip/rockchip-system-status.h>
 #include <soc/rockchip/rockchip_opp_select.h>
-#include <soc/rockchip/scpi.h>
 #include <uapi/drm/drm_mode.h>
 
 #include "governor.h"
@@ -973,9 +972,7 @@ static void of_get_rk3128_timings(struct device *dev,
 
 	init_timing = (struct share_params *)timing;
 
-	if (of_property_read_u32(np, "vop-dclk-mode",
-				 &init_timing->vop_dclk_mode))
-		init_timing->vop_dclk_mode = 0;
+	init_timing->vop_dclk_mode = 0;
 
 	p = timing + DTS_PAR_OFFSET / 4;
 	np_tim = of_parse_phandle(np, "rockchip,ddr_timing", 0);
@@ -1013,9 +1010,7 @@ static void of_get_rk3288_timings(struct device *dev,
 
 	init_timing = (struct share_params *)timing;
 
-	if (of_property_read_u32(np, "vop-dclk-mode",
-				 &init_timing->vop_dclk_mode))
-		init_timing->vop_dclk_mode = 0;
+	init_timing->vop_dclk_mode = 0;
 
 	p = timing + DTS_PAR_OFFSET / 4;
 	np_tim = of_parse_phandle(np, "rockchip,ddr_timing", 0);
@@ -1494,86 +1489,6 @@ static int rk3328_dmc_init(struct platform_device *pdev,
 	return 0;
 }
 
-static int rk3368_dmc_init(struct platform_device *pdev,
-			   struct rockchip_dmcfreq *dmcfreq)
-{
-	struct device *dev = &pdev->dev;
-	struct device_node *np = pdev->dev.of_node;
-	struct arm_smccc_res res;
-	struct rk3368_dram_timing *dram_timing;
-	struct clk *pclk_phy, *pclk_upctl;
-	struct drm_device *drm = drm_device_get_by_name("rockchip");
-	int ret;
-	u32 dram_spd_bin;
-	u32 addr_mcu_el3;
-	u32 dclk_mode;
-	u32 lcdc_type;
-
-	if (!drm) {
-		dev_err(dev, "Get drm_device fail\n");
-		return -EPROBE_DEFER;
-	}
-
-	pclk_phy = devm_clk_get(dev, "pclk_phy");
-	if (IS_ERR(pclk_phy)) {
-		dev_err(dev, "Cannot get the clk pclk_phy\n");
-		return PTR_ERR(pclk_phy);
-	}
-	ret = clk_prepare_enable(pclk_phy);
-	if (ret < 0) {
-		dev_err(dev, "failed to prepare/enable pclk_phy\n");
-		return ret;
-	}
-	pclk_upctl = devm_clk_get(dev, "pclk_upctl");
-	if (IS_ERR(pclk_upctl)) {
-		dev_err(dev, "Cannot get the clk pclk_upctl\n");
-		return PTR_ERR(pclk_upctl);
-	}
-	ret = clk_prepare_enable(pclk_upctl);
-	if (ret < 0) {
-		dev_err(dev, "failed to prepare/enable pclk_upctl\n");
-		return ret;
-	}
-
-	/*
-	 * Get dram timing and pass it to arm trust firmware,
-	 * the dram drvier in arm trust firmware will get these
-	 * timing and to do dram initial.
-	 */
-	dram_timing = of_get_rk3368_timings(dev, np);
-	if (dram_timing) {
-		dram_spd_bin = dram_timing->dram_spd_bin;
-		if (scpi_ddr_send_timing((u32 *)dram_timing,
-					 sizeof(struct rk3368_dram_timing)))
-			dev_err(dev, "send ddr timing timeout\n");
-	} else {
-		dev_err(dev, "get ddr timing from dts error\n");
-		dram_spd_bin = DDR3_DEFAULT;
-	}
-
-	res = sip_smc_mcu_el3fiq(FIQ_INIT_HANDLER,
-				 FIQ_NUM_FOR_DCF,
-				 FIQ_CPU_TGT_BOOT);
-	if ((res.a0) || (res.a1 == 0) || (res.a1 > 0x80000))
-		dev_err(dev, "Trust version error, pls check trust version\n");
-	addr_mcu_el3 = res.a1;
-
-	if (of_property_read_u32(np, "vop-dclk-mode", &dclk_mode) == 0)
-		scpi_ddr_dclk_mode(dclk_mode);
-
-	lcdc_type = rk_drm_get_lcdc_type();
-
-	if (scpi_ddr_init(dram_spd_bin, 0, lcdc_type,
-			  addr_mcu_el3))
-		dev_err(dev, "ddr init error\n");
-	else
-		dev_dbg(dev, ("%s out\n"), __func__);
-
-	dmcfreq->set_auto_self_refresh = scpi_ddr_set_auto_self_refresh;
-
-	return 0;
-}
-
 static int rk3399_dmc_init(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -1616,7 +1531,6 @@ static const struct of_device_id rockchip_dmcfreq_of_match[] = {
 	{ .compatible = "rockchip,rk3228-dmc", .data = rk3228_dmc_init },
 	{ .compatible = "rockchip,rk3288-dmc", .data = rk3288_dmc_init },
 	{ .compatible = "rockchip,rk3328-dmc", .data = rk3328_dmc_init },
-	{ .compatible = "rockchip,rk3368-dmc", .data = rk3368_dmc_init },
 	{ .compatible = "rockchip,rk3399-dmc", .data = rk3399_dmc_init },
 	{ },
 };

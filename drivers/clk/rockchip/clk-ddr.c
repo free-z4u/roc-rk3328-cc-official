@@ -24,7 +24,6 @@
 #include <linux/rockchip/rockchip_sip.h>
 #include <linux/slab.h>
 #include <soc/rockchip/rockchip_sip.h>
-#include <soc/rockchip/scpi.h>
 #include <uapi/drm/drm_mode.h>
 #ifdef CONFIG_ARM
 #include <asm/psci.h>
@@ -156,54 +155,6 @@ static const struct clk_ops rockchip_ddrclk_sip_ops = {
 	.recalc_rate = rockchip_ddrclk_sip_recalc_rate,
 	.set_rate = rockchip_ddrclk_sip_set_rate,
 	.round_rate = rockchip_ddrclk_sip_round_rate,
-	.get_parent = rockchip_ddrclk_get_parent,
-};
-
-static u32 ddr_clk_cached;
-
-static int rockchip_ddrclk_scpi_set_rate(struct clk_hw *hw, unsigned long drate,
-					 unsigned long prate)
-{
-	u32 ret;
-	u32 lcdc_type;
-
-	lcdc_type = rk_drm_get_lcdc_type();
-
-	ret = scpi_ddr_set_clk_rate(drate / MHZ, lcdc_type);
-	if (ret) {
-		ddr_clk_cached = ret;
-		ret = 0;
-	} else {
-		ddr_clk_cached = 0;
-		ret = -1;
-	}
-
-	return ret;
-}
-
-static unsigned long rockchip_ddrclk_scpi_recalc_rate(struct clk_hw *hw,
-						      unsigned long parent_rate)
-{
-	if (ddr_clk_cached)
-		return (MHZ * ddr_clk_cached);
-	else
-		return (MHZ * scpi_ddr_get_clk_rate());
-}
-
-static long rockchip_ddrclk_scpi_round_rate(struct clk_hw *hw,
-					    unsigned long rate,
-					    unsigned long *prate)
-{
-	rate = rate / MHZ;
-	rate = (rate / 12) * 12;
-
-	return (rate * MHZ);
-}
-
-static const struct clk_ops rockchip_ddrclk_scpi_ops = {
-	.recalc_rate = rockchip_ddrclk_scpi_recalc_rate,
-	.set_rate = rockchip_ddrclk_scpi_set_rate,
-	.round_rate = rockchip_ddrclk_scpi_round_rate,
 	.get_parent = rockchip_ddrclk_get_parent,
 };
 
@@ -344,9 +295,6 @@ rockchip_clk_register_ddrclk(const char *name, int flags,
 	switch (ddr_flag) {
 	case ROCKCHIP_DDRCLK_SIP:
 		init.ops = &rockchip_ddrclk_sip_ops;
-		break;
-	case ROCKCHIP_DDRCLK_SCPI:
-		init.ops = &rockchip_ddrclk_scpi_ops;
 		break;
 	case ROCKCHIP_DDRCLK_SIP_V2:
 		init.ops = &rockchip_ddrclk_sip_ops_v2;
