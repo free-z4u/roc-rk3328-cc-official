@@ -92,16 +92,21 @@ struct rk_iommu_domain {
 	struct iommu_domain domain;
 };
 
+/* list of clocks required by IOMMU */
+static const char * const rk_iommu_clocks[] = {
+	"aclk"/*, "iface",*/
+};
+
 struct rk_iommu {
 	struct device *dev;
 	void __iomem **bases;
 	int num_mmu;
+	struct clk_bulk_data *clocks;
+	int num_clocks;
 	bool reset_disabled;
 	struct iommu_device iommu;
 	struct list_head node; /* entry in rk_iommu_domain.iommus */
 	struct iommu_domain *domain; /* domain to which iommu is attached */
-	struct clk *aclk; /* aclock belong to master */
-	struct clk *hclk; /* hclock belong to master */
 	struct list_head dev_node;
 };
 
@@ -247,9 +252,11 @@ static u32 rk_mk_pte_invalid(u32 pte)
 
 static void rk_iommu_power_on(struct rk_iommu *iommu)
 {
-	if (iommu->aclk && iommu->hclk) {
-		clk_enable(iommu->aclk);
-		clk_enable(iommu->hclk);
+	if (iommu->clocks)
+	{
+		if (clk_bulk_enable(iommu->num_clocks, iommu->clocks))
+			dev_info(iommu->dev, "Failed clk enable\n");
+
 	}
 
 	pm_runtime_get_sync(iommu->dev);
@@ -259,9 +266,9 @@ static void rk_iommu_power_off(struct rk_iommu *iommu)
 {
 	pm_runtime_put_sync(iommu->dev);
 
-	if (iommu->aclk && iommu->hclk) {
-		clk_disable(iommu->aclk);
-		clk_disable(iommu->hclk);
+	if (iommu->clocks)
+	{
+		clk_bulk_disable(iommu->num_clocks, iommu->clocks);
 	}
 }
 
@@ -567,7 +574,7 @@ static irqreturn_t rk_iommu_irq(int irq, void *dev_id)
 			 */
 			if (iommu->domain)
 				report_iommu_fault(iommu->domain, iommu->dev, iova,
-						   status);
+						   flags);
 			else
 				dev_err(iommu->dev, "Page fault while iommu not attached to domain?\n");
 
@@ -1214,21 +1221,20 @@ static int rk_iommu_probe(struct platform_device *pdev)
 	iommu->reset_disabled = device_property_read_bool(dev,
 					"rockchip,disable-mmu-reset");
 
-	iommu->aclk = devm_clk_get(dev, "aclk");
-	if (IS_ERR(iommu->aclk)) {
-		dev_info(dev, "can't get aclk\n");
-		iommu->aclk = NULL;
-	}
+	iommu->num_clocks = ARRAY_SIZE(rk_iommu_clocks);
+	iommu->clocks = devm_kcalloc(iommu->dev, iommu->num_clocks,
+				     sizeof(*iommu->clocks), GFP_KERNEL);
+	if (!iommu->clocks)
+		return -ENOMEM;
 
-	iommu->hclk = devm_clk_get(dev, "hclk");
-	if (IS_ERR(iommu->hclk)) {
-		dev_info(dev, "can't get hclk\n");
-		iommu->hclk = NULL;
-	}
+	for (i = 0; i < iommu->num_clocks; ++i)
+		iommu->clocks[i].id = rk_iommu_clocks[i];
 
-	if (iommu->aclk && iommu->hclk) {
-		clk_prepare(iommu->aclk);
-		clk_prepare(iommu->hclk);
+	err = clk_bulk_prepare(iommu->num_clocks, iommu->clocks);
+	if (err)
+	{
+		dev_info(iommu->dev, "Failed clk prepere\n");
+		return err;
 	}
 
 	pm_runtime_enable(iommu->dev);
