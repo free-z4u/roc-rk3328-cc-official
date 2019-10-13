@@ -15,10 +15,12 @@
 #include <linux/pm_clock.h>
 #include <linux/pm_domain.h>
 #include <linux/of_address.h>
+#include <linux/of_clk.h>
 #include <linux/of_platform.h>
 #include <linux/clk.h>
 #include <linux/regmap.h>
 #include <linux/mfd/syscon.h>
+#include <dt-bindings/power/px30-power.h>
 #include <dt-bindings/power/rk3036-power.h>
 #include <dt-bindings/power/rk3128-power.h>
 #include <dt-bindings/power/rk3228-power.h>
@@ -420,8 +422,7 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
 	pd->info = pd_info;
 	pd->pmu = pmu;
 
-	pd->num_clks = of_count_phandle_with_args(node, "clocks",
-						  "#clock-cells");
+	pd->num_clks = of_clk_get_parent_count(node);
 	if (pd->num_clks > 0) {
 		pd->clks = devm_kcalloc(pmu->dev, pd->num_clks,
 					sizeof(*pd->clks), GFP_KERNEL);
@@ -670,8 +671,7 @@ static int rockchip_pm_domain_probe(struct platform_device *pdev)
 	pmu_info = match->data;
 
 	pmu = devm_kzalloc(dev,
-			   sizeof(*pmu) +
-				pmu_info->num_domains * sizeof(pmu->domains[0]),
+			   struct_size(pmu, domains, pmu_info->num_domains),
 			   GFP_KERNEL);
 	if (!pmu)
 		return -ENOMEM;
@@ -746,6 +746,17 @@ err_out:
 	rockchip_pm_domain_cleanup(pmu);
 	return error;
 }
+
+static const struct rockchip_domain_info px30_pm_domains[] = {
+	[PX30_PD_USB]		= DOMAIN_PX30(5, 5, 10, false),
+	[PX30_PD_SDCARD]	= DOMAIN_PX30(8, 8, 9, false),
+	[PX30_PD_GMAC]		= DOMAIN_PX30(10, 10, 6, false),
+	[PX30_PD_MMC_NAND]	= DOMAIN_PX30(11, 11, 5, false),
+	[PX30_PD_VPU]		= DOMAIN_PX30(12, 12, 14, false),
+	[PX30_PD_VO]		= DOMAIN_PX30(13, 13, 7, false),
+	[PX30_PD_VI]		= DOMAIN_PX30(14, 14, 8, false),
+	[PX30_PD_GPU]		= DOMAIN_PX30(15, 15, 2, false),
+};
 
 static const struct rockchip_domain_info rk3036_pm_domains[] = {
 	[RK3036_PD_MSCH]	= DOMAIN_RK3036(14, 23, 30, true),
@@ -844,6 +855,17 @@ static const struct rockchip_domain_info rk3399_pm_domains[] = {
 	[RK3399_PD_GIC]		= DOMAIN_RK3399(29, 29, 27, true),
 	[RK3399_PD_SD]		= DOMAIN_RK3399(30, 30, 28, true),
 	[RK3399_PD_SDIOAUDIO]	= DOMAIN_RK3399(31, 31, 29, true),
+};
+
+static const struct rockchip_pmu_info px30_pmu = {
+	.pwr_offset = 0x18,
+	.status_offset = 0x20,
+	.req_offset = 0x64,
+	.idle_offset = 0x6c,
+	.ack_offset = 0x6c,
+
+	.num_domains = ARRAY_SIZE(px30_pm_domains),
+	.domain_info = px30_pm_domains,
 };
 
 static const struct rockchip_pmu_info rk3036_pmu = {
@@ -949,6 +971,10 @@ static const struct rockchip_pmu_info rk3399_pmu = {
 };
 
 static const struct of_device_id rockchip_pm_domain_dt_match[] = {
+	{
+		.compatible = "rockchip,px30-power-controller",
+		.data = (void *)&px30_pmu,
+	},
 	{
 		.compatible = "rockchip,rk3036-power-controller",
 		.data = (void *)&rk3036_pmu,

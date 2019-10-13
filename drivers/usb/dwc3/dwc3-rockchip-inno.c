@@ -54,8 +54,8 @@ static int dwc3_rockchip_host_testmode_show(struct seq_file *s, void *unused)
 	struct dwc3		*dwc = rockchip->dwc;
 	struct usb_hcd		*hcd  = dev_get_drvdata(&dwc->xhci->dev);
 	struct xhci_hcd		*xhci = hcd_to_xhci(hcd);
-	__le32 __iomem		**port_array;
 	u32			reg;
+	struct xhci_hub		*rhub;
 
 	if (rockchip->dwc->dr_mode == USB_DR_MODE_PERIPHERAL) {
 		dev_warn(rockchip->dev, "USB HOST not support!\n");
@@ -67,8 +67,8 @@ static int dwc3_rockchip_host_testmode_show(struct seq_file *s, void *unused)
 		return 0;
 	}
 
-	port_array = xhci->usb2_ports;
-	reg = readl(port_array[0] + 1);
+	rhub = &xhci->usb2_rhub;
+	reg = readl(rhub->ports[0]->addr + 1);
 	reg &= XHCI_TSTCTRL_MASK;
 	reg >>= 28;
 
@@ -95,8 +95,8 @@ static int dwc3_rockchip_host_testmode_show(struct seq_file *s, void *unused)
 		seq_printf(s, "U2: UNKNOWN %d\n", reg);
 	}
 
-	port_array = xhci->usb3_ports;
-	reg = readl(port_array[0]);
+	rhub = &xhci->usb3_rhub;
+	reg = readl(rhub->ports[0]->addr);
 	reg &= PORT_PLS_MASK;
 	if (reg == USB_SS_PORT_LS_COMP_MOD)
 		seq_puts(s, "U3: compliance mode\n");
@@ -128,9 +128,9 @@ static int dwc3_rockchip_set_test_mode(struct dwc3_rockchip *rockchip,
 	struct dwc3	*dwc = rockchip->dwc;
 	struct usb_hcd	*hcd  = dev_get_drvdata(&dwc->xhci->dev);
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
-	__le32 __iomem	**port_array;
 	int		ret;
 	u32		reg;
+	struct xhci_hub		*rhub;
 
 	if (hcd->state == HC_STATE_HALT) {
 		dev_err(rockchip->dev, "HOST is halted!\n");
@@ -143,11 +143,11 @@ static int dwc3_rockchip_set_test_mode(struct dwc3_rockchip *rockchip,
 	case TEST_SE0_NAK:
 	case TEST_PACKET:
 	case TEST_FORCE_EN:
-		port_array = xhci->usb2_ports;
-		reg = readl(port_array[0] + 1);
+		rhub = &xhci->usb2_rhub;
+		reg = readl(rhub->ports[0]->addr + 1);
 		reg &= ~XHCI_TSTCTRL_MASK;
 		reg |= mode << 28;
-		writel(reg, port_array[0] + 1);
+		writel(reg, rhub->ports[0]->addr + 1);
 		break;
 	case USB_SS_PORT_LS_COMP_MOD:
 		/*
@@ -160,8 +160,8 @@ static int dwc3_rockchip_set_test_mode(struct dwc3_rockchip *rockchip,
 			return ret;
 		}
 
-		port_array = xhci->usb3_ports;
-		xhci_set_link_state(xhci, port_array, 0, mode);
+		rhub = &xhci->usb3_rhub;
+		xhci_set_link_state(xhci, rhub->ports[0], mode);
 		break;
 	default:
 		return -EINVAL;

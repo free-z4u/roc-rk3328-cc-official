@@ -18,7 +18,6 @@
 #include <linux/nvmem-consumer.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
-#include <asm/system_info.h>
 #include <linux/rockchip/cpu.h>
 
 unsigned long rockchip_soc_id;
@@ -31,6 +30,8 @@ static int rockchip_cpuinfo_probe(struct platform_device *pdev)
 	unsigned char *efuse_buf, buf[16];
 	size_t len;
 	int i;
+	unsigned int system_serial_low;
+	unsigned int system_serial_high;
 
 	cell = nvmem_cell_get(dev, "cpu-version");
 	if (!IS_ERR(cell)) {
