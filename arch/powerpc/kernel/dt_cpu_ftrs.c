@@ -53,18 +53,6 @@ struct dt_cpu_feature {
 	int disabled;
 };
 
-#define CPU_FTRS_BASE \
-	   (CPU_FTR_LWSYNC | \
-	    CPU_FTR_FPU_UNAVAILABLE |\
-	    CPU_FTR_NODSISRALIGN |\
-	    CPU_FTR_NOEXECUTE |\
-	    CPU_FTR_COHERENT_ICACHE | \
-	    CPU_FTR_STCX_CHECKS_ADDRESS |\
-	    CPU_FTR_POPCNTB | CPU_FTR_POPCNTD | \
-	    CPU_FTR_DAWR | \
-	    CPU_FTR_ARCH_206 |\
-	    CPU_FTR_ARCH_207S)
-
 #define MMU_FTRS_HASH_BASE (MMU_FTRS_POWER8)
 
 #define COMMON_USER_BASE	(PPC_FEATURE_32 | PPC_FEATURE_64 | \
@@ -113,6 +101,7 @@ static void __restore_cpu_cpufeatures(void)
 	if (hv_mode) {
 		mtspr(SPRN_LPID, 0);
 		mtspr(SPRN_HFSCR, system_registers.hfscr);
+		mtspr(SPRN_PCR, 0);
 	}
 	mtspr(SPRN_FSCR, system_registers.fscr);
 
@@ -124,7 +113,7 @@ static char dt_cpu_name[64];
 
 static struct cpu_spec __initdata base_cpu_spec = {
 	.cpu_name		= NULL,
-	.cpu_features		= CPU_FTRS_BASE,
+	.cpu_features		= CPU_FTRS_DT_CPU_BASE,
 	.cpu_user_features	= COMMON_USER_BASE,
 	.cpu_user_features2	= COMMON_USER2_BASE,
 	.mmu_features		= 0,

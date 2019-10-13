@@ -697,7 +697,7 @@ static bool tcp_should_autocork(struct sock *sk, struct sk_buff *skb,
 {
 	return skb->len < size_goal &&
 	       sock_net(sk)->ipv4.sysctl_tcp_autocorking &&
-	       skb != tcp_write_queue_head(sk) &&
+	       !tcp_rtx_queue_empty(sk) &&
 	       refcount_read(&sk->sk_wmem_alloc) > skb->truesize;
 }
 
@@ -2369,6 +2369,7 @@ void tcp_write_queue_purge(struct sock *sk)
 	INIT_LIST_HEAD(&tcp_sk(sk)->tsorted_sent_queue);
 	sk_mem_reclaim(sk);
 	tcp_clear_all_retrans_hints(tcp_sk(sk));
+	tcp_sk(sk)->packets_out = 0;
 }
 
 int tcp_disconnect(struct sock *sk, int flags)
@@ -2418,7 +2419,6 @@ int tcp_disconnect(struct sock *sk, int flags)
 	icsk->icsk_backoff = 0;
 	tp->snd_cwnd = 2;
 	icsk->icsk_probes_out = 0;
-	tp->packets_out = 0;
 	tp->snd_ssthresh = TCP_INFINITE_SSTHRESH;
 	tp->snd_cwnd_cnt = 0;
 	tp->window_clamp = 0;

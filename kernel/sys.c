@@ -71,6 +71,9 @@
 #include <asm/io.h>
 #include <asm/unistd.h>
 
+/* Hardening for Spectre-v1 */
+#include <linux/nospec.h>
+
 #include "uid16.h"
 
 #ifndef SET_UNALIGN_CTL
@@ -1468,6 +1471,7 @@ COMPAT_SYSCALL_DEFINE2(old_getrlimit, unsigned int, resource,
 	if (resource >= RLIM_NLIMITS)
 		return -EINVAL;
 
+	resource = array_index_nospec(resource, RLIM_NLIMITS);
 	task_lock(current->group_leader);
 	r = current->signal->rlim[resource];
 	task_unlock(current->group_leader);
@@ -2222,17 +2226,6 @@ static int prctl_get_tid_address(struct task_struct *me, int __user **tid_addr)
 }
 #endif
 
-int __weak arch_prctl_spec_ctrl_get(struct task_struct *t, unsigned long which)
-{
-	return -EINVAL;
-}
-
-int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
-				    unsigned long ctrl)
-{
-	return -EINVAL;
-}
-
 static int propagate_has_child_subreaper(struct task_struct *p, void *data)
 {
 	/*
@@ -2249,6 +2242,17 @@ static int propagate_has_child_subreaper(struct task_struct *p, void *data)
 
 	p->signal->has_child_subreaper = 1;
 	return 1;
+}
+
+int __weak arch_prctl_spec_ctrl_get(struct task_struct *t, unsigned long which)
+{
+	return -EINVAL;
+}
+
+int __weak arch_prctl_spec_ctrl_set(struct task_struct *t, unsigned long which,
+				    unsigned long ctrl)
+{
+	return -EINVAL;
 }
 
 SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
