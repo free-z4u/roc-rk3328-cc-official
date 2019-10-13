@@ -23,8 +23,8 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
 #define __branch_check__(x, expect, is_constant) ({			\
 			long ______r;					\
 			static struct ftrace_likely_data		\
-				__aligned(4)				\
-				__section("_ftrace_annotated_branch")	\
+				__attribute__((__aligned__(4)))		\
+				__attribute__((section("_ftrace_annotated_branch"))) \
 				______f = {				\
 				.data.func = __func__,			\
 				.data.file = __FILE__,			\

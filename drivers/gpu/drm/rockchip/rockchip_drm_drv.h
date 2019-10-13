@@ -34,13 +34,11 @@ struct iommu_domain;
 
 /*
  * Rockchip drm private crtc funcs.
- * @loader_protect: protect loader logo crtc's power
  * @enable_vblank: enable crtc vblank irq.
  * @disable_vblank: disable crtc vblank irq.
  * @bandwidth: report present crtc bandwidth consume.
  */
 struct rockchip_crtc_funcs {
-	int (*loader_protect)(struct drm_crtc *crtc, bool on);
 	int (*enable_vblank)(struct drm_crtc *crtc);
 	void (*disable_vblank)(struct drm_crtc *crtc);
 	size_t (*bandwidth)(struct drm_crtc *crtc,
