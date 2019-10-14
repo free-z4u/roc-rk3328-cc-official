@@ -115,16 +115,6 @@ int sip_smc_remotectl_config(u32 func, u32 data);
 
 int sip_smc_secure_reg_write(u32 addr_phy, u32 val);
 u32 sip_smc_secure_reg_read(u32 addr_phy);
-
-/***************************fiq debugger **************************************/
-void sip_fiq_debugger_enable_fiq(bool enable, uint32_t tgt_cpu);
-void sip_fiq_debugger_enable_debug(bool enable);
-int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id, void *callback_fn);
-int sip_fiq_debugger_set_print_port(u32 port_phyaddr, u32 baudrate);
-int sip_fiq_debugger_request_share_memory(void);
-int sip_fiq_debugger_get_target_cpu(void);
-int sip_fiq_debugger_switch_cpu(u32 cpu);
-int sip_fiq_debugger_is_enabled(void);
 #else
 static inline struct arm_smccc_res sip_smc_get_atf_version(void)
 {
@@ -174,28 +164,6 @@ static inline int sip_smc_virtual_poweroff(void) { return 0; }
 static inline int sip_smc_remotectl_config(u32 func, u32 data) { return 0; }
 static inline u32 sip_smc_secure_reg_read(u32 addr_phy) { return 0; }
 static inline int sip_smc_secure_reg_write(u32 addr_phy, u32 val) { return 0; }
-
-/***************************fiq debugger **************************************/
-static inline void sip_fiq_debugger_enable_fiq
-			(bool enable, uint32_t tgt_cpu) { return; }
-
-static inline void sip_fiq_debugger_enable_debug(bool enable) { return; }
-static inline int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id,
-						    void *callback_fn)
-{
-	return 0;
-}
-
-static inline int sip_fiq_debugger_set_print_port(u32 port_phyaddr,
-						  u32 baudrate)
-{
-	return 0;
-}
-
-static inline int sip_fiq_debugger_request_share_memory(void) { return 0; }
-static inline int sip_fiq_debugger_get_target_cpu(void) { return 0; }
-static inline int sip_fiq_debugger_switch_cpu(u32 cpu) { return 0; }
-static inline int sip_fiq_debugger_is_enabled(void) { return 0; }
 #endif
 
 /* optee cpu_context */

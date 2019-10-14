@@ -227,17 +227,6 @@ struct rockchip_thermal_data {
 #define GRF_TSADC_VCM_EN_L			(0x10001 << 7)
 #define GRF_TSADC_VCM_EN_H			(0x10001 << 7)
 
-#define GRF_CON_TSADC_CH_INV			(0x10001 << 1)
-
-#define MIN_TEMP				(-40000)
-#define MAX_TEMP				(125000)
-
-#define BASE					(1024)
-#define BASE_SHIFT				(10)
-#define START_DEBOUNCE_COUNT			(100)
-#define HIGHER_DEBOUNCE_TEMP			(30)
-#define LOWER_DEBOUNCE_TEMP			(15)
-
 /**
  * struct tsadc_table - code to temperature conversion table
  * @code: the value of adc channel
@@ -759,82 +748,6 @@ static int rk_tsadcv2_get_temp(const struct chip_tsadc_table *table,
 	return rk_tsadcv2_code_to_temp(table, val, temp);
 }
 
-static int predict_temp(int temp)
-{
-	/*
-	 * The deviation of prediction. the temperature will not change rapidly,
-	 * so this cov_q is small
-	 */
-	int cov_q = 18;
-	/*
-	 * The deviation of tsadc's reading, deviation of tsadc is very big when
-	 * abnormal temperature is get
-	 */
-	int cov_r = 542;
-
-	int gain;
-	int temp_mid;
-	int temp_now;
-	int prob_mid;
-	int prob_now;
-	static int temp_last = 25;
-	static int prob_last = 20;
-	static int bounding_cnt;
-
-	/*
-	 * Before START_DEBOUNCE_COUNT's samples of temperature, we consider
-	 * tsadc is stable, i.e. after that, the temperature may be not stable
-	 * and may have abnormal reading, so we set a bounding temperature. If
-	 * the reading from tsadc is too big, we set the delta temperature of
-	 * DEBOUNCE_TEMP/3 comparing to the last temperature.
-	 */
-
-	if (bounding_cnt++ > START_DEBOUNCE_COUNT) {
-		bounding_cnt = START_DEBOUNCE_COUNT;
-		if (temp - temp_last > HIGHER_DEBOUNCE_TEMP)
-			temp = temp_last + HIGHER_DEBOUNCE_TEMP / 3;
-		if (temp_last - temp > LOWER_DEBOUNCE_TEMP)
-			temp = temp_last - LOWER_DEBOUNCE_TEMP / 3;
-	}
-
-	temp_mid = temp_last;
-
-	/* calculate the probability of this time's prediction */
-	prob_mid = prob_last + cov_q;
-
-	/* calculate the Kalman Gain */
-	gain = (prob_mid * BASE) / (prob_mid + cov_r);
-
-	/* calculate the prediction of temperature */
-	temp_now = temp_mid + (gain * (temp - temp_mid) >> BASE_SHIFT);
-
-	/*
-	 * Base on this time's Kalman Gain, ajust our probability of prediction
-	 * for next time calculation
-	 */
-	prob_now = ((BASE - gain) * prob_mid) >> BASE_SHIFT;
-
-	prob_last = prob_now;
-	temp_last = temp_now;
-
-	return temp_last;
-}
-
-static int rk_tsadcv3_get_temp(const struct chip_tsadc_table *table,
-			       int chn, void __iomem *regs, int *temp)
-{
-	u32 val;
-	int ret;
-
-	val = readl_relaxed(regs + TSADCV2_DATA(chn));
-
-	ret = rk_tsadcv2_code_to_temp(table, val, temp);
-	if (!ret)
-		*temp = predict_temp(*temp);
-
-	return ret;
-}
-
 static int rk_tsadcv2_alarm_temp(const struct chip_tsadc_table *table,
 				 int chn, void __iomem *regs, int temp)
 {
@@ -965,7 +878,7 @@ static const struct rockchip_tsadc_chip rk3288_tsadc_data = {
 	.initialize = rk_tsadcv2_initialize,
 	.irq_ack = rk_tsadcv2_irq_ack,
 	.control = rk_tsadcv2_control,
-	.get_temp = rk_tsadcv3_get_temp,
+	.get_temp = rk_tsadcv2_get_temp,
 	.set_alarm_temp = rk_tsadcv2_alarm_temp,
 	.set_tshut_temp = rk_tsadcv2_tshut_temp,
 	.set_tshut_mode = rk_tsadcv2_tshut_mode,
@@ -1271,48 +1184,6 @@ static void rockchip_thermal_reset_controller(struct reset_control *reset)
 	reset_control_deassert(reset);
 }
 
-static struct platform_device *thermal_device;
-
-void rockchip_dump_temperature(void)
-{
-	struct rockchip_thermal_data *thermal;
-	struct platform_device *pdev;
-	int i;
-
-	if (!thermal_device)
-		return;
-
-	pdev = thermal_device;
-	thermal = platform_get_drvdata(pdev);
-
-	for (i = 0; i < thermal->chip->chn_num; i++) {
-		struct rockchip_thermal_sensor *sensor = &thermal->sensors[i];
-		struct thermal_zone_device *tz = sensor->tzd;
-
-		if (tz->temperature != THERMAL_TEMP_INVALID)
-			dev_warn(&pdev->dev, "channal %d: temperature(%d C)\n",
-				 i, tz->temperature / 1000);
-	}
-
-	if (thermal->regs) {
-		pr_warn("THERMAL REGS:\n");
-		print_hex_dump(KERN_WARNING, "", DUMP_PREFIX_OFFSET,
-			       32, 4, thermal->regs, 0x88, false);
-	}
-}
-EXPORT_SYMBOL_GPL(rockchip_dump_temperature);
-
-static int rockchip_thermal_panic(struct notifier_block *this,
-				  unsigned long ev, void *ptr)
-{
-	rockchip_dump_temperature();
-	return NOTIFY_DONE;
-}
-
-static struct notifier_block rockchip_thermal_panic_block = {
-	.notifier_call = rockchip_thermal_panic,
-};
-
 static int rockchip_thermal_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1424,11 +1295,6 @@ static int rockchip_thermal_probe(struct platform_device *pdev)
 		rockchip_thermal_toggle_sensor(&thermal->sensors[i], true);
 
 	platform_set_drvdata(pdev, thermal);
-
-	thermal_device = pdev;
-
-	atomic_notifier_chain_register(&panic_notifier_list,
-				       &rockchip_thermal_panic_block);
 
 	return 0;
 
