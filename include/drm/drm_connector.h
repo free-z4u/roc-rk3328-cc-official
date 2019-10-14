@@ -158,6 +158,9 @@ struct drm_hdmi_info {
 
 	/** @y420_dc_modes: bitmap of deep color support index */
 	u8 y420_dc_modes;
+
+	/* Colorimerty info from EDID */
+	u32 colorimetry;
 };
 
 /**
@@ -781,6 +784,7 @@ struct drm_cmdline_mode {
 struct drm_connector {
 	/** @dev: parent DRM device */
 	struct drm_device *dev;
+	struct device_node *port;
 	/** @kdev: kernel device for sysfs attributes */
 	struct device *kdev;
 	/** @attr: sysfs attributes */
