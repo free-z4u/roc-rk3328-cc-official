@@ -13,22 +13,18 @@
  * GNU General Public License for more details.
  */
 
-#include <drm/drmP.h>
-#include <drm/drm_modeset_lock.h>
-#include <dt-bindings/display/rk_fb.h>
 #include <linux/arm-smccc.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/io.h>
 #include <linux/of.h>
+#include <drm/drmP.h>
+#include <drm/drm_modeset_lock.h>
+#include <dt-bindings/display/rk_fb.h>
 #include <linux/rockchip/rockchip_sip.h>
+#include <uapi/drm/drm_mode.h>
 #include <linux/slab.h>
 #include <soc/rockchip/rockchip_sip.h>
-#include <uapi/drm/drm_mode.h>
-#ifdef CONFIG_ARM
-#include <asm/psci.h>
-#endif
-
 #include "clk.h"
 
 #define MHZ		(1000000)
@@ -262,8 +258,7 @@ static const struct clk_ops rockchip_ddrclk_sip_ops_v2 = {
 	.get_parent = rockchip_ddrclk_get_parent,
 };
 
-struct clk * __init
-rockchip_clk_register_ddrclk(const char *name, int flags,
+struct clk *rockchip_clk_register_ddrclk(const char *name, int flags,
 					 const char *const *parent_names,
 					 u8 num_parents, int mux_offset,
 					 int mux_shift, int mux_width,
@@ -274,11 +269,6 @@ rockchip_clk_register_ddrclk(const char *name, int flags,
 	struct rockchip_ddrclk *ddrclk;
 	struct clk_init_data init;
 	struct clk *clk;
-
-#ifdef CONFIG_ARM
-	if (!psci_smp_available())
-		return NULL;
-#endif
 
 	ddrclk = kzalloc(sizeof(*ddrclk), GFP_KERNEL);
 	if (!ddrclk)
